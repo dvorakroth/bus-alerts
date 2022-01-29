@@ -62,12 +62,10 @@
 {
     @include line-number-border;
 
-    // background: linear-gradient(white 90%, #99ca3c 10%);
     @include bg-with-stripe(white, #00b557);
 }
 .line-number.operator-7 /* NTT */
 {
-    // background: linear-gradient(#7e7e7e 90%, #ad1b1c 10%);
     @include bg-with-stripe(#808184, #c21722);
     @include white-text;
 }
@@ -88,7 +86,6 @@
 .line-number.operator-35 /* Bet Shemesh Express */
 {
     @include line-number-border;
-    //background: linear-gradient(white 90%, #F3AD44 10%);
     @include bg-with-stripe(white, #f38c21);
 }
 
@@ -96,25 +93,13 @@
 {
     background: #f68125; //#F3AD44;
     @include white-text; //black;
-
-    // .relevant-tag-expired ~ * &,
-    // .relevant-tag-deleted ~ * & {
-    //     color: #7f7f7f;
-
-    //     &::before {
-    //         background-color: #7f7f7f;
-    //     }
-    // }
 }
 .line-number.operator-16 /* Superbus */
 {
-    //background: linear-gradient(#7e7e7e 90%, #00399c 10%);
     @include bg-with-stripe(rgb(205, 205, 205), #003c7c);
-    // @include white-text;
 }
 .line-number.operator-18 /* Kavim */
 {
-    // background: linear-gradient(#99ca3c 90%, #00399c 10%);
     @include bg-with-stripe(#012768, #98cc4c);
     @include white-text;
 }
@@ -132,26 +117,21 @@
 }
 .line-number.operator-23 {
     /* Galim */
-    //background: linear-gradient(#2981c4 90%, #c9d02c 10%);
     @include bg-with-stripe(#00adec, #d6e252);
     @include white-text;
 }
 .line-number.operator-24 /* Golan Local Council */
 {
     @include bg-with-stripe(#93cd55, #0082d4);
-    // @include white-text;
 }
 .line-number.operator-25 {
     /* Electra Afikim */
-    // background: linear-gradient(#7e7e7e 90%, #99ca3c 10%);
     @include bg-two-stripes(#ffffff, #487fcb, #99ca3c);
     @include line-number-border();
-    // @include white-text;
 }
 .line-number.operator-33 /* Cable Express */
 {
     background: #006db7;
-    // @include bg-with-stripe(#006db7, #9d9d9d);
     @include white-text;
 }
 .line-number.operator-34 /* Tnufa */
@@ -213,9 +193,6 @@
 
 /* Sherut Lines */
 .line-number.operator-91 {
-    // @include line-number-border;
-
-    // background: rgb(244, 211, 27);
     @include bg-with-stripe(rgb(244, 211, 27), #003a72);
 }
 
@@ -225,50 +202,3 @@
 .line-number.operator-98 {
     background: rgb(244, 211, 27);
 }
-
-/* some overrides for readability */
-
-// .relevant-tag-expired,
-// .relevant-tag-deleted {
-    // & ~ * .line-number {
-    //     &.operator-3 {
-    //         background: #0a7b4c;
-    //     }
-    //     &.operator-4 {
-    //         background: #718a16;
-    //     }
-    //     &.operator-7 {
-    //         @include bg-with-stripe(#5c5d60, #c21722);
-    //     }
-    //     &.operator-15,
-    //     &.operator-20 {
-    //         background: #a7591d;
-    //         color: #444;
-
-    //         &::before {
-    //             background-color: #444;
-    //         }
-    //     }
-    //     &.operator-16 {
-    //         @include bg-with-stripe(rgb(230, 230, 230), #003c7c);
-    //     }
-    //     &.operator-23 {
-    //         @include bg-with-stripe(#0283b1, #d6e252);
-    //     }
-    //     &.operator-24 {
-    //         @include bg-with-stripe(#437d06, #0082d4);
-    //     }
-    //     &.operator-25 {
-    //         @include bg-two-stripes(#ffffff, #487fcb, #99ca3c);
-    //     }
-    //     &.operator-91 {
-    //         @include bg-with-stripe(rgb(255, 233, 111), #003a72);
-    //     }
-    //     &.operator-92,
-    //     &.operator-93,
-    //     &.operator-97,
-    //     &.operator-98 {
-    //         background: rgb(255, 233, 111);
-    //     }
-//     // }
-// }
