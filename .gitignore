@@ -1,5 +1,6 @@
 node_modules
 __pycache__
+.vscode
 
 gtfs_rt_samples
 crap
