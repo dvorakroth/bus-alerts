@@ -602,9 +602,9 @@ def generate_query___fetch_all_routeids_at_stops_in_dateranges(relevant_stop_ids
     if len(relevant_stop_ids) == 0 or len(active_periods) == 0:
         return []
     query_text = 'SELECT DISTINCT route_id FROM trips ' +\
-        'INNER JOIN stoptimes ON trips.trip_id = stoptimes.trip_id ' +\
+        'INNER JOIN stoptimes_int ON trips.trip_id = stoptimes_int.trip_id ' +\
         'INNER JOIN calendar ON trips.service_id = calendar.service_id ' +\
-        'WHERE stoptimes.stop_id IN %s '
+        'WHERE stoptimes_int.stop_id IN %s '
     query_values = [tuple(relevant_stop_ids)]
 
     all_period_conditions = []
@@ -627,20 +627,20 @@ def generate_query___fetch_all_routeids_at_stops_in_dateranges(relevant_stop_ids
 
             if s is not None and e is None:
                 part_condition = \
-                    'calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes.arrival_time '+\
+                    'calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time '+\
                     ' >= ' +\
                     '%s'
                 part_values = [s]
             elif s is None and e is not None:
                 part_condition = \
-                    'calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes.arrival_time '+\
+                    'calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time '+\
                     ' < ' +\
                     '%s'
                 part_values = [e]
             elif s is not None and e is not None:
                 part_condition = \
-                    '(calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes.arrival_time, '+\
-                    'calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes.arrival_time + INTERVAL \'1 second\') ' +\
+                    '(calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time, '+\
+                    'calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time + INTERVAL \'1 second\') ' +\
                     'OVERLAPS (%s, %s)'
                 part_values = [s, e]
 
@@ -661,23 +661,23 @@ def generate_query___fetch_all_routeids_at_stops_in_dateranges(relevant_stop_ids
                     part_condition += \
                         ' AND (' +\
                             '(' +\
-                                'stoptimes.arrival_time < INTERVAL \'24 hours\' ' +\
+                                'stoptimes_int.arrival_time < INTERVAL \'24 hours\' ' +\
                                 'AND (' +\
                                     ' OR '.join([
                                         'calendar.' + GTFS_CALENDAR_DOW[dow] + ' = TRUE'
                                         for dow in relevant_dow
                                     ]) +\
                                 ')' +\
-                                (' AND (%s + stoptimes.arrival_time) BETWEEN %s AND %s' if less_than_a_day else '') +\
+                                (' AND (%s + stoptimes_int.arrival_time) BETWEEN %s AND %s' if less_than_a_day else '') +\
                             ') OR (' +\
-                                'stoptimes.arrival_time >= INTERVAL \'24 hours\' ' + \
+                                'stoptimes_int.arrival_time >= INTERVAL \'24 hours\' ' + \
                                 'AND (' +\
                                     ' OR '.join([
                                         'calendar.' + GTFS_CALENDAR_DOW[(dow - 1) % 7] + ' = TRUE'
                                         for dow in relevant_dow
                                     ]) +\
                                 ')' +\
-                                (' AND (%s + stoptimes.arrival_time) BETWEEN %s AND %s' if less_than_a_day else '') +\
+                                (' AND (%s + stoptimes_int.arrival_time) BETWEEN %s AND %s' if less_than_a_day else '') +\
                             ')' +\
                         ')'
                     

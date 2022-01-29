@@ -80,8 +80,8 @@ CREATE INDEX ix_stops_stop_code ON stops USING btree (stop_code);
 
 CREATE TABLE stoptimes (
     trip_id character varying NOT NULL,
-    arrival_time INTERVAL NOT NULL,
-    departure_time INTERVAL,
+    arrival_time character varying NOT NULL,
+    departure_time character varying,
     stop_id character varying NOT NULL,
     stop_sequence integer NOT NULL,
     pickup_type boolean,
@@ -145,3 +145,16 @@ CREATE TABLE calendar (
 ALTER TABLE ONLY calendar
     ADD CONSTRAINT calendar_pkey PRIMARY KEY (service_id);
 
+
+
+CREATE VIEW stoptimes_int AS
+SELECT
+    trip_id,
+    arrival_time::INTERVAL AS arrival_time,
+    departure_time::INTERVAL AS departure_time,
+    stop_id,
+    stop_sequence,
+    pickup_type,
+    drop_off_type,
+    shape_dist_traveled
+FROM stoptimes;
