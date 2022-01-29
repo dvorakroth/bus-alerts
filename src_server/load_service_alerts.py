@@ -876,8 +876,5 @@ def main():
             gtfsconn.rollback()
             raise
 
-        # for filename, TESTING_fake_today in zip(filenames[-1:], filename_timestamps):
-            # load_israeli_gtfs_rt_from_file(gtfsconn, alertconn, filename, TESTING_fake_today)
-
 if __name__ == "__main__":
     main()
