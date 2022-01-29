@@ -1168,16 +1168,16 @@ def main():
     host = config['service_alerts']['web_host']
     port = int(config['service_alerts']['web_port'])
 
-    server_conf_root = {
-        '/': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.root': os.path.abspath(
-                os.path.join(os.path.dirname(os.path.abspath(__file__)), '../dist')
-            ),
-            'tools.staticdir.dir': '',
-            'tools.staticdir.index': "index.html"
-        }
-    }
+    # server_conf_root = {
+    #     '/': {
+    #         'tools.staticdir.on': True,
+    #         'tools.staticdir.root': os.path.abspath(
+    #             os.path.join(os.path.dirname(os.path.abspath(__file__)), '../dist')
+    #         ),
+    #         'tools.staticdir.dir': '',
+    #         'tools.staticdir.index': "index.html"
+    #     }
+    # }
 
     server_conf_api = {
         '/': {
@@ -1192,7 +1192,7 @@ def main():
 
     with psycopg2.connect(gtfs_db_url) as gtfsconn, psycopg2.connect(alerts_db_url) as alertconn:
         cherrypy.tree.mount(ServiceAlertsApiServer(gtfsconn, alertconn), '/api', server_conf_api)
-        cherrypy.tree.mount(None, '/', server_conf_root)
+        # cherrypy.tree.mount(None, '/', server_conf_root)
         cherrypy.engine.start()
         cherrypy.engine.block()
 
