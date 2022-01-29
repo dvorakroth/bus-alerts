@@ -6,6 +6,7 @@ import { FuriousSearchMatch, FuriousSearchResult } from "../FuriousSearch/furiou
 import { Agency, isServiceAlert, JsDict, ServiceAlert, USE_CASES_REVERSE } from "./data";
 import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "./date_utils";
 import { SEARCH_KEY_INDICES } from "./search_worker_data";
+import { imageNameForAgencyId } from "./agency_images";
 
 const RELEVANCE_LEVELS = {
     TODAY: 'today',
@@ -176,40 +177,7 @@ const MORE_DETAILS_STRING     = "לחצו לפרטים נוספים >";
 //     "21": ["21", "21", "21", "21", "21", "21"]
 // };
 
-// const SVG_OPERATORS = [
-//     2, 3, 4, 5, 6, 7, 8, 10, 14, 15, 16, 18, 20, 21, 23, 24, 25, 31, 32, 33, 34, 35, 37
-// ].map(i => ""+i);
 
-const PNG_OPERATORS = [
-    42, 44, 45, 50, 91
-].map(i => ""+i);
-
-const OPERATOR_ALIAS: JsDict<string> = {
-    "47": "42",
-    "49": "42",
-    "51": "42"
-};
-
-const TAXI_OPERATORS = ["92", "93", "97", "98"];
-
-function imageNameForAgencyId(agency_id: string) {
-    agency_id = OPERATOR_ALIAS[agency_id] || agency_id;
-
-    if (TAXI_OPERATORS.indexOf(agency_id) >= 0) {
-        return "/assets/agency_logos/taxi.svg";
-    }
-
-    if (PNG_OPERATORS.indexOf(agency_id) >= 0) {
-        return "/assets/agency_logos/agency-" + agency_id + ".png";
-    }
-
-    // if (SVG_OPERATORS.indexOf(agency_id) >= 0) {
-    // guess that it's an svg if it's not explicitly set as taxi or png
-    return "/assets/agency_logos/agency-" + agency_id + ".svg";
-    // }
-
-    // return null;
-}
 
 interface AgencyTagProps extends Agency {
     matches?: FuriousSearchMatch;
