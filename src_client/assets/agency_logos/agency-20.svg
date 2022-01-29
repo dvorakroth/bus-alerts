@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg1524"
+   version="1.1"
+   viewBox="0 0 60.000003 51.958674"
+   height="196.37924"
+   width="226.77165">
+  <defs
+     id="defs1518">
+    <clipPath
+       id="clipPath1140-4-3"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         id="path1138-44-4"
+         d="M 21,21 H 758.008 V 998.953 H 21 Z" />
+    </clipPath>
+    <clipPath
+       id="clipPath1140-4-3-7-6"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         id="path1138-44-4-8-4"
+         d="M 21,21 H 758.008 V 998.953 H 21 Z" />
+    </clipPath>
+  </defs>
+  <metadata
+     id="metadata1521">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-160.85346,-166.41486)"
+     id="layer1">
+    <g
+       style="fill:#e28a07;fill-opacity:1"
+       id="g1134-7-6"
+       transform="matrix(1.0558856,0.0877016,0.0877016,-1.0558856,-399.61376,982.53558)">
+      <g
+         style="fill:#e28a07;fill-opacity:1"
+         clip-path="url(#clipPath1140-4-3)"
+         id="g1136-6-3">
+        <g
+           style="fill:#e28a07;fill-opacity:1"
+           transform="translate(469.1575,811.5826)"
+           id="g1142-08-7">
+          <path
+             id="path1144-6-9"
+             style="fill:#e28a07;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             d="m 0,0 0.672,-9.021 21.345,1.774 -24.506,-32.187 12.429,1.033 26.303,32.62 c 0,0 5.568,7.34 -2.446,8.899 L 0.199,0.096" />
+        </g>
+        <g
+           style="fill:#e28a07;fill-opacity:1"
+           transform="translate(518.2677,766.937)"
+           id="g1146-2-8">
+          <path
+             id="path1148-4-4"
+             style="fill:#e28a07;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             d="M 0,0 -0.79,9.149 -22.134,7.375 2.372,39.562 -10.058,38.53 -36.36,5.909 c 0,0 -5.38,-7.61 2.446,-8.899 l 33.597,3.022" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

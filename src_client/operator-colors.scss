@@ -1,0 +1,274 @@
+@mixin bg-with-stripe($main-color, $stripe-color) {
+    background: linear-gradient($main-color 82%, $stripe-color 18%);
+}
+
+@mixin bg-two-stripes($main-color, $stripe1-color, $stripe2-color) {
+    background: linear-gradient($main-color 76%, $stripe1-color 76%, $stripe1-color 88.5%, $stripe2-color 88.5%);
+}
+
+@mixin line-number-border {
+    position: relative;
+
+    &::after {
+        // i use an overlayed ::after here, as a dirty hack to make
+        // the border not take up expensive .line-number pixel real
+        // estate
+        content: "";
+
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+
+        z-index: 999;
+
+        border: 1px solid #aaa;
+        border-radius: 6px;
+    }
+}
+
+@mixin white-text {
+    color: white;
+    
+    .relevant-tag-expired ~ * &,
+    .relevant-tag-deleted ~ * & {
+        color: #ccc;
+    }
+}
+
+/* operator colors */
+.line-number.operator-2 /* Israel Railways */ {
+    background: #212068;
+    @include white-text;
+}
+.line-number.operator-3 {
+    /* Egged */
+    background: #00a762;// #218563;
+    @include white-text;
+}
+.line-number.operator-4 {
+    /* Egged Taavura */
+    background: #b7d648; //#b8d432;
+}
+.line-number.operator-5, /* Dan */
+.line-number.operator-30, /* Metronit / Dan North */
+.line-number.operator-31, /* Dan South */
+.line-number.operator-32 /* Dan Beeersheba */ {
+    background: #004a96; // #3868A7;
+    @include white-text;
+}
+.line-number.operator-6 /* Nazareth UNBS */
+{
+    @include line-number-border;
+
+    // background: linear-gradient(white 90%, #99ca3c 10%);
+    @include bg-with-stripe(white, #00b557);
+}
+.line-number.operator-7 /* NTT */
+{
+    // background: linear-gradient(#7e7e7e 90%, #ad1b1c 10%);
+    @include bg-with-stripe(#808184, #c21722);
+    @include white-text;
+}
+
+.line-number.operator-8 /* GB Tours */
+{
+    background: #ad1b1c;
+    @include white-text;
+}
+
+.line-number.operator-10 /* Eylot Regional Council */
+{
+    background: #007341;
+    @include white-text;
+}
+
+.line-number.operator-14, /* Nativ express */
+.line-number.operator-35 /* Bet Shemesh Express */
+{
+    @include line-number-border;
+    //background: linear-gradient(white 90%, #F3AD44 10%);
+    @include bg-with-stripe(white, #f38c21);
+}
+
+.line-number.operator-15 /* Metropoline */
+{
+    background: #f68125; //#F3AD44;
+    @include white-text; //black;
+
+    // .relevant-tag-expired ~ * &,
+    // .relevant-tag-deleted ~ * & {
+    //     color: #7f7f7f;
+
+    //     &::before {
+    //         background-color: #7f7f7f;
+    //     }
+    // }
+}
+.line-number.operator-16 /* Superbus */
+{
+    //background: linear-gradient(#7e7e7e 90%, #00399c 10%);
+    @include bg-with-stripe(rgb(205, 205, 205), #003c7c);
+    // @include white-text;
+}
+.line-number.operator-18 /* Kavim */
+{
+    // background: linear-gradient(#99ca3c 90%, #00399c 10%);
+    @include bg-with-stripe(#012768, #98cc4c);
+    @include white-text;
+}
+
+.line-number.operator-20 /* Carmelit */
+{
+    background: #e38b21;
+    @include white-text;
+}
+
+.line-number.operator-21 /* Cfir */
+{
+    @include bg-with-stripe(#007a8e, #da1522);
+    @include white-text;
+}
+.line-number.operator-23 {
+    /* Galim */
+    //background: linear-gradient(#2981c4 90%, #c9d02c 10%);
+    @include bg-with-stripe(#00adec, #d6e252);
+    @include white-text;
+}
+.line-number.operator-24 /* Golan Local Council */
+{
+    @include bg-with-stripe(#93cd55, #0082d4);
+    // @include white-text;
+}
+.line-number.operator-25 {
+    /* Electra Afikim */
+    // background: linear-gradient(#7e7e7e 90%, #99ca3c 10%);
+    @include bg-two-stripes(#ffffff, #487fcb, #99ca3c);
+    @include line-number-border();
+    // @include white-text;
+}
+.line-number.operator-33 /* Cable Express */
+{
+    background: #006db7;
+    // @include bg-with-stripe(#006db7, #9d9d9d);
+    @include white-text;
+}
+.line-number.operator-34 /* Tnufa */
+{
+    background: #097caa;
+    @include white-text;
+}
+.line-number.operator-37 /* Extra */
+{
+    @include bg-with-stripe(#00a2e2, #f58329);
+    @include white-text;
+}
+
+/* East Jerusalem "zebra" lines */
+@mixin zebra-lines-big {
+    background-position-y: 9px;
+    background-size: 45px;
+}
+
+.line-number.operator-42, /* Ramalla */
+.line-number.operator-49 /* Shua'fat */
+{
+    @include line-number-border;
+
+    background-image: url('assets/alquds-green.svg');
+    background-position-y: 7px;
+    background-repeat: repeat-x;
+    background-color: white;
+
+    &::after {
+        border-bottom: none;
+    }
+
+    .line-number-big & {
+        @include zebra-lines-big;
+    }
+}
+.line-number.operator-44, /* A Tur Anata */
+.line-number.operator-45, /* Alwst */
+.line-number.operator-47, /* Mount olives */
+.line-number.operator-50, /* Jerusalem south */
+.line-number.operator-51 /* Sur Baher */
+{
+    @include line-number-border;
+
+    background-image: url('assets/alquds-blue.svg');
+    background-position-y: 7px;
+    background-repeat: repeat-x;
+    background-color: white;
+
+    &::after {
+        border-bottom: none;
+    }
+    
+    .line-number-big & {
+        @include zebra-lines-big;
+    }
+}
+
+/* Sherut Lines */
+.line-number.operator-91 {
+    // @include line-number-border;
+
+    // background: rgb(244, 211, 27);
+    @include bg-with-stripe(rgb(244, 211, 27), #003a72);
+}
+
+.line-number.operator-92,
+.line-number.operator-93,
+.line-number.operator-97,
+.line-number.operator-98 {
+    background: rgb(244, 211, 27);
+}
+
+/* some overrides for readability */
+
+// .relevant-tag-expired,
+// .relevant-tag-deleted {
+    // & ~ * .line-number {
+    //     &.operator-3 {
+    //         background: #0a7b4c;
+    //     }
+    //     &.operator-4 {
+    //         background: #718a16;
+    //     }
+    //     &.operator-7 {
+    //         @include bg-with-stripe(#5c5d60, #c21722);
+    //     }
+    //     &.operator-15,
+    //     &.operator-20 {
+    //         background: #a7591d;
+    //         color: #444;
+
+    //         &::before {
+    //             background-color: #444;
+    //         }
+    //     }
+    //     &.operator-16 {
+    //         @include bg-with-stripe(rgb(230, 230, 230), #003c7c);
+    //     }
+    //     &.operator-23 {
+    //         @include bg-with-stripe(#0283b1, #d6e252);
+    //     }
+    //     &.operator-24 {
+    //         @include bg-with-stripe(#437d06, #0082d4);
+    //     }
+    //     &.operator-25 {
+    //         @include bg-two-stripes(#ffffff, #487fcb, #99ca3c);
+    //     }
+    //     &.operator-91 {
+    //         @include bg-with-stripe(rgb(255, 233, 111), #003a72);
+    //     }
+    //     &.operator-92,
+    //     &.operator-93,
+    //     &.operator-97,
+    //     &.operator-98 {
+    //         background: rgb(255, 233, 111);
+    //     }
+//     // }
+// }

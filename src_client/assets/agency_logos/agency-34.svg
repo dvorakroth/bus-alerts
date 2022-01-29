@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8857"
+   viewBox="0 0 1939.6445 624.99998"
+   style="clip-rule:evenodd;fill-rule:evenodd;image-rendering:optimizeQuality;shape-rendering:geometricPrecision;text-rendering:geometricPrecision"
+   version="1.1"
+   height="0.625in"
+   width="1.9396445in"
+   xml:space="preserve"><metadata
+   id="metadata8861"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata>
+ <defs
+   id="defs8851">
+  <style
+   id="style8844"
+   type="text/css">
+   <![CDATA[
+    .fil0 {fill:url(#id0)}
+   ]]>
+  </style>
+  <linearGradient
+   y2="611.10999"
+   x2="-141.31"
+   y1="611.10999"
+   x1="3613.8701"
+   gradientUnits="userSpaceOnUse"
+   id="id0">
+   <stop
+   id="stop8846"
+   style="stop-opacity:1; stop-color:#0F7AAD"
+   offset="0" />
+   <stop
+   id="stop8848"
+   style="stop-opacity:1; stop-color:#57C195"
+   offset="1" />
+  </linearGradient>
+ </defs>
+ <g
+   transform="matrix(0.51723854,0,0,0.51723854,0,-3.5948079)"
+   id="Layer_x0020_1">
+  <metadata
+   id="CorelCorpID_0Corel-Layer" />
+  <path
+   style="fill:url(#id0)"
+   id="path8854"
+   d="M 195.11,1215.28 H 500 L 374.33,451.39 H 69.44 Z m 491.65,0 H 1000 L 792.89,6.95 H 0 L 41.08,246.6 h 479.64 l 166.04,968.69 z m 384.06,0 h 392.46 0.85 0.86 c 17.65,-0.02 34.48,-0.38 50.62,-1.05 v 1.05 H 1750 L 1561.75,833.95 v 0 c -46.33,-76 -58.8,-124.9 -58.8,-176.26 0,-134.51 91.22,-247.32 214.22,-278.21 C 1654.39,90.7 1539.35,6.95 1253.59,6.95 H 861.12 L 978.2,681.61 h 299.31 l -76.18,-439.03 h 45.57 v 0 c 103.07,0 127.21,36.25 155.18,197.36 l 59.06,340.35 v 0 c 27.63,159.09 12.11,195.35 -94.93,195.35 h -336.97 l 41.6,239.65 z m 741.15,0 h 410.25 L 2012.15,6.95 h -317.7 l 63.43,364.83 v 0 c 6.28,-0.42 12.6,-0.71 18.98,-0.71 156.09,0 282.59,128.33 282.59,286.61 0,51.36 -12.49,100.28 -58.89,176.28 l -188.58,381.33 z m 460.67,0 h 206.47 c 208.4,0 271.89,-84.59 231.72,-320.21 L 2559.36,6.95 H 2125 l 40.87,239.65 h 122.71 l 100.29,588.05 v 0 c 17.86,104.72 2.61,140.98 -77.24,140.98 h -79.87 l 40.87,239.66 z m 543.08,0 h 440.24 L 3087.03,246.59 h 53.78 v 0 c 99.61,0 128.89,42.29 151.72,173.2 l 138.75,795.49 H 3750 L 3620.74,474.16 v 0 C 3557.17,109.64 3435.67,6.95 3142.83,6.95 h -490.06 l 41.81,239.65 h 89.64 l 125.75,720.98 h -137.44 z m -1037.94,-750 c 99.72,0 180.56,83.94 180.56,187.5 0,103.55 -80.83,187.5 -180.56,187.5 -99.72,0 -180.56,-83.95 -180.56,-187.5 0,-103.56 80.83,-187.5 180.56,-187.5 z"
+   class="fil0" />
+ </g>
+</svg>

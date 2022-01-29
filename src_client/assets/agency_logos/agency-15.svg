@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 60.000002 40.764232"
+   height="154.06953"
+   width="226.77167">
+  <defs
+     id="defs2">
+    <clipPath
+       id="clipPath1178"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         id="path1176"
+         d="M 12.497,12.497 H 624.78 V 871.394 H 12.497 Z" />
+    </clipPath>
+  </defs>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-3.886589,-241.8031)"
+     id="layer1">
+    <g
+       transform="matrix(0.55034442,0,0,-0.55034442,-31.116033,319.88465)"
+       id="g1172">
+      <g
+         transform="matrix(1.1896775,0,0,1.1896775,-12.063733,-26.910983)"
+         clip-path="url(#clipPath1178)"
+         id="g1174">
+        <g
+           transform="translate(627.9767,126.0578)"
+           id="g1180" />
+        <g
+           transform="translate(108.4678,141.8736)"
+           id="g1184">
+          <path
+             id="path1186"
+             style="fill:#f58113;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             d="m 0,0 c 18.966,-0.352 20.09,-4.864 44.72,-27.854 1.252,-1.369 2.054,-3.184 2.054,-5.187 0,-4.047 -3.815,-7.493 -7.855,-7.493 -2.227,0 -4.144,0.921 -6.044,2.572 -14.061,10.833 -19.886,22.897 -32.2,22.465 -9.429,-0.332 -15.874,-8.354 -15.562,-17.295 0.024,-0.68 0.334,-1.932 0.03,-2.854 l -14.269,13.901 C -23.78,-7.32 -10.927,0.203 0,0" />
+        </g>
+        <g
+           transform="translate(110.3743,79.6207)"
+           id="g1188">
+          <path
+             id="path1190"
+             style="fill:#f58113;fill-opacity:1;fill-rule:nonzero;stroke:none"
+             d="m 0,0 c -18.967,0.354 -20.091,4.865 -44.721,27.855 -1.251,1.369 -2.052,3.184 -2.052,5.188 0,4.046 3.815,7.492 7.853,7.492 2.227,0 4.145,-0.921 6.044,-2.573 14.061,-10.833 19.886,-22.896 32.201,-22.464 9.429,0.332 15.874,8.353 15.562,17.296 -0.024,0.679 -0.334,1.931 -0.03,2.853 L 29.126,21.746 C 23.78,7.321 10.927,-0.203 0,0" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
