@@ -1,12 +1,14 @@
 node_modules
 __pycache__
+
 gtfs_rt_samples
 crap
 transitdata_*
 mock_ui_*
-._.DS_Store
+agency_logos_raw
+
 ._*
 .DS_Store
+
 config.ini
-._index
-agency_logos_raw
+dist
