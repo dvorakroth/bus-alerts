@@ -80,21 +80,18 @@ export function imageNameForAgencyId(agency_id: string) {
 
 // cursed bonus: first time this script is imported(?), preload all the images
 if (!(window as any).AGENCY_LOGOS_PRELOADED) {
-    (window as any).AGENCY_LOGOS_PRELOADED = true;
+    // (window as any).AGENCY_LOGOS_PRELOADED = true;
 
-    const alreadyFound: JsDict<boolean> = {};
+    const alreadyFound: JsDict<HTMLImageElement> = (window as any).AGENCY_LOGOS_PRELOADED = {};
 
     for (const k of Object.keys(AGENCY_LOGOS)) {
-        if (alreadyFound[k]) {
+        const imgPath = AGENCY_LOGOS[k];
+
+        if (alreadyFound[imgPath]) {
             continue;
         }
 
-        alreadyFound[k] = true;
-
-        const el = document.createElement('link');
-        el.setAttribute('rel', 'preload');
-        el.setAttribute('as', 'image');
-        el.setAttribute('href', AGENCY_LOGOS[k]);
-        document.head.appendChild(el);
+        alreadyFound[imgPath] = new Image();
+        alreadyFound[imgPath].src = imgPath;
     }
 }
