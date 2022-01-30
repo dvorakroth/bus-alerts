@@ -361,7 +361,7 @@ function DirectionChooser({changes_for_line, onNewSelection, selectedIndex}: Dir
                                            index={idx}
                                            onDirectionClick={onDirectionClick} />
             )}
-            {changes_for_line.length
+            {changes_for_line?.length
                 ? null
                 : <DirectionChooserDirection direction=""
                                              isSelected={false}
@@ -392,7 +392,7 @@ function LineChooserAndMap(
     const getChangesForLine = React.useCallback(
         (agency_id: string, line_number: string) => (
             route_changes 
-                ? route_changes[agency_id][line_number]
+                ? route_changes[agency_id]?.[line_number]
                 : []
         ),
         [route_changes]
@@ -433,7 +433,7 @@ function LineChooserAndDepChgs(
     const getChangesForLine = React.useCallback(
         (agency_id: string, line_number: string) => (
             departure_changes 
-                ? departure_changes[agency_id][line_number]
+                ? departure_changes[agency_id]?.[line_number]
                 : []
         ),
         [departure_changes]
