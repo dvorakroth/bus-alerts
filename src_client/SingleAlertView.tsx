@@ -644,9 +644,11 @@ function SingleAlertView(
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
-            {isModal
-                ? <a className="back-to-list" href="/" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
-                : <ReactRouter.Link className="back-to-list" to={'/'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
+            <div className="nav-content">
+                {isModal
+                    ? <a className="back-to-list" href="/" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
+                    : <ReactRouter.Link className="back-to-list" to={'/'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
+            </div>
         </nav>
         <div className={"single-alert-content-container" /* i'll... explain later */}
              style={isLoading ? {overflowY: 'hidden'} : {}}> 

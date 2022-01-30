@@ -265,25 +265,27 @@ export default function ServiceAlertsMainScreen({hasModal}: ServiceAlertsMainScr
     const noAlertsToday = !data?.alerts.length && !isLoading;
 
     return <>
-        <div className={"search-bar" + (hasModal ? " hidden" : "")}>
-            <GeolocationButton onNewLocation={onNewLocation}/>
-            <input
-                type="text"
-                id="search-input"
-                placeholder="חיפוש לפי קו, תחנה, ו/או מפעילה"
-                ref={searchInput}
-                onInput={onSearchInputChanged}
-            />
-            <span className="credit">מתוכנת כשירות לציבור מאת <a href="https://ish.works/" target="_blank">איש.וורקס</a></span>
-            {
-            // <div className="search-date-part">
-            //     <label className="search-date-label">
-            //         <input type="checkbox"/>
-            //         הגבלה לתאריך ספציפי:
-            //     </label>
-            //     <input type="date"/>
-            // </div>
+        <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
+            <div className="search-bar">
+                <GeolocationButton onNewLocation={onNewLocation}/>
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="חיפוש לפי קו, תחנה, ו/או מפעילה"
+                    ref={searchInput}
+                    onInput={onSearchInputChanged}
+                />
+                <span className="credit">מתוכנת כשירות לציבור מאת <a href="https://ish.works/" target="_blank">איש.וורקס</a></span>
+                {
+                // <div className="search-date-part">
+                //     <label className="search-date-label">
+                //         <input type="checkbox"/>
+                //         הגבלה לתאריך ספציפי:
+                //     </label>
+                //     <input type="date"/>
+                // </div>
             }
+            </div>
         </div>
         <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
             <span>מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.alerts.length}</span>
