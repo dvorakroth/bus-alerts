@@ -13,10 +13,11 @@ body {
     display: flex;
     flex-direction: column;
 
-    background-color: rgb(238, 238, 238);
     font-family: $font-stack;
 
     line-height: 1.25;
+
+    background: rgb(12, 36, 69); // for ios safari to show this color around the notch
 }
 
 #content {
@@ -24,18 +25,11 @@ body {
 
     display: flex;
     flex-direction: column;
+
+    background-color: rgb(238, 238, 238);
 }
 
 @mixin nav_light {
-    // background: linear-gradient(#cbecfd 0%, #6aa1c1 100%); /* rockin' that early 2010s look */
-
-    // background: rgb(57, 100, 154);
-    // background: linear-gradient(
-    //     90deg, 
-    //     rgb(35, 71, 114) 20%, 
-    //     rgb(88, 118, 152) 50%,
-    //     rgb(35, 71, 114) 80%
-    // );
     background: linear-gradient(
         90deg, 
         rgb(12, 36, 69) 20%, 
@@ -55,6 +49,14 @@ body {
     a:active {
         text-decoration: none;
         color: #ccc;
+    }
+
+    
+    .standalone & {
+        // just notch things (for full screen web app mode, opened from the home screen)
+        padding-top: env(safe-area-inset-top);
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
     }
 }
 

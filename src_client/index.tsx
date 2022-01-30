@@ -6,6 +6,18 @@ import {
 import SerivceAlertsMainScreen from "./ServiceAlertsMainScreen";
 import {FullPageSingleAlert, ModalSingleAlert} from "./SingleAlertView";
 
+if ((navigator as any).standalone) {
+    // for applying css only in web apps launched from the ios home screen
+
+    // there's supposed to be a media query that does this, by the way
+    // but it just doesn't work! @media (display-mode: standalone) just doesn't happen!
+    // instead it's always display-mode: browser! even in standalone web apps!!!!
+    // and for the life of me i can't figure out why the heck that is
+
+    // so enjoy this extremely stupid hack:
+
+    document.body.classList.add('standalone');
+}
 
 function App() {
     let location = useLocation();
