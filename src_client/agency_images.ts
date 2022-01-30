@@ -77,3 +77,24 @@ const AGENCY_LOGOS: JsDict<string> = {
 export function imageNameForAgencyId(agency_id: string) {
     return AGENCY_LOGOS[agency_id];
 }
+
+// cursed bonus: first time this script is imported(?), preload all the images
+if (!(window as any).AGENCY_LOGOS_PRELOADED) {
+    (window as any).AGENCY_LOGOS_PRELOADED = true;
+
+    const alreadyFound: JsDict<boolean> = {};
+
+    for (const k of Object.keys(AGENCY_LOGOS)) {
+        if (alreadyFound[k]) {
+            continue;
+        }
+
+        alreadyFound[k] = true;
+
+        const el = document.createElement('link');
+        el.setAttribute('rel', 'preload');
+        el.setAttribute('as', 'image');
+        el.setAttribute('href', AGENCY_LOGOS[k]);
+        document.head.appendChild(el);
+    }
+}
