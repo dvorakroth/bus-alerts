@@ -2,6 +2,7 @@
 
 html {
     height: 100%;
+    width: 100%;
 }
 
 $font-stack: 'Assistant', sans-serif;
@@ -251,6 +252,10 @@ hr {
         display: block !important;
         opacity: 0;
         cursor: auto;
+    }
+
+    .standalone & {
+        bottom: calc(25px + env(safe-area-inset-bottom));
     }
 }
 
@@ -542,12 +547,21 @@ a.more-details:active {
 }
 
 .list-end-gizmo {
-    margin: 20px auto;
+    width: 100%;
+    height: 100px;
 
-    width: 40px;
-    height: 40px;
+    &::before {
+        content: "";
+        display: block;
+        width: 100%;
+        height: 100%;
 
-    background: url('/assets/wolf.svg') no-repeat;
+        background: url('/assets/wolf.svg') no-repeat center;
+    }
+
+    .standalone & {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
 }
 
 .alerts-list-container {
@@ -669,6 +683,10 @@ a.more-details:active {
     padding: 5px;
 
     background: white;
+
+    .standalone & {
+        margin-bottom: env(safe-area-inset-bottom);
+    }
 
     h1 {
         font-size: 160%;

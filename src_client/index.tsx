@@ -1,22 +1,27 @@
 import * as React from "react";
 import {render} from "react-dom";
 import {
-    BrowserRouter, Route, Routes, useLocation, Navigate
+    Route, Routes, useLocation, Navigate, BrowserRouter, HashRouter
 } from "react-router-dom";
 import SerivceAlertsMainScreen from "./ServiceAlertsMainScreen";
 import {FullPageSingleAlert, ModalSingleAlert} from "./SingleAlertView";
 
-if ((navigator as any).standalone) {
+let isStandalone = false;
+
+if ((navigator as any)?.standalone || matchMedia('(display-mode: standalone)').matches) {
     // for applying css only in web apps launched from the ios home screen
 
-    // there's supposed to be a media query that does this, by the way
-    // but it just doesn't work! @media (display-mode: standalone) just doesn't happen!
-    // instead it's always display-mode: browser! even in standalone web apps!!!!
+    // while there' a media query that does this (and we do check it to make sure),
+    // in reality it just doesn't work! @media (display-mode: standalone) just doesn't happen!
+    // instead it's always display-mode: browser! even in standalone progressive web apps!!!!
     // and for the life of me i can't figure out why the heck that is
 
-    // so enjoy this extremely stupid hack:
+    // so enjoy this extremely stupid hack
 
     document.body.classList.add('standalone');
+    document.documentElement.style.height = "100vh";
+
+    isStandalone = true;
 }
 
 function App() {
@@ -44,9 +49,19 @@ function App() {
 
 render(
     <React.StrictMode>
-        <BrowserRouter>
-            <App/>
-        </BrowserRouter>
+        {
+            isStandalone
+                ? // standalone home screen launched progressive web apps on ios show
+                  // an ugly modal browser whenever the location changes, so we have to
+                  // pretend it's 2012 and use a hashrouter to not show it
+                    <HashRouter>
+                        <App/>
+                    </HashRouter>
+                :
+                    <BrowserRouter>
+                        <App/>
+                    </BrowserRouter>
+        }
     </React.StrictMode>,
     document.getElementById("content")
 );
