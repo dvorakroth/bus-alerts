@@ -87,9 +87,13 @@ def load_israeli_gtfs_rt(gtfsconn, alertconn, feed, TESTING_fake_today=None):
         removed_stop_ids = []
         schedule_changes = None
 
-        if use_case is None and has_ent and alert.informed_entity[0].stop_id != '':
-            if alert.informed_entity[0].route_id == '':
-                # no route_id, only stop_id
+        has_oar_routeid = old_aramaic and old_aramaic.startswith('route_id=')
+
+        if use_case is None and \
+                (has_ent and alert.informed_entity[0].stop_id != '') or has_oar_routeid:
+
+            if not has_oar_routeid and alert.informed_entity[0].route_id == '':
+                # no old_aramaic, no route_id -- only stop_id
                 use_case = USE_CASE.STOPS_CANCELLED
                 original_selector = {"stop_ids":[
                     e.stop_id for e in alert.informed_entity
@@ -138,7 +142,7 @@ def load_israeli_gtfs_rt(gtfsconn, alertconn, feed, TESTING_fake_today=None):
                     for route_id, additions in oar_additions.items():
                         if route_id not in schedule_changes:
                             schedule_changes[route_id] = additions
-                            relevant_route_ids.append(e.route_id)
+                            relevant_route_ids.append(route_id)
                         else:
                             # put additions before removals because the additions
                             # can be relative to a stop that gets removed
