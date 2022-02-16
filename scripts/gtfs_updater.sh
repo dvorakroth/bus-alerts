@@ -12,7 +12,7 @@ pushd ${DIR}
     #wget ftp://gtfs.mot.gov.il/israel-public-transportation.zip -O israel-public-transportation.zip
     #wget ftp://gtfs.mot.gov.il/TripIdToDate.zip -O TripIdToDate.zip
     #wget ftp://gtfs.mot.gov.il/ClusterToLine.zip -O ClusterToLine.zip
-    psql -n $POSTGRES_DSN -c "drop table if exists agency, cities, routes, shapes, stops, stoptimes, translations, trip_id_to_date, trips, calendar, mot_clusters cascade;"
+    psql -n $POSTGRES_DSN -c "drop view if exists stoptimes_int; drop table if exists agency, cities, routes, shapes, stops, stoptimes, translations, trip_id_to_date, trips, calendar, mot_clusters cascade;"
     psql $POSTGRES_DSN -f gtfs_schema.sql
     psql -n $POSTGRES_DSN_ALERTS -c "drop table if exists alert, alert_agency, alert_stop, alert_route cascade;"
     psql $POSTGRES_DSN_ALERTS -f alerts_schema.sql
