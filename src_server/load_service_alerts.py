@@ -276,6 +276,7 @@ def load_israeli_gtfs_rt(gtfsconn, alertconn, feed, TESTING_fake_today=None):
 
         create_or_update_alert(alertconn, alert_dict)
 
+    logging.info(f'Added/updated {len(feed.entity)} alerts')
     mark_alerts_deleted_if_not_in_list(alertconn, [e.id for e in feed.entity], TESTING_fake_today)
     alertconn.commit()
     gtfsconn.rollback()
@@ -465,7 +466,7 @@ def create_or_update_alert(alertconn, alert_dict):
             )]
         )
 
-        logging.info("Added/updated alert with id: " + str(id))
+        # logging.info("Added/updated alert with id: " + str(id))
         
         has_agencies = len(alert_dict["relevant_agencies"]) > 0
         cursor.execute(
@@ -473,7 +474,7 @@ def create_or_update_alert(alertconn, alert_dict):
                 (" AND agency_id NOT IN %s;" if has_agencies else ";"),
             [id, tuple(alert_dict["relevant_agencies"])] if has_agencies else [id]
         )
-        logging.info(f"Deleted {cursor.rowcount} rows from alert_agency")
+        # logging.info(f"Deleted {cursor.rowcount} rows from alert_agency")
         
         has_routes = len(alert_dict["relevant_route_ids"]) > 0
         cursor.execute(
@@ -481,7 +482,7 @@ def create_or_update_alert(alertconn, alert_dict):
                 (" AND route_id NOT IN %s;" if has_routes else ";"),
             [id, tuple(alert_dict["relevant_route_ids"])] if has_routes else [id]
         )
-        logging.info(f"Deleted {cursor.rowcount} rows from alert_route")
+        # logging.info(f"Deleted {cursor.rowcount} rows from alert_route")
 
         all_stops = \
             [
@@ -500,7 +501,7 @@ def create_or_update_alert(alertconn, alert_dict):
                 (" AND stop_id NOT IN %s;" if has_stops else ";"),
             [id, tuple(map(lambda x: x[1], all_stops))] if has_stops else [id]
         )
-        logging.info(f"Deleted {cursor.rowcount} rows from alert_stop")
+        # logging.info(f"Deleted {cursor.rowcount} rows from alert_stop")
 
         if has_agencies:
             psycopg2.extras.execute_values(
@@ -508,7 +509,7 @@ def create_or_update_alert(alertconn, alert_dict):
                 "INSERT INTO alert_agency VALUES %s ON CONFLICT DO NOTHING;",
                 [(id, agency_id) for agency_id in alert_dict["relevant_agencies"]]
             )
-            logging.info(f"Added {cursor.rowcount} rows to alert_agency")
+            # logging.info(f"Added {cursor.rowcount} rows to alert_agency")
         
         if has_routes:
             psycopg2.extras.execute_values(
@@ -516,7 +517,7 @@ def create_or_update_alert(alertconn, alert_dict):
                 "INSERT INTO alert_route VALUES %s ON CONFLICT DO NOTHING;",
                 [(id, route_id) for route_id in alert_dict["relevant_route_ids"]]
             )
-            logging.info(f"Added {cursor.rowcount} rows to alert_route")
+            # logging.info(f"Added {cursor.rowcount} rows to alert_route")
         
         if has_stops:
             psycopg2.extras.execute_values(
@@ -525,7 +526,7 @@ def create_or_update_alert(alertconn, alert_dict):
                     "SET is_added = EXCLUDED.is_added, is_removed = EXCLUDED.is_removed;",
                 all_stops
             )
-            logging.info(f"Added {cursor.rowcount} rows to alert_stop")
+            # logging.info(f"Added {cursor.rowcount} rows to alert_stop")
 
 def mark_alerts_deleted_if_not_in_list(alertconn, alert_ids_to_keep, TESTING_fake_today=None):
     if len(alert_ids_to_keep) == 0:
