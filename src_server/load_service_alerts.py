@@ -281,9 +281,9 @@ def load_israeli_gtfs_rt(gtfsconn, alertconn, feed, TESTING_fake_today=None):
     alertconn.commit()
     gtfsconn.rollback()
 
-def parse_stupid_local_unixtime(stupid_local_unixtime):
+def parse_unixtime_into_jerusalem_tz(stupid_local_unixtime):
     if stupid_local_unixtime is not None and stupid_local_unixtime != 0:
-        return JERUSALEM_TZ.localize(
+        return JERUSALEM_TZ.fromutc(
             datetime.fromtimestamp(stupid_local_unixtime, timezone.utc) \
                 .replace(tzinfo=None)
         )
@@ -295,8 +295,8 @@ def consolidate_active_periods(active_periods):
     might_need_consolidation = {} # (y,m,d) -> [(startime, endtime, isPlusOne), ...]
 
     for start_time, end_time in active_periods:
-        start_time = parse_stupid_local_unixtime(start_time)
-        end_time = parse_stupid_local_unixtime(end_time)
+        start_time = parse_unixtime_into_jerusalem_tz(start_time)
+        end_time = parse_unixtime_into_jerusalem_tz(end_time)
 
         if not start_time or not end_time:
             # an infinite range can't be consolidated
@@ -735,13 +735,9 @@ def split_active_period_to_subperiods(start_unixtime, end_unixtime):
     has_start = start_unixtime != 0 and start_unixtime is not None
     has_end =   end_unixtime   != 0 and end_unixtime   is not None
     
-    # assuming both start and end times exist
-    # did you know? the mot's timestamps are in LOCAL TIME! good thing i checked
-    # because the gtfs rt standard defines them as utc -_-
-    # bonus: python timezone-sensitive timestamps are notoriously difficult
-    start_local = JERUSALEM_TZ.localize(datetime.fromtimestamp(start_unixtime, timezone.utc).replace(tzinfo=None)) \
+    start_local = JERUSALEM_TZ.fromutc(datetime.fromtimestamp(start_unixtime, timezone.utc).replace(tzinfo=None)) \
         if has_start else None
-    end_local   = JERUSALEM_TZ.localize(datetime.fromtimestamp(end_unixtime,   timezone.utc).replace(tzinfo=None)) \
+    end_local   = JERUSALEM_TZ.fromutc(datetime.fromtimestamp(end_unixtime,   timezone.utc).replace(tzinfo=None)) \
         if has_end   else None
 
     starts_midnight = has_start and start_local.hour == 0 and start_local.minute == 0
