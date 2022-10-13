@@ -40,8 +40,14 @@ pushd ${DIR}
     #     sed -i 's/\r$/,\r/' trips.txt
     #     sed -i "1 s|\r$|wheelchair_accessible\r|" trips.txt
     # fi
-    echo -n "loading trips:        "
-    psql $POSTGRES_DSN -c "\\copy trips from trips.txt with csv header quote ''"
+    echo "working around MoT Duplicate TRIP IDs issue"
+    psql $POSTGRES_DSN -c "DROP TABLE IF EXISTS tmp_trips;"
+    psql $POSTGRES_DSN -c "CREATE TABLE tmp_trips AS SELECT * FROM trips WITH NO DATA;"
+    psql $POSTGRES_DSN -c "\\copy tmp_trips from trips.txt with csv header quote ''"
+    psql $POSTGRES_DSN -c "INSERT INTO trips SELECT DISTINCT ON (trip_id) * FROM tmp_trips"
+    psql $POSTGRES_DSN -c "DROP TABLE tmp_trips;"
+    # echo -n "loading trips:        "
+    # psql $POSTGRES_DSN -c "\\copy trips from trips.txt with csv header quote ''"
     echo -n "loading stoptimes:    "
     psql $POSTGRES_DSN -c "\\copy stoptimes from 'stop_times.txt' with csv header"
     echo -n "loading shape points:     "
