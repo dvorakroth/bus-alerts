@@ -459,15 +459,6 @@ def _calculate_distance_to_alert(current_location_tuple, alert, metadata, gtfsdb
     
     return None
 
-# def parse_stupid_local_unixtime(stupid_local_unixtime):
-#     if stupid_local_unixtime is not None and stupid_local_unixtime != 0:
-#         return JERUSALEM_TZ.localize(
-#             datetime.fromtimestamp(stupid_local_unixtime, timezone.utc) \
-#                 .replace(tzinfo=None)
-#         )
-#     else:
-#         return None
-
 def find_representative_date_for_route_changes_in_alert(alert):
     _active_periods_parsed = map(
         lambda period: list(map(parse_unixtime_into_jerusalem_tz, period)),
