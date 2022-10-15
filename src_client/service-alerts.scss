@@ -421,7 +421,7 @@ ul.secondary-cities {
 }
 
 .alert-count-big {
-    width: 70px;
+    min-width: 70px;
     display: flex;
 
     flex-direction: column;
