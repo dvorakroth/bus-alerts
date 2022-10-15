@@ -197,6 +197,14 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                 <span className="count">{line.num_relevant_today || 0}</span>
                 <span className="label">להיום</span>
             </div>
+            {
+                !line.num_removed_stops ? null
+                    : <div className={"alert-count-big alert-count-tag-today"}>
+                        <span className="count">{line.num_removed_stops || 0}</span>
+                        <span className="label">תחנות מבוטלות</span>
+                    </div>
+            }
+            
         </div>
         <ReactRouterDOM.Link className={"more-details"}
               to={`/line/${line.pk}`}

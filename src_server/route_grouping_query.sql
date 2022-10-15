@@ -56,7 +56,8 @@ SELECT DISTINCT ON (tmp__routes.route_id)
             substring(stop_desc, position('עיר:' in stop_desc) + 5),
             0,
             position('רציף: ' in substring(stop_desc, position('עיר:' in stop_desc) + 5)) - 1
-    )) AS city_list
+    )) AS city_list,
+    JSON_AGG(DISTINCT stop_id) AS distinct_stop_ids
 INTO TEMP TABLE tmp__route_trips
 FROM tmp__routes INNER JOIN trips ON trip_id = random_trip_id
 NATURAL JOIN stoptimes
@@ -192,7 +193,8 @@ SELECT mot_license_id,
        JSON_AGG(all_mot_direction_ids ORDER BY mot_alternative_id ASC) AS all_mot_direction_ids_grouped,
        JSON_AGG(all_route_ids ORDER BY mot_alternative_id ASC) AS all_route_ids_grouped,
        JSON_AGG(all_headsigns ORDER BY mot_alternative_id ASC) AS all_headsigns_grouped,
-       JSON_AGG(all_city_lists ORDER BY mot_alternative_id ASC) AS all_city_lists_grouped
+       JSON_AGG(all_city_lists ORDER BY mot_alternative_id ASC) AS all_city_lists_grouped,
+       NULL::JSON AS all_stopids_distinct
 INTO TEMP TABLE tmp__actual_lines
 FROM tmp__actual_line_alts
 GROUP BY mot_license_id, route_short_name;
@@ -213,6 +215,15 @@ SET agency_id = (
 
             ELSE (all_headsigns_grouped #>> '{0, 1}')
         END
+    ),
+    all_stopids_distinct = (
+        SELECT JSON_AGG(DISTINCT stop_id)
+        FROM tmp__route_trips
+        NATURAL JOIN (
+            SELECT JSON_ARRAY_ELEMENTS_TEXT(alt_routes.value) route_id
+            FROM JSON_ARRAY_ELEMENTS(all_route_ids_grouped) alt_routes
+        ) route_ids_flattened
+        CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(distinct_stop_ids) stop_id
     );
 
 -- CREATE OR REPLACE FUNCTION ___tmp__geodistance_miles(alat double precision, alng double precision, blat double precision, blng double precision)

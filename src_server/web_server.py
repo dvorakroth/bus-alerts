@@ -41,14 +41,14 @@ class ServiceAlertsApiServer:
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def all_lines(self, current_location=None):
-        # TODO: add alert data for the lines themselves ugh
-        # TODO 2: once i've done that, also cache the result
+        # TODO cache
+        # TODO location
 
         alerts = self.alertdbapi.get_alerts()
         # all_affected_stop_ids = set([])
 
         linepk_to_alerts = {}
-        # linepk_to_removed_stopids = {}
+        linepk_to_removed_stopids = {}
         # linepk_to_added_stopids = {}
 
         for alert in alerts:
@@ -68,11 +68,11 @@ class ServiceAlertsApiServer:
 
                 if pk not in linepk_to_alerts:
                     linepk_to_alerts[pk] = []
-                    # linepk_to_removed_stopids[pk] = set([])
+                    linepk_to_removed_stopids[pk] = set([])
                     # linepk_to_added_stopids[pk]   = set([])
                 
                 linepk_to_alerts[pk].append(alert)
-                # linepk_to_removed_stopids[pk].update(alert["removed_stop_ids"])
+                linepk_to_removed_stopids[pk].update(alert["removed_stop_ids"])
                 # linepk_to_added_stopids[pk].update(alert["added_stop_ids"])
         
         # while we're at it, get all stop metadata
@@ -117,6 +117,9 @@ class ServiceAlertsApiServer:
                     lambda alert: int(alert["first_relevant_date"] == TODAY_IN_JERUS),
                     alerts
                 )),
+                "num_removed_stops": None if num_alerts == 0 else len(
+                    linepk_to_removed_stopids[pk].intersection(line_dict["all_stopids_distinct"])
+                )
                 # "num_relevant_tomorrow": None if num_alerts == 0 else sum(map(
                 #     lambda alert: int(alert["first_relevant_date"] == TOMORROW_IN_JERUS),
                 #     alerts
@@ -701,6 +704,8 @@ def create_actual_lines_list(gtfs_db_url):
                 ))
 
                 linedict["secondary_cities"] = sorted(all_alts_cities.difference(linedict["main_cities"]))
+
+                linedict["all_stopids_distinct"] = set(linedict["all_stopids_distinct"])
 
                 ACTUAL_LINES_LIST.append(linedict)
                 ACTUAL_LINES_DICT[pk] = linedict
