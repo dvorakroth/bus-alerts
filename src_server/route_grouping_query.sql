@@ -1,3 +1,7 @@
+-- this is in the src_server directory and not scripts, because this is inten-
+-- ded to be run by the web_server.py on startup
+
+
 -- introduction
 -- ------------
 --
@@ -195,20 +199,20 @@ SET agency_id = (
         END
     );
 
-CREATE OR REPLACE FUNCTION geodistance_miles(alat double precision, alng double precision, blat double precision, blng double precision)
-  RETURNS double precision AS
-$BODY$
-SELECT asin(
-  sqrt(
-    sin(radians($3-$1)/2)^2 +
-    sin(radians($4-$2)/2)^2 *
-    cos(radians($1)) *
-    cos(radians($3))
-  )
-) * 7926.3352 AS distance;
-$BODY$
-  LANGUAGE sql IMMUTABLE
-  COST 100;
+-- CREATE OR REPLACE FUNCTION ___tmp__geodistance_miles(alat double precision, alng double precision, blat double precision, blng double precision)
+--   RETURNS double precision AS
+-- $BODY$
+-- SELECT asin(
+--   sqrt(
+--     sin(radians($3-$1)/2)^2 +
+--     sin(radians($4-$2)/2)^2 *
+--     cos(radians($1)) *
+--     cos(radians($3))
+--   )
+-- ) * 7926.3352 AS distance;
+-- $BODY$
+--   LANGUAGE sql IMMUTABLE
+--   COST 100;
 
 -- sometimes, when there's only one direction for the alternative,
 -- it's actually bad data; so i'll need to check if the line is
@@ -219,7 +223,15 @@ SET headsign_2 = (
         CASE
             WHEN (
                 -- distance between first and last stop lmao
-                SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
+                SELECT asin(
+                        sqrt(
+                            sin(radians(s2.stop_lat-s1.stop_lat)/2)^2 +
+                            sin(radians(s2.stop_lon-s1.stop_lon)/2)^2 *
+                            cos(radians(s1.stop_lat)) *
+                            cos(radians(s2.stop_lat))
+                        )
+                    ) * 7926.3352 AS distance
+                -- SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
                 FROM 
                     tmp__route_trips rt
                     INNER JOIN stoptimes st1
@@ -239,41 +251,3 @@ SET headsign_2 = (
         END
     )
 WHERE headsign_2 IS NULL;
-
--- just some nice niceties that are proooobably completely unnecessary?
-
--- ALTER TABLE tmp__actual_line_alts
--- ADD FOREIGN KEY (mot_license_id, route_short_name) REFERENCES tmp__actual_lines;
-
--- ALTER TABLE tmp__actual_line_alt_directions
--- ADD FOREIGN KEY (mot_license_id, route_short_name, mot_alternative_id) REFERENCES tmp__actual_line_alts;
-
-
----------------------
-
--- SELECT license_id,
---         ARRAY_AGG(DISTINCT route_short_name),
---         ARRAY_AGG(DISTINCT agency_id),
---         ARRAY_AGG(DISTINCT trip_headsign),
---         ARRAY_AGG(DISTINCT routes.route_id),
---         ARRAY_AGG(DISTINCT stop_name),
---         ARRAY_AGG(DISTINCT substring(
---             substring(stop_desc, position('עיר:' in stop_desc) + 5),
---             0,
---             position('רציף: ' in substring(stop_desc, position('עיר:' in stop_desc) + 5)) - 1)
---         )
--- FROM routes
--- CROSS JOIN LATERAL split_part(routes.route_desc, '-', 1) license_id
--- INNER JOIN trips ON routes.route_id = trips.route_id
--- INNER JOIN (
---     SELECT st_a.trip_id AS trip_id, st_a.stop_id AS stop_id
---     FROM stoptimes st_a
---     LEFT OUTER JOIN stoptimes st_b
---         ON st_a.trip_id = st_b.trip_id AND st_a.stop_sequence < st_b.stop_sequence
---     WHERE st_b.trip_id IS NULL
--- ) last_stops_q ON last_stops_q.trip_id = trips.trip_id
--- INNER JOIN stops ON last_stops_q.stop_id = stops.stop_id
--- WHERE agency_id != '2' -- haha f you rakevet israel, f'ing group your lines already
--- AND (route_color IS NULL OR route_color != 'FF9933')
--- GROUP BY license_id
--- ORDER BY license_id;
