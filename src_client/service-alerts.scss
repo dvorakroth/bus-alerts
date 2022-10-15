@@ -366,8 +366,8 @@ ul.secondary-cities {
     }
 }
 
-.agency-tag,
-.alert-count-tag {
+.agency-tag/*,
+.alert-count-tag*/ {
     display: inline-flex;
 
     box-sizing: border-box;
@@ -405,9 +405,34 @@ ul.secondary-cities {
     }
 }
 
-.alert-count-tag {
-    & > img ~ span {
-        margin-right: 4px;
+// .alert-count-tag {
+//     & > img ~ span {
+//         margin-right: 4px;
+//     }
+// }
+
+.alert-counters {
+    display: flex;
+    justify-content: space-around;
+    // justify-content: center;
+    padding: 0 40px;
+
+    margin-bottom: 10px;
+}
+
+.alert-count-big {
+    width: 70px;
+    display: flex;
+
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+
+    padding: 0 0 5px 0;
+    border-radius: 7px;
+
+    & > .count {
+        font-size: 300%;
     }
 }
 
@@ -509,12 +534,17 @@ ul.secondary-cities {
     color: white;
 }
 
-.alert-count-tag-future,
+.alert-count-tag-tomorrow,
 .relevant-tag-tomorrow {
     // background-color: rgb(240, 205, 2);
     background-color: #e17f16;
     color: white;
     // color: black;
+}
+
+.alert-count-tag-future {
+    background-color: rgb(231, 200, 0);
+    color: black;
 }
 
 .alert-count-tag-none,

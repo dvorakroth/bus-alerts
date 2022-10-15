@@ -9,7 +9,7 @@ Options:
 """
 
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import reduce
 import functools
 import itertools
@@ -732,7 +732,7 @@ class ServiceAlertsApiServer:
             # all_affected_stop_ids.update(alert["added_stop_ids"])
             # all_affected_stop_ids.update(alert["removed_stop_ids"])
             
-            alert["first_relevant_date"] = alert_find_next_relevant_date(alert)
+            alert["first_relevant_date"] = alert_find_next_relevant_date(alert)[0]
 
             for route_id in alert["relevant_route_ids"]:
                 if route_id not in ACTUAL_LINES_BY_ROUTE_ID:
@@ -760,6 +760,18 @@ class ServiceAlertsApiServer:
         #         set([])
         #     )
         # )
+
+        TODAY_IN_JERUS = JERUSALEM_TZ \
+            .fromutc(datetime.utcnow())\
+            .replace(
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+        
+        # TOMORROW_IN_JERUS = TODAY_IN_JERUS + timedelta(days=1)
+
         
         all_lines_enriched = []
 
@@ -771,10 +783,22 @@ class ServiceAlertsApiServer:
             e = {
                 **line_dict,
                 "num_alerts": num_alerts,
-                "first_relevant_date": None if num_alerts == 0 else min(*map(
+                "first_relevant_date": None if num_alerts == 0 else min(map(
                     lambda alert: alert["first_relevant_date"],
                     alerts
                 )),
+                "num_relevant_today": None if num_alerts == 0 else sum(map(
+                    lambda alert: int(alert["first_relevant_date"] == TODAY_IN_JERUS),
+                    alerts
+                )),
+                # "num_relevant_tomorrow": None if num_alerts == 0 else sum(map(
+                #     lambda alert: int(alert["first_relevant_date"] == TOMORROW_IN_JERUS),
+                #     alerts
+                # )),
+                # "num_relevant_future": None if num_alerts == 0 else sum(map(
+                #     lambda alert: int(alert["first_relevant_date"] > TOMORROW_IN_JERUS),
+                #     alerts
+                # ))
                 # "alert_titles": None if num_alerts == 0 else [
                 #     alert["header"] for alert in alerts
                 # ],

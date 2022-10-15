@@ -1,4 +1,6 @@
 import * as React from "react";
+import * as ReactRouterDOM from "react-router-dom"; 
+
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
 import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../FuriousSearch/furiousindex";
 // import { AlertSummary } from "./AlertSummary";
@@ -34,7 +36,8 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
                 const [line, searchResult] = breakoutLineListItem(lines[index]);
                 
                 return <LineSummary line={line}
-                                    matches={searchResult?.matches} />
+                                    matches={searchResult?.matches}
+                                    showDistance={showDistance} />
             } else if (noAlertsToday && index == 0) {
                 return <div className="no-alerts-today">
                     <span>אין התראות היום</span>
@@ -107,14 +110,17 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
 interface LineSummaryProps {
     line: ActualLine;
     matches: FuriousSearchMatch[][];
+    showDistance: boolean;
 }
 
-function LineSummary({line, matches}: LineSummaryProps) {
+function LineSummary({line, matches, showDistance}: LineSummaryProps) {
     // TODO show distance? if (serverResponse.uses_location)
     const serverResponse = React.useContext(ServerResponseContext);
 
+    const location = ReactRouterDOM.useLocation();
+
     return <div className="alert-summary-wrapper"><div className="line-summary">
-        <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} />
+        {/* <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} /> */}
         <AgencyTag agency_id={line.agency_id} agency_name={null} />
         <div className="destinations">
             <div className={"line-number line-number-big operator-" + line.agency_id}>
@@ -134,7 +140,7 @@ function LineSummary({line, matches}: LineSummaryProps) {
                     <ul className="main-cities">
                         {line.main_cities.map(
                             (city, idx) => (
-                                <li><MatchedString s={city} matches={matches?.[3]?.[idx]} /></li>
+                                <li key={idx}><MatchedString s={city} matches={matches?.[3]?.[idx]} /></li>
                             )
                         )}
                     </ul>
@@ -143,7 +149,7 @@ function LineSummary({line, matches}: LineSummaryProps) {
                             : <ul className="secondary-cities">
                                 {line.secondary_cities.map(
                                     (city, idx) => (
-                                        <li><MatchedString s={city} matches={matches?.[4]?.[idx]} /></li>
+                                        <li key={idx}><MatchedString s={city} matches={matches?.[4]?.[idx]} /></li>
                                     )
                                 )}
                             </ul>
@@ -182,43 +188,58 @@ function LineSummary({line, matches}: LineSummaryProps) {
                 </ul>
             </>
         } */}
+        <div className="alert-counters">
+            <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
+                <span className="count">{line.num_alerts || 0}</span>
+                <span className="label">התראות</span>
+            </div>
+            <div className={"alert-count-big alert-count-tag-" + (line.num_relevant_today ? "today" : "none")}>
+                <span className="count">{line.num_relevant_today || 0}</span>
+                <span className="label">להיום</span>
+            </div>
+        </div>
+        <ReactRouterDOM.Link className={"more-details"}
+              to={`/line/${line.pk}`}
+              state={{backgroundLocation: location, line, showDistance: showDistance}}>
+             {"לחצו לפרטים נוספים >"}
+        </ReactRouterDOM.Link>
     </div></div>;
 }
 
-interface AlertCountProps {
-    num_alerts: number;
-    first_relevant_date: string;
-}
+// interface AlertCountProps {
+//     num_alerts: number;
+//     first_relevant_date: string;
+// }
 
-function AlertCountTag({num_alerts, first_relevant_date}: AlertCountProps) {
-    let text = "";
-    let is_for_today = 'future';
+// function AlertCountTag({num_alerts, first_relevant_date}: AlertCountProps) {
+//     let text = "";
+//     let is_for_today = 'future';
 
-    if (!num_alerts) {
-        text = "ללא התראות";
-    } else {
-        const today_in_jerus = DateTime.now().setZone(JERUSALEM_TZ).set({
-            hour: 0,
-            minute: 0,
-            second: 0,
-            millisecond: 0
-        });
+//     if (!num_alerts) {
+//         text = "ללא התראות";
+//     } else {
+//         const today_in_jerus = DateTime.now().setZone(JERUSALEM_TZ).set({
+//             hour: 0,
+//             minute: 0,
+//             second: 0,
+//             millisecond: 0
+//         });
 
-        const _first_relevant_date = isoToLocal(first_relevant_date);
+//         const _first_relevant_date = isoToLocal(first_relevant_date);
 
-        if (_first_relevant_date.toMillis() === today_in_jerus.toMillis()) {
-            is_for_today = 'today';
-        }
+//         if (_first_relevant_date.toMillis() === today_in_jerus.toMillis()) {
+//             is_for_today = 'today';
+//         }
         
-        if (num_alerts === 1) {
-            text = "התראה אחת";
-        } else {
-            text = num_alerts + " התראות";
-        }
-    }
+//         if (num_alerts === 1) {
+//             text = "התראה אחת";
+//         } else {
+//             text = num_alerts + " התראות";
+//         }
+//     }
 
-    return <span className={"alert-count-tag alert-count-tag-" + (!num_alerts ? 'none' : is_for_today)}>
-        {!num_alerts ? null : <img height="15" src={hazardImg} />}
-        <span>{text}</span>
-    </span>;
-}
+//     return <span className={"alert-count-tag alert-count-tag-" + (!num_alerts ? 'none' : is_for_today)}>
+//         {!num_alerts ? null : <img height="15" src={hazardImg} />}
+//         <span>{text}</span>
+//     </span>;
+// }

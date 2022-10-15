@@ -175,6 +175,9 @@ export interface ActualLine {
     
     num_alerts: number;
     first_relevant_date: string;
+    num_relevant_today: number;
+    // num_relevant_tomorrow: number;
+    // num_relevant_future: number;
     // alert_titles: TranslatedString[];
     // removed_stops: [string, string][];
     // added_stops: [string, string][];
