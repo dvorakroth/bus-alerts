@@ -3,6 +3,7 @@ import {render} from "react-dom";
 import {
     Route, Routes, useLocation, Navigate, BrowserRouter, HashRouter
 } from "react-router-dom";
+import LinesListPage from "./LinesListPage";
 import SerivceAlertsMainScreen from "./ServiceAlertsMainScreen";
 import {FullPageSingleAlert, ModalSingleAlert} from "./SingleAlertView";
 
@@ -35,6 +36,7 @@ function App() {
         <Routes location={state?.backgroundLocation || location}>
             <Route index element={<SerivceAlertsMainScreen hasModal={!!state?.backgroundLocation}/>}/>
             <Route path="/alert/:id" element={<FullPageSingleAlert/>}/>
+            <Route path="/lines" element={<LinesListPage hasModal={!!state?.backgroundLocation} />} />
             <Route path="*" element={<Navigate to="/" replace={true} />}/>
         </Routes>
         {

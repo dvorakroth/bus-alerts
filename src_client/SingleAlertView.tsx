@@ -1,11 +1,12 @@
 import * as React from "react";
 import * as ReactRouter from "react-router-dom";
 import { FuriousSearchMatch } from "../FuriousSearch/furiousindex";
-import { AgencyTag, areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
-import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, JsDict, RouteChange, ServerResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "./data";
+import { areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
+import { AgencyTag } from "./AgencyTag";
+import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, JsDict, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "./data";
 import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "./date_utils";
 import { RouteChangesMapView } from "./RouteChangeMapView";
-import { SEARCH_KEY_INDICES } from "./search_worker_data";
+import { ALERT_SEARCH_KEY_INDICES } from "./search_worker_data";
 import { LoadingOverlay } from "./ServiceAlertsMainScreen";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
@@ -580,7 +581,7 @@ function DepartureChangesView({departure_change: {added_hours, removed_hours}}: 
 }
 
 interface SingleAlertViewProps {
-    data?: ServerResponse;
+    data?: AlertsResponse;
     isLoading: boolean;
     isModal: boolean;
     showDistance: boolean;
@@ -670,7 +671,7 @@ function SingleAlertView(
                         {showDistance
                             ? <DistanceTag distance={distance}/>
                             : null}
-                        <h1><MatchedString s={header.he} matches={matches?.[SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
+                        <h1><MatchedString s={header.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
                         <ActivePeriodsView active_periods={active_periods.consolidated}/>
                         {
                             should_show_map
@@ -679,32 +680,32 @@ function SingleAlertView(
                                                      route_changes={data.route_changes}
                                                      stops_for_map={data.stops_for_map}
                                                      map_bounding_box={data.map_bounding_box}
-                                                     agencyNameMatches={matches?.[SEARCH_KEY_INDICES.AGENCY_NAME]}
-                                                     lineNumberMatches={matches?.[SEARCH_KEY_INDICES.LINE_NUMBER]} />
+                                                     agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
+                                                     lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]} />
                                 : 
                                     should_show_departure_chgs
                                         ? <LineChooserAndDepChgs relevant_agencies={relevant_agencies}
                                                                  relevant_lines={relevant_lines}
-                                                                 agencyNameMatches={matches?.[SEARCH_KEY_INDICES.AGENCY_NAME]}
-                                                                 lineNumberMatches={matches?.[SEARCH_KEY_INDICES.LINE_NUMBER]}
+                                                                 agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
+                                                                 lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]}
                                                                  departure_changes={departure_changes} />
                                         : <RelevantLinesOrAgencies relevant_agencies={relevant_agencies}
                                                                    relevant_lines={relevant_lines}
-                                                                   agencyNameMatches={matches?.[SEARCH_KEY_INDICES.AGENCY_NAME]}
-                                                                   lineNumberMatches={matches?.[SEARCH_KEY_INDICES.LINE_NUMBER]} />
+                                                                   agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
+                                                                   lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]} />
                         }
                         
                         <RelevantStopsList relevant_stops={removed_stops}
                                            isRemoved={true}
-                                           stopNameMatches={matches?.[SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
-                                           stopCodeMatches={matches?.[SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
+                                           stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
+                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
                         <RelevantStopsList relevant_stops={added_stops}
                                            isRemoved={false}
-                                           stopNameMatches={matches?.[SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
-                                           stopCodeMatches={matches?.[SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
+                                           stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
+                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
 
                         <h2>{DISCLAIMER_MOT_DESC}</h2>
-                        <pre><MatchedString s={description.he} matches={matches?.[SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
+                        <pre><MatchedString s={description.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
                 </div>
             }
             <LoadingOverlay shown={isLoading} />
@@ -714,14 +715,14 @@ function SingleAlertView(
 
 export function FullPageSingleAlert() {
     const params = ReactRouter.useParams<"id">();
-    const [data, setData] = React.useState<ServerResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
         if (!data) {
             fetch("/api/single_alert?id=" + encodeURIComponent(params.id))
                 .then((response) => response.json())
-                .then((data: ServerResponse) => {
+                .then((data: AlertsResponse) => {
                     setData(data);
                     setIsLoading(false);
                 });
@@ -752,13 +753,13 @@ export function ModalSingleAlert() {
         || alert.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
 
     const [isLoading, setIsLoading] = React.useState<boolean>(hasRouteChanges);
-    const [data, setData] = React.useState<ServerResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse>(null);
 
     React.useEffect(() => {
         if (hasRouteChanges && !data) {
             fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
                 .then((response) => response.json())
-                .then((data: ServerResponse) => {
+                .then((data: AlertsResponse) => {
                     setData(data);
                     setIsLoading(false);
                 });

@@ -133,6 +133,7 @@ export class FuriousIndex<T> {
             if (allPatternsMatched) {
                 // yes!
                 result.push({
+                    furiousSearchResult: true,
                     isMatch: true,
                     idx: obj.index,
                     obj: this.originalObjects[obj.index],
@@ -145,6 +146,7 @@ export class FuriousIndex<T> {
                 });
             } else if (returnExcluded) {
                 result.push({
+                    furiousSearchResult: true,
                     isMatch: false,
                     idx: obj.index,
                     obj: this.originalObjects[obj.index],
@@ -176,11 +178,16 @@ export interface ProcessedObject {
 export type FuriousSearchMatch = [number, number][];
 
 export interface FuriousSearchResult<T> {
+    furiousSearchResult: true,
     isMatch: boolean
     obj: T;
     idx: number;
     score: number;
     matches: FuriousSearchMatch[][]; // matches[keyIndex][valueIndex || 0]
+}
+
+export function isFuriousSearchResult<T>(x: any): x is FuriousSearchResult<T> {
+    return !!x["furiousSearchResult"];
 }
 
 export type FuriousSortFunc<T> = (a: FuriousSearchResult<T>, b: FuriousSearchResult<T>) => number;

@@ -2,8 +2,8 @@
 import * as React from "react";
 import { FuriousIndex } from "../FuriousSearch/furiousindex";
 import AlertsList, { ServiceAlertOrSearchResult } from "./AlertsList";
-import { ServerResponse, ServiceAlert } from "./data";
-import { SEARCH_KEYS, SEARCH_THRESHOLD, SORT_COMPARE_FUNC } from "./search_worker_data";
+import { AlertsResponse, ServiceAlert } from "./data";
+import { ALERT_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC } from "./search_worker_data";
 
 const GEOLOCATION_STATUS = {
     OFF: 0,
@@ -129,7 +129,7 @@ interface ServiceAlertsMainScreenProps {
 
 export default function ServiceAlertsMainScreen({hasModal}: ServiceAlertsMainScreenProps) {
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
-    const [data, setData] = React.useState<ServerResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
     const [currentLocation, setCurrentLocation] = React.useState<[number, number]>(null);
     const [searchString, setSearchString] = React.useState<string>(null);
@@ -176,7 +176,7 @@ export default function ServiceAlertsMainScreen({hasModal}: ServiceAlertsMainScr
 
             fetch(
                 '/api/all_alerts?current_location=' + encodeURIComponent(currentLocationStr)
-            ).then(response => response.json()).then((data: ServerResponse) => {
+            ).then(response => response.json()).then((data: AlertsResponse) => {
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
                     return;
@@ -186,7 +186,7 @@ export default function ServiceAlertsMainScreen({hasModal}: ServiceAlertsMainScr
                 //     msg: "newdata",
                 //     alerts: data?.alerts
                 // });
-                searchIndex.current = new FuriousIndex<ServiceAlert>(data.alerts, SEARCH_KEYS, SORT_COMPARE_FUNC);
+                searchIndex.current = new FuriousIndex<ServiceAlert>(data.alerts, ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
                 setData(data);
                 setIsLoading(false);
                 setShowDistance(!!currentLocationStr);
@@ -271,7 +271,7 @@ export default function ServiceAlertsMainScreen({hasModal}: ServiceAlertsMainScr
                 <input
                     type="text"
                     id="search-input"
-                    placeholder="חיפוש לפי קו, תחנה, ו/או מפעילה"
+                    placeholder="חיפוש לפי טקסט חופשי"
                     ref={searchInput}
                     onInput={onSearchInputChanged}
                 />

@@ -1,5 +1,5 @@
 import { FuriousKeyDefinition, FuriousSortFunc } from "../FuriousSearch/furiousindex";
-import { ServiceAlert } from "./data";
+import { ActualLine, ServiceAlert } from "./data";
 
 // export type SearchWorkerMessageNewData = {
 //     msg: "newdata",
@@ -29,7 +29,14 @@ import { ServiceAlert } from "./data";
 //     return obj.msg === "dosearch";
 // }
 
-export const SEARCH_KEY_INDICES = {
+export const LINE_SEARCH_KEY_INDICES = {
+    ROUTE_SHORT_NAME: 0,
+    HEADSIGN_1: 1,
+    HEADSIGN_2: 2,
+    // CITIES: 3
+}
+
+export const ALERT_SEARCH_KEY_INDICES = {
     HEADER_HE: 0,
     DESCRIPTION_HE: 1,
     AGENCY_NAME: 2,
@@ -40,7 +47,22 @@ export const SEARCH_KEY_INDICES = {
     REMOVED_STOP_CODE: 7
 };
 
-export const SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
+export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
+    {
+        get: a => a.route_short_name,
+        weight: 1
+    },
+    {
+        get: a => a.headsign_1,
+        weight: 0.1
+    },
+    {
+        get: a => a.headsign_2,
+        weight: 0.1
+    }
+];
+
+export const ALERT_SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
     {
         // "name": "header.he",
         "get": (a) => a.header.he,
@@ -91,7 +113,14 @@ export const SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
     }
 ];
 
-export const SORT_COMPARE_FUNC: FuriousSortFunc<ServiceAlert> = (a, b) => {
+export const DEFAULT_SORT_COMPARE_FUNC: FuriousSortFunc<any> = (a, b) => {
+    if (a.score === b.score)
+        return a.idx - b.idx;
+    else
+        return a.score - b.score;
+}
+
+export const ALERT_SORT_COMPARE_FUNC: FuriousSortFunc<ServiceAlert> = (a, b) => {
     const aDeleted = a.obj.is_deleted || a.obj.is_expired;
     const bDeleted = b.obj.is_deleted || b.obj.is_expired;
 

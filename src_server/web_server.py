@@ -107,6 +107,16 @@ class GtfsDbApi:
     def __init__(self, gtfsconn):
         self.gtfsconn = gtfsconn
 
+    def get_all_agencies(self):
+        with self.gtfsconn.cursor() as cursor:
+            cursor.execute(
+                "SELECT agency_id, agency_name FROM agency;"
+            )
+            return {
+                values[0]: {column.name: value for column, value in zip(cursor.description, values)}
+                for values in cursor.fetchall()
+            }
+
     def get_related_metadata_for_alerts(self, alerts):
         agency_ids = set()
         route_ids = set()
@@ -118,7 +128,7 @@ class GtfsDbApi:
             stop_ids  = stop_ids.union(alert["added_stop_ids"]).union(alert["removed_stop_ids"])
         
         return self.get_related_metadata(agency_ids, route_ids, stop_ids)
-    
+
     def get_related_metadata(self, agency_ids, route_ids, stop_ids):
         agencies = {}
         routes = {}
@@ -627,9 +637,60 @@ def deepcopy_decorator(func):
 ROUTE_CHANGES_CACHE = cachetools.TTLCache(maxsize=512, ttl=600)
 
 class ServiceAlertsApiServer:
-    def __init__(self, gtfsconn, alertconn):
-        self.gtfsdbapi  = GtfsDbApi(gtfsconn)
-        self.alertdbapi = AlertDbApi(alertconn)
+    def __init__(self, gtfsdbapi, alertdbapi):
+        self.gtfsdbapi  = gtfsdbapi
+        self.alertdbapi = alertdbapi
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def all_lines(self, current_location=None):
+        # TODO: add alert data for the lines themselves ugh
+        # TODO 2: once i've done that, also cache the result
+
+        alerts = self.alertdbapi.get_alerts()
+
+        linepk_to_alert_count = {}
+
+        for alert in alerts:
+            for route_id in alert["relevant_route_ids"]:
+                if route_id not in ACTUAL_LINES_BY_ROUTE_ID:
+                    cherrypy.log(f"route_id {route_id} not found in ACTUAL_LINES_BY_ROUTE_ID. ignoring")
+                    continue
+                pk = ACTUAL_LINES_BY_ROUTE_ID[route_id]
+
+                if pk not in linepk_to_alert_count:
+                    linepk_to_alert_count[pk] = 1
+                else:
+                    linepk_to_alert_count[pk] += 1
+        
+        all_lines_enriched = [
+            {
+                **line_dict,
+                "num_alerts": linepk_to_alert_count.get(line_dict["pk"], 0)
+                # TODO distance from user's current location
+            }
+            for line_dict in ACTUAL_LINES_LIST
+        ]
+        
+        lines_with_alert = sorted(
+            filter(
+                lambda line_dict: line_dict["num_alerts"] > 0,
+                all_lines_enriched
+            ),
+            key=lambda x: (
+                -x["num_alerts"],
+                line_number_for_sorting(x["route_short_name"]),
+                x["agency_id"] # TODO agency_name
+            )
+        )
+
+        return {
+            "lines_with_alert": lines_with_alert,
+            "linepk_to_alert_count": linepk_to_alert_count,
+            "all_lines": all_lines_enriched,
+            "all_agencies": ALL_AGENCIES_DICT,
+            "uses_location": False # TODO ugh
+        }
     
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -784,11 +845,11 @@ class ServiceAlertsApiServer:
             if not alert["is_deleted"] and not alert["is_expired"]:
                 for period_start, period_end in _active_periods_parsed:
                     # period_start = \
-                    #     JERUSALEM_TZ.localize(datetime.fromtimestamp(period_start_unixtime, timezone.utc).replace(tzinfo=None)) \
+                    #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_start_unixtime, timezone.utc).replace(tzinfo=None)) \
                     #     if period_start_unixtime is not None and period_start_unixtime != 0 else None
                     
                     # period_end = \
-                    #     JERUSALEM_TZ.localize(datetime.fromtimestamp(period_end_unixtime, timezone.utc).replace(tzinfo=None)) \
+                    #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_end_unixtime, timezone.utc).replace(tzinfo=None)) \
                     #     if period_end_unixtime is not None and period_end_unixtime != 0 else None
                     
                     # make sure this period hasn't expired yet; if it has, ignore it
@@ -1143,6 +1204,66 @@ def json_handler(*args, **kwargs):
     value = cherrypy.serving.request._json_inner_handler(*args, **kwargs)
     return json_encoder.iterencode(value)
 
+ALL_AGENCIES_DICT = None
+
+def create_all_agencies_list(gtfsdbapi):
+    global ALL_AGENCIES_DICT
+
+    ALL_AGENCIES_DICT = gtfsdbapi.get_all_agencies()
+
+ACTUAL_LINES_LIST = []
+ACTUAL_LINES_DICT = {}
+
+# ACTUAL_LINES_LIST_MINIMAL = []
+ACTUAL_LINES_DICT_MINIMAL = {}
+ACTUAL_LINES_MINIMAL_FIELDS = ["mot_license_id", "route_short_name", "agency_id", "headsign_1", "headsign_2", "is_night_line"]
+
+ACTUAL_LINES_BY_ROUTE_ID = {}
+
+def line_pk_to_str(mot_license_id, route_short_name):
+    return f"{route_short_name}_{mot_license_id}"
+
+def create_actual_lines_list(gtfs_db_url):
+    sql_script = None
+    with open("route_grouping_query.sql", "r") as f:
+        # this feels so dirty lmao
+        sql_script = f.read()
+    
+    with psycopg2.connect(gtfs_db_url) as gtfsconn:
+        with gtfsconn.cursor() as cursor:
+            cursor.execute(sql_script) # like bestie WHAT
+            cursor.execute("SELECT * FROM tmp__actual_lines ORDER BY route_short_name, agency_id, mot_license_id;")
+            for values in cursor.fetchall():
+                linedict = {
+                    column.name: value
+                    for column, value in zip(cursor.description, values)
+                }
+                pk = line_pk_to_str(linedict["mot_license_id"], linedict["route_short_name"])
+                linedict["pk"] = pk
+
+                hs_1 = linedict.get("headsign_1", None)
+                if hs_1:
+                    linedict["headsign_1"] = hs_1.replace("_", " - ")
+
+                hs_2 = linedict.get("headsign_2", None)
+                if hs_2:
+                    linedict["headsign_2"] = hs_2.replace("_", " - ")
+
+                ACTUAL_LINES_LIST.append(linedict)
+                ACTUAL_LINES_DICT[pk] = linedict
+
+                ACTUAL_LINES_DICT_MINIMAL[pk] = {
+                    colname: linedict[colname]
+                    for colname in ACTUAL_LINES_MINIMAL_FIELDS
+                }
+
+                for rr in linedict["all_route_ids_grouped"]:
+                    for r in rr:
+                        ACTUAL_LINES_BY_ROUTE_ID[r] = pk
+    
+    cherrypy.log("Generated list of actual lines")
+
+
 def main():
     import os.path
     import configparser
@@ -1181,8 +1302,15 @@ def main():
         'server.socket_port': port,
     })
 
+    create_actual_lines_list(gtfs_db_url)
+
     with psycopg2.connect(gtfs_db_url) as gtfsconn, psycopg2.connect(alerts_db_url) as alertconn:
-        cherrypy.tree.mount(ServiceAlertsApiServer(gtfsconn, alertconn), '/api', server_conf_api)
+        gtfsdbapi = GtfsDbApi(gtfsconn)
+        alertdbapi = AlertDbApi(alertconn)
+
+        create_all_agencies_list(gtfsdbapi)
+
+        cherrypy.tree.mount(ServiceAlertsApiServer(gtfsdbapi, alertdbapi), '/api', server_conf_api)
         # cherrypy.tree.mount(None, '/', server_conf_root)
         cherrypy.engine.start()
         cherrypy.engine.block()

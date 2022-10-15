@@ -263,6 +263,7 @@ hr {
     padding: 10px 10px 0 10px;
 }
 
+.line-summary,
 .alert-summary {
     position: relative;
 
@@ -276,6 +277,29 @@ hr {
     padding: 5px;
 
     background-color: #fff;
+
+    h1 {
+        font-size: 150%;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    h2 {
+        font-size: 110%;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    & > .more-details {
+        display: block;
+        width: fit-content;
+        margin: 0 auto 1px 5px;
+    
+        text-align: left;
+    
+        color: #666;
+        cursor: pointer;
+    }
 }
 
 .relevant-agencies {
@@ -389,18 +413,6 @@ hr {
 
     background: url('/assets/sign505.svg') no-repeat;
     background-size: 20px;
-}
-
-.alert-summary h1 {
-    font-size: 150%;
-    font-weight: bold;
-    margin: 0;
-}
-
-.alert-summary h2 {
-    font-size: 110%;
-    font-weight: bold;
-    margin: 0;
 }
 
 .distance-tag {
@@ -520,17 +532,6 @@ hr {
 .last-end-time {
     color: #666;
     font-size: 90%;
-}
-
-.alert-summary > .more-details {
-    display: block;
-    width: fit-content;
-    margin: 0 auto 1px 5px;
-
-    text-align: left;
-
-    color: #666;
-    cursor: pointer;
 }
 
 a.more-details:link,

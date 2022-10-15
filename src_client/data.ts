@@ -147,9 +147,36 @@ export interface DepartureChange {
     removed_hours: string[];
 }
 
-export interface ServerResponse {
+export interface AlertsResponse {
     alerts?: ServiceAlert[];
     route_changes?: JsDict<JsDict<RouteChange[]>>; // route_changes[agency_id]?.[line_number] = [{}, {}, {}, ...]?
     stops_for_map?: JsDict<StopForMap>; // by id
     map_bounding_box?: BoundingBox;
+}
+
+export type ActualLinePk = `${string}_${string}`;
+
+export interface ActualLine {
+    pk: ActualLinePk;
+    mot_license_id: string;
+    route_short_name: string;
+    agency_id: string;
+    headsign_1: string;
+    headsign_2: string;
+    is_night_line: boolean;
+    num_alternatives: number;
+    all_mot_alternative_ids: string[];
+    all_mot_direction_ids_groups: string[][];
+    all_route_ids_grouped: string[][];
+    all_headsigns_grouped: string[][];
+    
+    num_alerts: number;
+}
+
+export interface LinesListResponse {
+    lines_with_alert: ActualLine[];
+    linepk_to_alert_count: JsDict<number>;
+    all_lines: ActualLine[];
+    all_agencies: JsDict<Agency>;
+    uses_location: boolean;
 }

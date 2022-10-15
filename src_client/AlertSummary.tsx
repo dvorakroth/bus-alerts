@@ -5,8 +5,8 @@ import { Link, useLocation } from "react-router-dom";
 import { FuriousSearchMatch, FuriousSearchResult } from "../FuriousSearch/furiousindex";
 import { Agency, isServiceAlert, JsDict, ServiceAlert, USE_CASES_REVERSE } from "./data";
 import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "./date_utils";
-import { SEARCH_KEY_INDICES } from "./search_worker_data";
-import { imageNameForAgencyId } from "./agency_images";
+import { ALERT_SEARCH_KEY_INDICES } from "./search_worker_data";
+import { AgencyTag } from "./AgencyTag";
 
 const RELEVANCE_LEVELS = {
     TODAY: 'today',
@@ -176,35 +176,6 @@ const MORE_DETAILS_STRING     = "לחצו לפרטים נוספים >";
 //     "91": ["91", "91", "91"],
 //     "21": ["21", "21", "21", "21", "21", "21"]
 // };
-
-
-
-interface AgencyTagProps extends Agency {
-    matches?: FuriousSearchMatch;
-}
-
-export const AgencyTag = React.memo(
-    ({agency_id, agency_name, matches}: AgencyTagProps) =>
-        <div className="agency-tag">
-            <img src={imageNameForAgencyId(agency_id)} alt="" />
-            <span><MatchedString s={agency_name} matches={matches} /></span>
-        </div>,
-    (prevProps, newProps) => {
-        if (prevProps.agency_id !== newProps.agency_id) {
-            return false;
-        }
-
-        if (prevProps.agency_name !== newProps.agency_name) {
-            return false;
-        }
-
-        if (!areMatchesEqual(prevProps.matches, newProps.matches)) {
-            return false;
-        }
-
-        return true;
-    }
-)
 
 interface RelevantAgenciesListProps {
     relevant_agencies: Agency[]; // list of agency_ids
@@ -528,20 +499,20 @@ export function AlertSummary({
                 {RELEVANT_UNTIL + " " + short_datetime_hebrew(_last_end_time)}
             </span>
             : null}
-        <h1><MatchedString s={header.he} matches={matches?.[SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
+        <h1><MatchedString s={header.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
         <RelevantLinesOrAgencies relevant_agencies={relevant_agencies}
                                  relevant_lines={relevant_lines}
-                                 agencyNameMatches={matches?.[SEARCH_KEY_INDICES.AGENCY_NAME]}
-                                 lineNumberMatches={matches?.[SEARCH_KEY_INDICES.LINE_NUMBER]}/>
+                                 agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
+                                 lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]}/>
         <RelevantStopsList relevant_stops={removed_stops}
                            isRemoved={true}
-                           stopNameMatches={matches?.[SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
-                           stopCodeMatches={matches?.[SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
+                           stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
+                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
         <RelevantStopsList relevant_stops={added_stops}
                            isRemoved={false}
-                           stopNameMatches={matches?.[SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
-                           stopCodeMatches={matches?.[SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
-        <Link className={"more-details" + (matches?.[SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]?.length ? " search-match" : "")}
+                           stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
+                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
+        <Link className={"more-details" + (matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]?.length ? " search-match" : "")}
               to={`/alert/${id}`}
               state={{backgroundLocation: location, alert: alert, showDistance: showDistance, matches: matches}}>
             {MORE_DETAILS_STRING}
