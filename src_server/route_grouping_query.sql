@@ -50,10 +50,17 @@ SELECT DISTINCT ON (tmp__routes.route_id)
     tmp__routes.route_id,
     trip_id,
     MIN(stop_sequence) AS min_stop_sequence,
-    MAX(stop_sequence) AS max_stop_sequence
+    MAX(stop_sequence) AS max_stop_sequence,
+    JSON_AGG(DISTINCT substring(
+            -- get the city name out of stop_desc
+            substring(stop_desc, position('עיר:' in stop_desc) + 5),
+            0,
+            position('רציף: ' in substring(stop_desc, position('עיר:' in stop_desc) + 5)) - 1
+    )) AS city_list
 INTO TEMP TABLE tmp__route_trips
 FROM tmp__routes INNER JOIN trips ON trip_id = random_trip_id
 NATURAL JOIN stoptimes
+NATURAL JOIN stops
 GROUP BY tmp__routes.route_id, trip_id;
 
 ALTER TABLE tmp__route_trips ADD PRIMARY KEY (route_id);
@@ -88,7 +95,8 @@ SELECT mot_license_id,
        MAX(tmp__routes.route_id) AS route_id,
        MAX(route_desc) AS route_desc,
        MAX(trip_headsign) AS headsign,
-       BOOL_OR(is_night_line) AS is_night_line
+       BOOL_OR(is_night_line) AS is_night_line,
+       NULL::JSON AS city_list
     --    0 AS best_trip_count -- will be calculated later because sql is hard lol
 INTO TEMP TABLE tmp__actual_line_alt_directions
 FROM tmp__routes NATURAL JOIN trips
@@ -97,6 +105,12 @@ GROUP BY mot_license_id, route_short_name, mot_alternative_id, mot_direction_id;
 ALTER TABLE tmp__actual_line_alt_directions
 ADD PRIMARY KEY (mot_license_id, route_short_name, mot_alternative_id, mot_direction_id);
 
+UPDATE tmp__actual_line_alt_directions
+SET city_list = (
+    SELECT rt.city_list
+    FROM tmp__route_trips rt
+    WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
+);
 
 -- calculate best-trip-count-per-service-id field (ideally i'd want this to be
 -- best-trip-count-per-day, but gtfs services are complicated sooooo heuristic
@@ -154,7 +168,8 @@ SELECT mot_license_id,
        COUNT(mot_direction_id) as num_directions,
        JSON_AGG(mot_direction_id) as all_mot_direction_ids,
        JSON_AGG(route_id ORDER BY mot_direction_id ASC) as all_route_ids,
-       JSON_AGG(headsign ORDER BY mot_direction_id ASC) as all_headsigns
+       JSON_AGG(headsign ORDER BY mot_direction_id ASC) as all_headsigns,
+       JSON_AGG(city_list ORDER BY mot_direction_id ASC) as all_city_lists
     --    SUM(best_trip_count) sum_best_trip_count
 INTO TEMP TABLE tmp__actual_line_alts
 FROM tmp__actual_line_alt_directions
@@ -176,7 +191,8 @@ SELECT mot_license_id,
        JSON_AGG(mot_alternative_id ORDER BY mot_alternative_id ASC) AS all_mot_alternative_ids,
        JSON_AGG(all_mot_direction_ids ORDER BY mot_alternative_id ASC) AS all_mot_direction_ids_grouped,
        JSON_AGG(all_route_ids ORDER BY mot_alternative_id ASC) AS all_route_ids_grouped,
-       JSON_AGG(all_headsigns ORDER BY mot_alternative_id ASC) AS all_headsigns_grouped
+       JSON_AGG(all_headsigns ORDER BY mot_alternative_id ASC) AS all_headsigns_grouped,
+       JSON_AGG(all_city_lists ORDER BY mot_alternative_id ASC) AS all_city_lists_grouped
 INTO TEMP TABLE tmp__actual_lines
 FROM tmp__actual_line_alts
 GROUP BY mot_license_id, route_short_name;

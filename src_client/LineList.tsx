@@ -7,7 +7,7 @@ import { ActualLine, Agency, isServiceAlert, JsDict, LinesListResponse, ServiceA
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
 import { AgencyTag } from "./AgencyTag";
-import { ServerResponseContext } from "./LinesListPage";
+import { ServerResponseContext } from "./LineListPage";
 import { MatchedString } from "./AlertSummary";
 import { DateTime } from "luxon";
 import { isoToLocal, JERUSALEM_TZ } from "./date_utils";
@@ -15,6 +15,11 @@ import hazardImg from './assets/hazard.svg';
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
+export function breakoutLineListItem(l: LineListItem): [ActualLine, FuriousSearchResult<ActualLine>?] {
+    return isFuriousSearchResult<ActualLine>(l)
+        ? [l.obj, l]
+        : [l, null];
+}
 
 interface LineListProps {
     lines: LineListItem[];
@@ -26,10 +31,7 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
     const rowRenderer = React.useCallback<ItemContent<LineListItem>>(
         (index) => {
             if (!noAlertsToday && index < lines.length) {
-                const searchResultOrLine = lines[index];
-                const [line, searchResult] = isFuriousSearchResult<ActualLine>(searchResultOrLine)
-                    ? [searchResultOrLine.obj, searchResultOrLine]
-                    : [searchResultOrLine, null];
+                const [line, searchResult] = breakoutLineListItem(lines[index]);
                 
                 return <LineSummary line={line}
                                     matches={searchResult?.matches} />
@@ -104,7 +106,7 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
 
 interface LineSummaryProps {
     line: ActualLine;
-    matches: FuriousSearchMatch[][]; // TODO ugh
+    matches: FuriousSearchMatch[][];
 }
 
 function LineSummary({line, matches}: LineSummaryProps) {
@@ -126,6 +128,31 @@ function LineSummary({line, matches}: LineSummaryProps) {
                     <h1><MatchedString s={line.headsign_2} matches={matches?.[2]?.[0]} /></h1>
                 </>
             }
+
+            {(matches?.[3]?.length || matches?.[4]?.length)
+                ? <>
+                    <ul className="main-cities">
+                        {line.main_cities.map(
+                            (city, idx) => (
+                                <li><MatchedString s={city} matches={matches?.[3]?.[idx]} /></li>
+                            )
+                        )}
+                    </ul>
+                    {
+                        !line.secondary_cities?.length ? null
+                            : <ul className="secondary-cities">
+                                {line.secondary_cities.map(
+                                    (city, idx) => (
+                                        <li><MatchedString s={city} matches={matches?.[4]?.[idx]} /></li>
+                                    )
+                                )}
+                            </ul>
+            
+                    }
+                </>
+                : null
+            }
+            
         </div>
         {/* {
             !line.alert_titles?.length ? null : <>
@@ -135,7 +162,7 @@ function LineSummary({line, matches}: LineSummaryProps) {
                 </ul>
             </>
         } */}
-        {
+        {/* {
             !line.removed_stops?.length ? null : <>
                 <h2>תחנות מבוטלות:</h2>
                 <ul className="relevant-stops">
@@ -154,8 +181,7 @@ function LineSummary({line, matches}: LineSummaryProps) {
                     </li>)}
                 </ul>
             </>
-        }
-        {/* TODO: searchable list of cities */}
+        } */}
     </div></div>;
 }
 

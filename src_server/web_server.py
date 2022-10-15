@@ -722,8 +722,8 @@ class ServiceAlertsApiServer:
         # all_affected_stop_ids = set([])
 
         linepk_to_alerts = {}
-        linepk_to_removed_stopids = {}
-        linepk_to_added_stopids = {}
+        # linepk_to_removed_stopids = {}
+        # linepk_to_added_stopids = {}
 
         for alert in alerts:
             if alert["is_deleted"] or alert["is_expired"]:
@@ -742,24 +742,24 @@ class ServiceAlertsApiServer:
 
                 if pk not in linepk_to_alerts:
                     linepk_to_alerts[pk] = []
-                    linepk_to_removed_stopids[pk] = set([])
-                    linepk_to_added_stopids[pk]   = set([])
+                    # linepk_to_removed_stopids[pk] = set([])
+                    # linepk_to_added_stopids[pk]   = set([])
                 
                 linepk_to_alerts[pk].append(alert)
-                linepk_to_removed_stopids[pk].update(alert["removed_stop_ids"])
-                linepk_to_added_stopids[pk].update(alert["added_stop_ids"])
+                # linepk_to_removed_stopids[pk].update(alert["removed_stop_ids"])
+                # linepk_to_added_stopids[pk].update(alert["added_stop_ids"])
         
         # while we're at it, get all stop metadata
-        all_affected_stops = self.gtfsdbapi.get_stop_metadata(
-            functools.reduce(
-                lambda x, y: x.union(y),
-                itertools.chain(
-                    linepk_to_removed_stopids.values(),
-                    linepk_to_added_stopids.values()
-                ),
-                set([])
-            )
-        )
+        # all_affected_stops = self.gtfsdbapi.get_stop_metadata(
+        #     functools.reduce(
+        #         lambda x, y: x.union(y),
+        #         itertools.chain(
+        #             linepk_to_removed_stopids.values(),
+        #             linepk_to_added_stopids.values()
+        #         ),
+        #         set([])
+        #     )
+        # )
         
         all_lines_enriched = []
 
@@ -775,25 +775,25 @@ class ServiceAlertsApiServer:
                     lambda alert: alert["first_relevant_date"],
                     alerts
                 )),
-                "alert_titles": None if num_alerts == 0 else [
-                    alert["header"] for alert in alerts
-                ],
-                "removed_stops": None if num_alerts == 0 else
-                    map( # TODO sort
-                        lambda stop_id: [
-                            all_affected_stops[stop_id]["stop_code"],
-                            all_affected_stops[stop_id]["stop_name"]
-                        ],
-                        linepk_to_removed_stopids[pk]
-                    ),
-                "added_stops": None if num_alerts == 0 else
-                    map( # TODO sort
-                        lambda stop_id: [
-                            all_affected_stops[stop_id]["stop_code"],
-                            all_affected_stops[stop_id]["stop_name"]
-                        ],
-                        linepk_to_added_stopids[pk]
-                    )
+                # "alert_titles": None if num_alerts == 0 else [
+                #     alert["header"] for alert in alerts
+                # ],
+                # "removed_stops": None if num_alerts == 0 else
+                #     map( # TODO sort
+                #         lambda stop_id: [
+                #             all_affected_stops[stop_id]["stop_code"],
+                #             all_affected_stops[stop_id]["stop_name"]
+                #         ],
+                #         linepk_to_removed_stopids[pk]
+                #     ),
+                # "added_stops": None if num_alerts == 0 else
+                #     map( # TODO sort
+                #         lambda stop_id: [
+                #             all_affected_stops[stop_id]["stop_code"],
+                #             all_affected_stops[stop_id]["stop_name"]
+                #         ],
+                #         linepk_to_added_stopids[pk]
+                #     )
                 # TODO distance from user's current location
             }
             all_lines_enriched.append(e)
@@ -1336,6 +1336,21 @@ def create_actual_lines_list(gtfs_db_url):
                 hs_2 = linedict.get("headsign_2", None)
                 if hs_2:
                     linedict["headsign_2"] = hs_2.replace("_", " - ")
+                
+                linedict["main_cities"] = sorted(set(functools.reduce(
+                    operator.add,
+                    linedict["all_city_lists_grouped"][0]
+                )))
+
+                all_alts_cities = set(functools.reduce(
+                    operator.add,
+                    functools.reduce(
+                        operator.add,
+                        linedict["all_city_lists_grouped"]
+                    )
+                ))
+
+                linedict["secondary_cities"] = sorted(all_alts_cities.difference(linedict["main_cities"]))
 
                 ACTUAL_LINES_LIST.append(linedict)
                 ACTUAL_LINES_DICT[pk] = linedict

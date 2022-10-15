@@ -33,7 +33,8 @@ export const LINE_SEARCH_KEY_INDICES = {
     ROUTE_SHORT_NAME: 0,
     HEADSIGN_1: 1,
     HEADSIGN_2: 2,
-    // CITIES: 3
+    MAIN_CITIES: 3,
+    SECONDARY_CITIES: 4
 }
 
 export const ALERT_SEARCH_KEY_INDICES = {
@@ -58,6 +59,14 @@ export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
     },
     {
         get: a => a.headsign_2,
+        weight: 0.1
+    },
+    {
+        get: a => a.main_cities,
+        weight: 0.1
+    },
+    {
+        get: a => a.secondary_cities,
         weight: 0.1
     }
 ];

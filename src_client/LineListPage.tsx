@@ -2,7 +2,7 @@ import * as React from 'react';
 import { FuriousIndex } from '../FuriousSearch/furiousindex';
 import AlertsList from './AlertsList';
 import { ActualLine, LinesListResponse } from './data';
-import LineList, { LineListItem } from './LineList';
+import LineList, { breakoutLineListItem, LineListItem } from './LineList';
 import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC, DEFAULT_SORT_COMPARE_FUNC } from './search_worker_data';
 import { LoadingOverlay } from './ServiceAlertsMainScreen';
 
@@ -12,7 +12,7 @@ interface Props {
     hasModal: boolean;
 }
 
-export default function LinesListPage({hasModal}: Props) {
+export default function LineListPage({hasModal}: Props) {
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
     const [data, setData] = React.useState<LinesListResponse>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
@@ -112,6 +112,14 @@ export default function LinesListPage({hasModal}: Props) {
     );
     
     const showFilterNotice = currentlyDisplayedData !== data?.lines_with_alert && searchString;
+    const numFilteredWithAlerts = showFilterNotice && !hasModal
+        ? currentlyDisplayedData.reduce(
+            (sum, lineOrSearchResult) => (
+                sum + Math.min(1, breakoutLineListItem(lineOrSearchResult)[0].num_alerts)
+            ),
+            0
+        )
+        : null;
     const noAlertsToday = !data?.lines_with_alert.length && !isLoading;
 
     return <ServerResponseContext.Provider value={data}>
@@ -137,9 +145,13 @@ export default function LinesListPage({hasModal}: Props) {
             }
             </div>
         </div>
-        <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
-            <span>מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.lines_with_alert.length}</span> { /* TODO phrasing? numbers? idk */ }
-        </div>
+        {showFilterNotice && !hasModal
+            ? <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
+                <span>קווים מתאימים לחיפוש: {currentlyDisplayedData.length}, מתוכם בעלי התראות: {numFilteredWithAlerts}</span> { /* TODO phrasing? numbers? idk */ }
+            </div>
+            : null
+        }
+        
         <hr className={(hasModal ? "hidden" : "")} />
         <div className={"alerts-list-container" + (hasModal ? " hidden" : "")}>
                 <LineList

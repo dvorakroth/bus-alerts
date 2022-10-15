@@ -169,12 +169,15 @@ export interface ActualLine {
     all_mot_direction_ids_groups: string[][];
     all_route_ids_grouped: string[][];
     all_headsigns_grouped: string[][];
+
+    main_cities: string[];
+    secondary_cities: string[];
     
     num_alerts: number;
     first_relevant_date: string;
-    alert_titles: TranslatedString[];
-    removed_stops: [string, string][];
-    added_stops: [string, string][];
+    // alert_titles: TranslatedString[];
+    // removed_stops: [string, string][];
+    // added_stops: [string, string][];
 }
 
 export interface LinesListResponse {
