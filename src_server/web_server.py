@@ -9,22 +9,15 @@ Options:
 """
 
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from functools import reduce
 import functools
-import itertools
 import json
-import math
 import operator
-import re
-from copy import deepcopy
 
 import cachetools, cachetools.func
 import cherrypy
 import psycopg2
-import pytz
-from pyproj import Transformer
-import shapely.geometry
 
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
