@@ -171,11 +171,15 @@ export interface ActualLine {
     all_headsigns_grouped: string[][];
     
     num_alerts: number;
+    first_relevant_date: string;
+    alert_titles: TranslatedString[];
+    removed_stops: [string, string][];
+    added_stops: [string, string][];
 }
 
 export interface LinesListResponse {
     lines_with_alert: ActualLine[];
-    linepk_to_alert_count: JsDict<number>;
+    // linepk_to_alert_count: JsDict<number>;
     all_lines: ActualLine[];
     all_agencies: JsDict<Agency>;
     uses_location: boolean;

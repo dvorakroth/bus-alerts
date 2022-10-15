@@ -302,6 +302,32 @@ hr {
     }
 }
 
+.line-summary {
+    .agency-tag {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+    }
+
+    .destinations {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        .line-number {
+            margin: 10px 0;
+        }
+
+        .direction-separator {
+            font-size: 150%;
+        }
+    }
+
+    .destinations + * {
+        margin-top: 20px;
+    }
+}
+
 .relevant-agencies {
     margin: 3px 0 8px 0;
     padding: 0;
@@ -311,7 +337,8 @@ hr {
     }
 }
 
-.agency-tag {
+.agency-tag,
+.alert-count-tag {
     display: inline-flex;
 
     box-sizing: border-box;
@@ -327,13 +354,14 @@ hr {
 
     align-items: center;
 
-    & > span {
+    & > img ~ span {
+        margin-right: 7px;
+
         line-height: 30px;
         text-align: center;
     }
 
     & > img {
-        margin-left: 7px;
         height: 20px;
     }
 
@@ -345,6 +373,12 @@ hr {
         & > img {
             height: 30px;
         }
+    }
+}
+
+.alert-count-tag {
+    & > img ~ span {
+        margin-right: 4px;
     }
 }
 
@@ -440,17 +474,21 @@ hr {
     color: white;
 }
 
+.alert-count-tag-today,
 .relevant-tag-today {
     background-color: maroon;
     color: white;
 }
 
+.alert-count-tag-future,
 .relevant-tag-tomorrow {
     // background-color: rgb(240, 205, 2);
     background-color: #e17f16;
+    color: white;
     // color: black;
 }
 
+.alert-count-tag-none,
 .relevant-tag-future {
     background-color:rgb(21, 92, 21);
     color: white;
@@ -815,6 +853,7 @@ a.more-details:active {
 
 .search-match {
     background-color: rgb(255, 217, 0);
+    color: black;
 }
 
 .departure-time-groups {

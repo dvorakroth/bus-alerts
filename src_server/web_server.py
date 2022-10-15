@@ -11,6 +11,8 @@ Options:
 
 from datetime import datetime, timezone
 from functools import reduce
+import functools
+import itertools
 import json
 import math
 import operator
@@ -108,14 +110,40 @@ class GtfsDbApi:
         self.gtfsconn = gtfsconn
 
     def get_all_agencies(self):
-        with self.gtfsconn.cursor() as cursor:
-            cursor.execute(
-                "SELECT agency_id, agency_name FROM agency;"
-            )
-            return {
-                values[0]: {column.name: value for column, value in zip(cursor.description, values)}
-                for values in cursor.fetchall()
-            }
+        try:
+            with self.gtfsconn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT agency_id, agency_name FROM agency;"
+                )
+                return {
+                    values[0]: {column.name: value for column, value in zip(cursor.description, values)}
+                    for values in cursor.fetchall()
+                }
+        finally:
+            self.gtfsconn.rollback()
+    
+    def get_stop_metadata(self, stop_ids):
+        if not stop_ids:
+            return {}
+        
+        stop_ids = tuple(stop_ids)
+
+        if not len(stop_ids):
+            return {}
+        
+        try:
+            with self.gtfsconn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT stop_id, stop_lon, stop_lat, stop_name, stop_code FROM stops WHERE stop_id IN %s;",
+                    [stop_ids]
+                )
+                return {
+                    values[0]: {column.name: value for column, value in zip(cursor.description, values)}
+                    for values in cursor.fetchall()
+                }
+        finally:
+            self.gtfsconn.rollback()
+
 
     def get_related_metadata_for_alerts(self, alerts):
         agency_ids = set()
@@ -618,6 +646,49 @@ def label_headsigns_for_direction_and_alternative(line_changes):
             else:
                 chg["alt_name"] = str(alternatives.index(alt_id) + 1)
 
+def alert_find_next_relevant_date(alert):
+    today_in_jerus = datetime.now(JERUSALEM_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # convert list of active_periods from unixtime to datetime objects with pytz
+    active_periods_raw = alert["active_periods"]["raw"]
+    _active_periods_parsed = map(
+        lambda period: list(map(parse_unixtime_into_jerusalem_tz, period)),
+        active_periods_raw
+    )
+
+    # find next relevant date
+    first_relevant_date = None
+    current_active_period_start = None
+
+    if not alert["is_deleted"] and not alert["is_expired"]:
+        for period_start, period_end in _active_periods_parsed:
+            # period_start = \
+            #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_start_unixtime, timezone.utc).replace(tzinfo=None)) \
+            #     if period_start_unixtime is not None and period_start_unixtime != 0 else None
+            
+            # period_end = \
+            #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_end_unixtime, timezone.utc).replace(tzinfo=None)) \
+            #     if period_end_unixtime is not None and period_end_unixtime != 0 else None
+            
+            # make sure this period hasn't expired yet; if it has, ignore it
+            if period_end is not None and period_end <= today_in_jerus:
+                continue
+
+            # if this period already started (given it's not expired), then it's relevant to today
+            if period_start is None or period_start <= today_in_jerus:
+                first_relevant_date = today_in_jerus
+                current_active_period_start = period_start if period_start is not None else \
+                    JERUSALEM_TZ.localize(datetime.fromtimestamp(0, timezone.utc).replace(tzinfo=None))
+                break # definitely relevant to today, so stop iterating
+
+            # period is in the future
+            d = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            if first_relevant_date is None or d < first_relevant_date:
+                first_relevant_date = d
+                current_active_period_start = period_start
+    
+    return first_relevant_date, current_active_period_start
+
 def sort_alerts(alerts):
     return sorted(
         # filter_alerts(search_string, alerts, metadata),
@@ -648,29 +719,84 @@ class ServiceAlertsApiServer:
         # TODO 2: once i've done that, also cache the result
 
         alerts = self.alertdbapi.get_alerts()
+        # all_affected_stop_ids = set([])
 
-        linepk_to_alert_count = {}
+        linepk_to_alerts = {}
+        linepk_to_removed_stopids = {}
+        linepk_to_added_stopids = {}
 
         for alert in alerts:
+            if alert["is_deleted"] or alert["is_expired"]:
+                continue
+
+            # all_affected_stop_ids.update(alert["added_stop_ids"])
+            # all_affected_stop_ids.update(alert["removed_stop_ids"])
+            
+            alert["first_relevant_date"] = alert_find_next_relevant_date(alert)
+
             for route_id in alert["relevant_route_ids"]:
                 if route_id not in ACTUAL_LINES_BY_ROUTE_ID:
                     cherrypy.log(f"route_id {route_id} not found in ACTUAL_LINES_BY_ROUTE_ID. ignoring")
                     continue
                 pk = ACTUAL_LINES_BY_ROUTE_ID[route_id]
 
-                if pk not in linepk_to_alert_count:
-                    linepk_to_alert_count[pk] = 1
-                else:
-                    linepk_to_alert_count[pk] += 1
+                if pk not in linepk_to_alerts:
+                    linepk_to_alerts[pk] = []
+                    linepk_to_removed_stopids[pk] = set([])
+                    linepk_to_added_stopids[pk]   = set([])
+                
+                linepk_to_alerts[pk].append(alert)
+                linepk_to_removed_stopids[pk].update(alert["removed_stop_ids"])
+                linepk_to_added_stopids[pk].update(alert["added_stop_ids"])
         
-        all_lines_enriched = [
-            {
+        # while we're at it, get all stop metadata
+        all_affected_stops = self.gtfsdbapi.get_stop_metadata(
+            functools.reduce(
+                lambda x, y: x.union(y),
+                itertools.chain(
+                    linepk_to_removed_stopids.values(),
+                    linepk_to_added_stopids.values()
+                ),
+                set([])
+            )
+        )
+        
+        all_lines_enriched = []
+
+        for line_dict in ACTUAL_LINES_LIST:
+            pk = line_dict["pk"]
+            alerts = linepk_to_alerts.get(pk, [])
+            num_alerts = len(alerts)
+            
+            e = {
                 **line_dict,
-                "num_alerts": linepk_to_alert_count.get(line_dict["pk"], 0)
+                "num_alerts": num_alerts,
+                "first_relevant_date": None if num_alerts == 0 else min(*map(
+                    lambda alert: alert["first_relevant_date"],
+                    alerts
+                )),
+                "alert_titles": None if num_alerts == 0 else [
+                    alert["header"] for alert in alerts
+                ],
+                "removed_stops": None if num_alerts == 0 else
+                    map( # TODO sort
+                        lambda stop_id: [
+                            all_affected_stops[stop_id]["stop_code"],
+                            all_affected_stops[stop_id]["stop_name"]
+                        ],
+                        linepk_to_removed_stopids[pk]
+                    ),
+                "added_stops": None if num_alerts == 0 else
+                    map( # TODO sort
+                        lambda stop_id: [
+                            all_affected_stops[stop_id]["stop_code"],
+                            all_affected_stops[stop_id]["stop_name"]
+                        ],
+                        linepk_to_added_stopids[pk]
+                    )
                 # TODO distance from user's current location
             }
-            for line_dict in ACTUAL_LINES_LIST
-        ]
+            all_lines_enriched.append(e)
         
         lines_with_alert = sorted(
             filter(
@@ -686,7 +812,6 @@ class ServiceAlertsApiServer:
 
         return {
             "lines_with_alert": lines_with_alert,
-            "linepk_to_alert_count": linepk_to_alert_count,
             "all_lines": all_lines_enriched,
             "all_agencies": ALL_AGENCIES_DICT,
             "uses_location": False # TODO ugh
@@ -795,9 +920,6 @@ class ServiceAlertsApiServer:
 
         metadata = self.gtfsdbapi.get_related_metadata_for_alerts(alerts)
 
-        today_in_jerus = datetime.now(JERUSALEM_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
-        # tomorrow_in_jerus = today_in_jerus + timedelta(days=1)
-
         for alert in alerts:
             added_stops = set([])
             removed_stops = set([])
@@ -830,44 +952,8 @@ class ServiceAlertsApiServer:
                 map(lambda agency_id: metadata["agencies"][agency_id], alert["relevant_agencies"]),
                 key=lambda agency: agency["agency_name"]
             )
-
-            # convert list of active_periods from stupid local unixtime to datetime objects with pytz
-            active_periods_raw = alert["active_periods"]["raw"]
-            _active_periods_parsed = map(
-                lambda period: list(map(parse_unixtime_into_jerusalem_tz, period)),
-                active_periods_raw
-            )
-
-            # find next relevant date
-            first_relevant_date = None
-            current_active_period_start = None
-
-            if not alert["is_deleted"] and not alert["is_expired"]:
-                for period_start, period_end in _active_periods_parsed:
-                    # period_start = \
-                    #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_start_unixtime, timezone.utc).replace(tzinfo=None)) \
-                    #     if period_start_unixtime is not None and period_start_unixtime != 0 else None
-                    
-                    # period_end = \
-                    #     JERUSALEM_TZ.fromutc(datetime.fromtimestamp(period_end_unixtime, timezone.utc).replace(tzinfo=None)) \
-                    #     if period_end_unixtime is not None and period_end_unixtime != 0 else None
-                    
-                    # make sure this period hasn't expired yet; if it has, ignore it
-                    if period_end is not None and period_end <= today_in_jerus:
-                        continue
-
-                    # if this period already started (given it's not expired), then it's relevant to today
-                    if period_start is None or period_start <= today_in_jerus:
-                        first_relevant_date = today_in_jerus
-                        current_active_period_start = period_start if period_start is not None else \
-                            JERUSALEM_TZ.localize(datetime.fromtimestamp(0, timezone.utc).replace(tzinfo=None))
-                        break # definitely relevant to today, so stop iterating
-
-                    # period is in the future
-                    d = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                    if first_relevant_date is None or d < first_relevant_date:
-                        first_relevant_date = d
-                        current_active_period_start = period_start
+            
+            first_relevant_date, current_active_period_start = alert_find_next_relevant_date(alert)
             
             alert["first_relevant_date"] = first_relevant_date
             alert["current_active_period_start"] = \
@@ -1172,6 +1258,8 @@ class JSONEncoderWithDateTime(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        if isinstance(obj, set) or isinstance(obj, map):
+            return list(obj)
         else:
             return super().default(obj)
     

@@ -9,6 +9,9 @@ import * as smoothscroll from 'smoothscroll-polyfill';
 import { AgencyTag } from "./AgencyTag";
 import { ServerResponseContext } from "./LinesListPage";
 import { MatchedString } from "./AlertSummary";
+import { DateTime } from "luxon";
+import { isoToLocal, JERUSALEM_TZ } from "./date_utils";
+import hazardImg from './assets/hazard.svg';
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -109,18 +112,87 @@ function LineSummary({line, matches}: LineSummaryProps) {
     const serverResponse = React.useContext(ServerResponseContext);
 
     return <div className="alert-summary-wrapper"><div className="line-summary">
-        <AgencyTag agency_id={line.agency_id} agency_name={serverResponse?.all_agencies?.[line.agency_id]?.agency_name} />
-        <div className={"line-number operator-" + line.agency_id}>
-            <MatchedString s={line.route_short_name}
-                           matches={matches?.[0]?.[0]} />
+        <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} />
+        <AgencyTag agency_id={line.agency_id} agency_name={null} />
+        <div className="destinations">
+            <div className={"line-number line-number-big operator-" + line.agency_id}>
+                <MatchedString s={line.route_short_name}
+                            matches={matches?.[0]?.[0]} />
+            </div>
+            <h1><MatchedString s={line.headsign_1} matches={matches?.[1]?.[0]} /></h1>
+            {
+                !line.headsign_2 ? null : <>
+                    <span className="direction-separator">⬍</span>
+                    <h1><MatchedString s={line.headsign_2} matches={matches?.[2]?.[0]} /></h1>
+                </>
+            }
         </div>
-        <h1><MatchedString s={line.headsign_1} matches={matches?.[1]?.[0]} /></h1>
+        {/* {
+            !line.alert_titles?.length ? null : <>
+                <h2>התראות:</h2>
+                <ul className="active-alerts">
+                    {line.alert_titles.map(header => (<li>{header.he}</li>))}
+                </ul>
+            </>
+        } */}
         {
-            !line.headsign_2 ? null : <>
-                {/* TODO: add some arrows or sth */}
-                <h1><MatchedString s={line.headsign_2} matches={matches?.[2]?.[0]} /></h1>
+            !line.removed_stops?.length ? null : <>
+                <h2>תחנות מבוטלות:</h2>
+                <ul className="relevant-stops">
+                    {line.removed_stops.map(([stopCode, stopName]) => <li>
+                        {stopCode} - {stopName}
+                    </li>)}
+                </ul>
             </>
         }
-        <p>Currently has {line.num_alerts || 0} alerts</p>
+        {
+            !line.added_stops?.length ? null : <>
+                <h2>תחנות חדשות:</h2>
+                <ul className="relevant-stops">
+                    {line.added_stops.map(([stopCode, stopName]) => <li>
+                        {stopCode} - {stopName}
+                    </li>)}
+                </ul>
+            </>
+        }
+        {/* TODO: searchable list of cities */}
     </div></div>;
+}
+
+interface AlertCountProps {
+    num_alerts: number;
+    first_relevant_date: string;
+}
+
+function AlertCountTag({num_alerts, first_relevant_date}: AlertCountProps) {
+    let text = "";
+    let is_for_today = 'future';
+
+    if (!num_alerts) {
+        text = "ללא התראות";
+    } else {
+        const today_in_jerus = DateTime.now().setZone(JERUSALEM_TZ).set({
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0
+        });
+
+        const _first_relevant_date = isoToLocal(first_relevant_date);
+
+        if (_first_relevant_date.toMillis() === today_in_jerus.toMillis()) {
+            is_for_today = 'today';
+        }
+        
+        if (num_alerts === 1) {
+            text = "התראה אחת";
+        } else {
+            text = num_alerts + " התראות";
+        }
+    }
+
+    return <span className={"alert-count-tag alert-count-tag-" + (!num_alerts ? 'none' : is_for_today)}>
+        {!num_alerts ? null : <img height="15" src={hazardImg} />}
+        <span>{text}</span>
+    </span>;
 }

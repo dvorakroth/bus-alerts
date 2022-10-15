@@ -12,7 +12,10 @@ interface AgencyTagProps extends Agency {
 export const AgencyTag = React.memo(
     ({ agency_id, agency_name, matches }: AgencyTagProps) => <div className="agency-tag">
         <img src={imageNameForAgencyId(agency_id)} alt="" />
-        <span><MatchedString s={agency_name} matches={matches} /></span>
+        {!agency_name
+            ? null
+            : <span><MatchedString s={agency_name} matches={matches} /></span>
+        }
     </div>,
     (prevProps, newProps) => {
         if (prevProps.agency_id !== newProps.agency_id) {
