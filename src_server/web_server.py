@@ -173,13 +173,21 @@ class ServiceAlertsApiServer:
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
-    def get_single_line(self, pk):
+    def single_line(self, id):
         # TODO: alert data
 
-        line_dict = ACTUAL_LINES_DICT[pk]
+        line_dict = ACTUAL_LINES_DICT[id]
+
+        agency_dict = self.gtfsdbapi.get_all_agencies([line_dict["agency_id"]])
 
         result = {
             "line_details": {
+                "pk": id,
+                "route_short_name": line_dict["route_short_name"],
+                "agency": next(iter(agency_dict.values())),
+                "headsign_1": line_dict["headsign_1"],
+                "headsign_2": line_dict["headsign_2"],
+                "is_night_line": line_dict["is_night_line"],
                 "alts_dirs": []
             },
             "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
@@ -191,14 +199,16 @@ class ServiceAlertsApiServer:
                 "directions": []
             }
             result["line_details"]["alts_dirs"].append(alt)
-            for dir_idx, dir_idx in enumerate(line_dict["all_mot_direction_ids_grouped"][alt_idx]):
-                dir = {}
+            for dir_idx, dir_id in enumerate(line_dict["all_mot_direction_ids_grouped"][alt_idx]):
+                dir = {
+                    "dir_id": dir_id
+                }
                 alt["directions"].append(dir)
 
                 dir["headsign"] = line_dict["all_headsigns_grouped"][alt_idx][dir_idx]
 
                 route_id = line_dict["all_route_ids_grouped"][alt_idx][dir_idx]
-                rep_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id)
+                rep_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id, JERUSALEM_TZ.fromutc(datetime.utcnow()))
                 dir["stop_seq"] = self.gtfsdbapi.get_stop_seq(rep_trip_id)
                 dir["shape"] = self.gtfsdbapi.get_shape_points(rep_trip_id)
         

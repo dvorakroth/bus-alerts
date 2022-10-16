@@ -393,7 +393,7 @@ ul.secondary-cities {
     align-items: center;
 
     & > img ~ span {
-        margin-right: 7px;
+        // margin-right: 7px;
 
         line-height: 30px;
         text-align: center;
@@ -401,6 +401,10 @@ ul.secondary-cities {
 
     & > img {
         height: 20px;
+    }
+
+    & > img + * {
+        margin-right: 7px;
     }
 
     .line-number-big & {
@@ -858,7 +862,7 @@ a.more-details:active {
     //     background-color: #d8d8d8;
     // }
 
-    h2 ~ .agency-tag {
+    .agency-tag {
         width: 100%;
         justify-content: center;
     }

@@ -123,7 +123,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
             : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
         }
         {/* <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} /> */}
-        <AgencyTag agency_id={line.agency_id} agency_name={null} />
+        <AgencyTag agency_id={line.agency_id} agency_name={serverResponse.all_agencies[line.agency_id].agency_name} hideName={true} is_night_line={line.is_night_line} />
         <div className="destinations">
             <div className={"line-number line-number-verybig operator-" + line.agency_id}>
                 <MatchedString s={line.route_short_name}

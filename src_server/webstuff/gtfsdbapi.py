@@ -8,12 +8,18 @@ class GtfsDbApi:
     def __init__(self, gtfsconn):
         self.gtfsconn = gtfsconn
 
-    def get_all_agencies(self):
+    def get_all_agencies(self, specific_ids=None):
         try:
             with self.gtfsconn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT agency_id, agency_name FROM agency;"
-                )
+                if specific_ids and len(specific_ids):
+                    cursor.execute(
+                        "SELECT agency_id, agency_name FROM agency WHERE agency_id IN %s;",
+                        [tuple(specific_ids)]
+                    )
+                else:
+                    cursor.execute(
+                        "SELECT agency_id, agency_name FROM agency;"
+                    )
                 return {
                     values[0]: {column.name: value for column, value in zip(cursor.description, values)}
                     for values in cursor.fetchall()
@@ -116,7 +122,13 @@ class GtfsDbApi:
             self.gtfsconn.rollback()
     
     def get_representative_trip_id(self, route_id, preferred_date):
-        preferred_date = preferred_date.replace(tzinfo=None)
+        preferred_date = preferred_date.replace(
+            tzinfo=None,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
 
         try:
             with self.gtfsconn.cursor() as cursor:

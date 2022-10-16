@@ -6,6 +6,7 @@ import {
 import LineListPage from "./LineViews/LineListPage";
 import AlertListPage from "./AlertViews/AlertListPage";
 import {FullPageSingleAlert, ModalSingleAlert} from "./AlertViews/SingleAlertView";
+import FullPageSingleLineView from "./LineViews/SingleLineView";
 
 let isStandalone = false;
 
@@ -34,15 +35,20 @@ function App() {
 
     return <>
         <Routes location={state?.backgroundLocation || location}>
-            <Route index element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>
+            <Route index element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
+            <Route path="/line/:id" element={<FullPageSingleLineView isModal={false} />} />
+            <Route path="/lines" element={<Navigate to="/" replace={true} />} />
+
+            <Route path="/alerts" element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>
             <Route path="/alert/:id" element={<FullPageSingleAlert/>}/>
-            <Route path="/lines" element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
+
             <Route path="*" element={<Navigate to="/" replace={true} />}/>
         </Routes>
         {
         state?.backgroundLocation
             ? <Routes>
                 <Route path="/alert/:id" element={<ModalSingleAlert />} />
+                <Route path="/line/:id" element={<FullPageSingleLineView isModal={true} />} />
             </Routes>
             : null
         }

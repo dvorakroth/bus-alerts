@@ -647,8 +647,8 @@ function SingleAlertView(
         <nav>
             <div className="nav-content">
                 {isModal
-                    ? <a className="back-to-list" href="/" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
-                    : <ReactRouter.Link className="back-to-list" to={'/'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
+                    ? <a className="back-to-list" href="/alerts" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
+                    : <ReactRouter.Link className="back-to-list" to={'/alerts'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
             </div>
         </nav>
         <div className={"single-alert-content-container" /* i'll... explain later */}

@@ -191,3 +191,29 @@ export interface LinesListResponse {
     all_agencies: JsDict<Agency>;
     uses_location: boolean;
 }
+
+export interface LineDir {
+    headsign: string;
+    stop_seq: string[];
+    shape: [number, number][];
+}
+
+export interface LineAlt {
+    alt_id: string;
+    directions: LineDir[]
+}
+
+export interface SingleLineDetails {
+    pk: ActualLinePk;
+    route_short_name: string;
+    agency: Agency;
+    headsign_1: string;
+    headsign_2: string;
+    is_night_line: boolean;
+    alts_dirs: LineAlt[];
+}
+
+export interface SingleLineResponse {
+    line_details: SingleLineDetails;
+    all_stops: JsDict<StopForMap>;
+}
