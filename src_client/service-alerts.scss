@@ -209,6 +209,15 @@ hr {
     font-size: 20px;
 }
 
+.line-number.line-number-verybig,
+.line-number-verybig .line-number {
+    min-width: 80px;
+    height: 80px;
+
+    line-height: 80px;
+    font-size: 35px;
+}
+
 .alert-list-view {
     list-style-type: none;
     margin: 0;
@@ -421,18 +430,44 @@ ul.secondary-cities {
 }
 
 .alert-count-big {
-    min-width: 70px;
+    min-width: 60px;
     display: flex;
 
-    flex-direction: column;
+    flex-direction: row-reverse;
     align-items: center;
+    justify-content: center;
     text-align: center;
 
-    padding: 0 0 5px 0;
-    border-radius: 7px;
+    padding: 0 5px 5px 5px;
+    border-radius: 10px;
+    border: 5px solid #777;
+
+    & > .icon-wrapper {
+        margin: 9px 2px 2px 8px;
+        & > img {
+            width: 20px;
+        }
+
+        &.cancelled {
+            position: relative;
+    
+            &::after {
+                content: "";
+                display: block;
+    
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                width: 24px;
+                height: 24px;
+    
+                background: url(assets/cancelled.svg) no-repeat center;
+            }
+        }
+    }
 
     & > .count {
-        font-size: 300%;
+        font-size: 250%;
     }
 }
 
@@ -528,28 +563,37 @@ ul.secondary-cities {
     color: white;
 }
 
-.alert-count-tag-today,
+$alert-color-red: maroon;
+$alert-color-orange: #e17f16;
+$alert-color-yellow: rgb(231,200,0);
+$alert-color-green: rgb(21, 92, 21);
+
+.alert-count-tag-today {
+    border-color: $alert-color-red;
+}
+.alert-count-tag-tomorrow {
+    border-color: $alert-color-orange;
+}
+.alert-count-tag-future {
+    border-color:$alert-color-yellow;
+}
+.alert-count-tag-none {
+    border-color: $alert-color-green;
+}
 .relevant-tag-today {
-    background-color: maroon;
+    background-color: $alert-color-red;
     color: white;
 }
 
-.alert-count-tag-tomorrow,
 .relevant-tag-tomorrow {
     // background-color: rgb(240, 205, 2);
-    background-color: #e17f16;
+    background-color: $alert-color-orange;
     color: white;
     // color: black;
 }
 
-.alert-count-tag-future {
-    background-color: rgb(231, 200, 0);
-    color: black;
-}
-
-.alert-count-tag-none,
 .relevant-tag-future {
-    background-color:rgb(21, 92, 21);
+    background-color:$alert-color-green;
     color: white;
 }
 

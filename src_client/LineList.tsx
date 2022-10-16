@@ -13,7 +13,8 @@ import { ServerResponseContext } from "./LineListPage";
 import { MatchedString } from "./AlertSummary";
 import { DateTime } from "luxon";
 import { isoToLocal, JERUSALEM_TZ } from "./date_utils";
-import hazardImg from './assets/hazard.svg';
+import hazardImg from './assets/26a0.svg';
+import sign505Img from './assets/sign505.svg'
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -120,10 +121,13 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
     const location = ReactRouterDOM.useLocation();
 
     return <div className="alert-summary-wrapper"><div className="line-summary">
+        {!line.num_relevant_today ? null
+            : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
+        }
         {/* <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} /> */}
         <AgencyTag agency_id={line.agency_id} agency_name={null} />
         <div className="destinations">
-            <div className={"line-number line-number-big operator-" + line.agency_id}>
+            <div className={"line-number line-number-verybig operator-" + line.agency_id}>
                 <MatchedString s={line.route_short_name}
                             matches={matches?.[0]?.[0]} />
             </div>
@@ -191,17 +195,23 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
         <div className="alert-counters">
             <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
                 <span className="count">{line.num_alerts || 0}</span>
-                <span className="label">התראות</span>
+                <div className="icon-wrapper">
+                    <img src={hazardImg} alt="התראות פעילות" />
+                </div>
+                {/* <span className="label">התראות</span> */}
             </div>
-            <div className={"alert-count-big alert-count-tag-" + (line.num_relevant_today ? "today" : "none")}>
+            {/* <div className={"alert-count-big alert-count-tag-" + (line.num_relevant_today ? "today" : "none")}>
                 <span className="count">{line.num_relevant_today || 0}</span>
                 <span className="label">להיום</span>
-            </div>
+            </div> */}
             {
                 !line.num_removed_stops ? null
                     : <div className={"alert-count-big alert-count-tag-today"}>
                         <span className="count">{line.num_removed_stops || 0}</span>
-                        <span className="label">תחנות מבוטלות</span>
+                        <div className="icon-wrapper cancelled">
+                            <img src={sign505Img} alt="תחנות מבוטלות" />
+                        </div>
+                        {/* <span className="label">תחנות מבוטלות</span> */}
                     </div>
             }
             
