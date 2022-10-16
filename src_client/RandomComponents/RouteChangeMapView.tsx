@@ -1,7 +1,7 @@
 import * as mapboxgl from 'mapbox-gl';
 import * as React from "react";
-import { BoundingBox, JsDict, RouteChange, StopForMap } from './data';
-import { LoadingOverlay } from './ServiceAlertsMainScreen';
+import { BoundingBox, JsDict, RouteChange, StopForMap } from '../data';
+import { LoadingOverlay } from '../AlertViews/AlertListPage';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRxMnBkdTBjIn0.IDeZtjeHSZmEXyD3o7p6ww';
 

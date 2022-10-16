@@ -1,8 +1,8 @@
 import * as React from "react";
-import { FuriousSearchMatch } from "../FuriousSearch/furiousindex";
-import { Agency } from "./data";
-import { imageNameForAgencyId } from "./agency_images";
-import { MatchedString, areMatchesEqual } from "./AlertSummary";
+import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
+import { Agency } from "../data";
+import { imageNameForAgencyId } from "../agency_images";
+import { MatchedString, areMatchesEqual } from "../AlertViews/AlertSummary";
 
 
 interface AgencyTagProps extends Agency {

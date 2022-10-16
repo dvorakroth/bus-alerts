@@ -70,9 +70,9 @@ export const USE_CASES_REVERSE =
 
 type ValueOf<T> = T[keyof T];
 
-export function isServiceAlert(obj: any): obj is ServiceAlert {
-    return 'use_case' in obj && typeof(USE_CASES_REVERSE[obj.use_case]) === "string";
-}
+// export function isServiceAlert(obj: any): obj is ServiceAlert {
+//     return 'use_case' in obj && typeof(USE_CASES_REVERSE[obj.use_case]) === "string";
+// }
 
 export interface ServiceAlert {
     id: string;

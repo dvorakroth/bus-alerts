@@ -2,24 +2,22 @@ import * as React from "react";
 import * as ReactRouterDOM from "react-router-dom"; 
 
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
-import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../FuriousSearch/furiousindex";
+import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../../FuriousSearch/furiousindex";
 // import { AlertSummary } from "./AlertSummary";
-import { ActualLine, Agency, isServiceAlert, JsDict, LinesListResponse, ServiceAlert } from "./data";
+import { ActualLine } from "../data";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
-import { AgencyTag } from "./AgencyTag";
-import { ServerResponseContext } from "./LineListPage";
-import { MatchedString } from "./AlertSummary";
-import { DateTime } from "luxon";
-import { isoToLocal, JERUSALEM_TZ } from "./date_utils";
-import hazardImg from './assets/26a0.svg';
-import sign505Img from './assets/sign505.svg'
+import { AgencyTag } from "../RandomComponents/AgencyTag";
+import { LineListResponseContext } from "./LineListPage";
+import { MatchedString } from "../AlertViews/AlertSummary";
+import hazardImg from '../assets/hazard.svg';
+import cancelledstop from '../assets/cancelledstop.svg'
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
-export function breakoutLineListItem(l: LineListItem): [ActualLine, FuriousSearchResult<ActualLine>?] {
-    return isFuriousSearchResult<ActualLine>(l)
+export function breakoutSearchableListItem<T>(l: T | FuriousSearchResult<T>): [T, FuriousSearchResult<T>?] {
+    return isFuriousSearchResult<T>(l)
         ? [l.obj, l]
         : [l, null];
 }
@@ -34,7 +32,7 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
     const rowRenderer = React.useCallback<ItemContent<LineListItem>>(
         (index) => {
             if (!noAlertsToday && index < lines.length) {
-                const [line, searchResult] = breakoutLineListItem(lines[index]);
+                const [line, searchResult] = breakoutSearchableListItem(lines[index]);
                 
                 return <LineSummary line={line}
                                     matches={searchResult?.matches}
@@ -116,7 +114,7 @@ interface LineSummaryProps {
 
 function LineSummary({line, matches, showDistance}: LineSummaryProps) {
     // TODO show distance? if (serverResponse.uses_location)
-    const serverResponse = React.useContext(ServerResponseContext);
+    const serverResponse = React.useContext(LineListResponseContext);
 
     const location = ReactRouterDOM.useLocation();
 
@@ -196,7 +194,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
             <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
                 <span className="count">{line.num_alerts || 0}</span>
                 <div className="icon-wrapper">
-                    <img src={hazardImg} alt="התראות פעילות" />
+                    <img src={hazardImg} alt="התראות במערכת" />
                 </div>
                 {/* <span className="label">התראות</span> */}
             </div>
@@ -209,7 +207,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                     : <div className={"alert-count-big alert-count-tag-today"}>
                         <span className="count">{line.num_removed_stops || 0}</span>
                         <div className="icon-wrapper cancelled">
-                            <img src={sign505Img} alt="תחנות מבוטלות" />
+                            <img src={cancelledstop} alt="תחנות מבוטלות" />
                         </div>
                         {/* <span className="label">תחנות מבוטלות</span> */}
                     </div>

@@ -1,13 +1,13 @@
 import * as React from "react";
 import * as ReactRouter from "react-router-dom";
-import { FuriousSearchMatch } from "../FuriousSearch/furiousindex";
+import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
 import { areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
-import { AgencyTag } from "./AgencyTag";
-import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, JsDict, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "./data";
-import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "./date_utils";
-import { RouteChangesMapView } from "./RouteChangeMapView";
-import { ALERT_SEARCH_KEY_INDICES } from "./search_worker_data";
-import { LoadingOverlay } from "./ServiceAlertsMainScreen";
+import { AgencyTag } from "../RandomComponents/AgencyTag";
+import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, JsDict, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../data";
+import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
+import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
+import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
+import { LoadingOverlay } from "./AlertListPage";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";

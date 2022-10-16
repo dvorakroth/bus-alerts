@@ -169,7 +169,41 @@ class ServiceAlertsApiServer:
             "all_agencies": ALL_AGENCIES_DICT,
             "uses_location": False # TODO ugh
         }
-    
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def get_single_line(self, pk):
+        # TODO: alert data
+
+        line_dict = ACTUAL_LINES_DICT[pk]
+
+        result = {
+            "line_details": {
+                "alts_dirs": []
+            },
+            "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
+        }
+
+        for alt_idx, alt_id in enumerate(line_dict["all_mot_alternative_ids"]):
+            alt = {
+                "alt_id": alt_id,
+                "directions": []
+            }
+            result["line_details"]["alts_dirs"].append(alt)
+            for dir_idx, dir_idx in enumerate(line_dict["all_mot_direction_ids_grouped"][alt_idx]):
+                dir = {}
+                alt["directions"].append(dir)
+
+                dir["headsign"] = line_dict["all_headsigns_grouped"][alt_idx][dir_idx]
+
+                route_id = line_dict["all_route_ids_grouped"][alt_idx][dir_idx]
+                rep_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id)
+                dir["stop_seq"] = self.gtfsdbapi.get_stop_seq(rep_trip_id)
+                dir["shape"] = self.gtfsdbapi.get_shape_points(rep_trip_id)
+        
+        return result
+
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def all_alerts(self, current_location=None):

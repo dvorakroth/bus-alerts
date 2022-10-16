@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { FuriousIndex } from '../FuriousSearch/furiousindex';
-import AlertsList from './AlertsList';
-import { ActualLine, LinesListResponse } from './data';
-import LineList, { breakoutLineListItem, LineListItem } from './LineList';
-import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC, DEFAULT_SORT_COMPARE_FUNC } from './search_worker_data';
-import { LoadingOverlay } from './ServiceAlertsMainScreen';
+import { FuriousIndex } from '../../FuriousSearch/furiousindex';
+import { ActualLine, LinesListResponse } from '../data';
+import LineList, { breakoutSearchableListItem, LineListItem } from './LineList';
+import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, DEFAULT_SORT_COMPARE_FUNC } from '../search_worker_data';
+import { LoadingOverlay } from '../AlertViews/AlertListPage';
+import GeolocationButton from '../RandomComponents/GeolocationButton';
 
-export const ServerResponseContext = React.createContext<LinesListResponse>(null);
+export const LineListResponseContext = React.createContext<LinesListResponse>(null);
 
 interface Props {
     hasModal: boolean;
@@ -47,6 +47,7 @@ export default function LineListPage({hasModal}: Props) {
                     return;
                 }
 
+                // module workers are still a shit show in 2022 lmao fml
                 // searchWorker.current.postMessage({
                 //     msg: "newdata",
                 //     alerts: data?.alerts
@@ -115,17 +116,33 @@ export default function LineListPage({hasModal}: Props) {
     const numFilteredWithAlerts = showFilterNotice && !hasModal
         ? currentlyDisplayedData.reduce(
             (sum, lineOrSearchResult) => (
-                sum + Math.min(1, breakoutLineListItem(lineOrSearchResult)[0].num_alerts)
+                sum + Math.min(1, breakoutSearchableListItem(lineOrSearchResult)[0].num_alerts)
             ),
             0
         )
         : null;
     const noAlertsToday = !data?.lines_with_alert.length && !isLoading;
 
-    return <ServerResponseContext.Provider value={data}>
+    const onNewLocation = React.useCallback(
+        (newLocation: GeolocationPosition) => {
+            console.log("new location received: ", newLocation);
+
+            let _newLocation: [number, number] = null;
+
+            if (newLocation) {
+                _newLocation = [newLocation.coords.latitude, newLocation.coords.longitude];
+            }
+
+            setCurrentLocation(_newLocation);
+        },
+        [setCurrentLocation]
+    );
+
+
+    return <LineListResponseContext.Provider value={data}>
         <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
             <div className="search-bar">
-                {/* <GeolocationButton onNewLocation={onNewLocation}/> */}
+                <GeolocationButton onNewLocation={onNewLocation}/>
                 <input
                     type="text"
                     id="search-input"
@@ -161,6 +178,6 @@ export default function LineListPage({hasModal}: Props) {
                 />
                 <LoadingOverlay shown={isLoading} />
         </div>
-    </ServerResponseContext.Provider>;
+    </LineListResponseContext.Provider>;
 
 }

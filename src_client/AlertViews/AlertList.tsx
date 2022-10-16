@@ -1,29 +1,28 @@
 import * as React from "react";
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
-import { FuriousSearchResult } from "../FuriousSearch/furiousindex";
+import { FuriousSearchResult } from "../../FuriousSearch/furiousindex";
 import { AlertSummary } from "./AlertSummary";
-import { isServiceAlert, ServiceAlert } from "./data";
+import { ServiceAlert } from "../data";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
+import { breakoutSearchableListItem } from "../LineViews/LineList";
 smoothscroll.polyfill();
 
 export type ServiceAlertOrSearchResult = ServiceAlert | FuriousSearchResult<ServiceAlert>;
 
-interface AlertsListProps {
+interface AlertListProps {
     alerts: ServiceAlertOrSearchResult[];
     showDistance: boolean;
     noAlertsToday?: boolean;
 }
 
-export default function AlertsList({alerts, showDistance, noAlertsToday}: AlertsListProps) {
+export default function AlertList({alerts, showDistance, noAlertsToday}: AlertListProps) {
     const rowRenderer = React.useCallback<ItemContent<ServiceAlertOrSearchResult>>(
         (index) => {
             if (!noAlertsToday && index < alerts.length) {
                 const searchResultOrAlert = alerts[index];
-                const [alert, searchResult] = isServiceAlert(searchResultOrAlert)
-                    ? [searchResultOrAlert, null]
-                    : [searchResultOrAlert.obj, searchResultOrAlert]
+                const [alert, searchResult] = breakoutSearchableListItem(searchResultOrAlert);
                 
                 return <AlertSummary alert={alert}
                                     matches={searchResult?.matches}

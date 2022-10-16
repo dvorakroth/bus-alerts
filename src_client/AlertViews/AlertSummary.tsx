@@ -2,11 +2,11 @@ import { DateTime } from "luxon";
 // import Fuse from "../Fuse/src";
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FuriousSearchMatch, FuriousSearchResult } from "../FuriousSearch/furiousindex";
-import { Agency, isServiceAlert, JsDict, ServiceAlert, USE_CASES_REVERSE } from "./data";
-import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "./date_utils";
-import { ALERT_SEARCH_KEY_INDICES } from "./search_worker_data";
-import { AgencyTag } from "./AgencyTag";
+import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
+import { Agency, JsDict, ServiceAlert } from "../data";
+import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
+import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
+import { AgencyTag } from "../RandomComponents/AgencyTag";
 
 const RELEVANCE_LEVELS = {
     TODAY: 'today',

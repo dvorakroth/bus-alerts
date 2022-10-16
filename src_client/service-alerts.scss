@@ -448,22 +448,22 @@ ul.secondary-cities {
             width: 20px;
         }
 
-        &.cancelled {
-            position: relative;
+        // &.cancelled {
+        //     position: relative;
     
-            &::after {
-                content: "";
-                display: block;
+        //     &::after {
+        //         content: "";
+        //         display: block;
     
-                position: absolute;
-                top: -2px;
-                left: -2px;
-                width: 24px;
-                height: 24px;
+        //         position: absolute;
+        //         top: -2px;
+        //         left: -2px;
+        //         width: 24px;
+        //         height: 24px;
     
-                background: url(assets/cancelled.svg) no-repeat center;
-            }
-        }
+        //         background: url(assets/cancelled.svg) no-repeat center;
+        //     }
+        // }
     }
 
     & > .count {

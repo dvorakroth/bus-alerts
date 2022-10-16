@@ -3,9 +3,9 @@ import {render} from "react-dom";
 import {
     Route, Routes, useLocation, Navigate, BrowserRouter, HashRouter
 } from "react-router-dom";
-import LineListPage from "./LineListPage";
-import SerivceAlertsMainScreen from "./ServiceAlertsMainScreen";
-import {FullPageSingleAlert, ModalSingleAlert} from "./SingleAlertView";
+import LineListPage from "./LineViews/LineListPage";
+import AlertListPage from "./AlertViews/AlertListPage";
+import {FullPageSingleAlert, ModalSingleAlert} from "./AlertViews/SingleAlertView";
 
 let isStandalone = false;
 
@@ -34,7 +34,7 @@ function App() {
 
     return <>
         <Routes location={state?.backgroundLocation || location}>
-            <Route index element={<SerivceAlertsMainScreen hasModal={!!state?.backgroundLocation}/>}/>
+            <Route index element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>
             <Route path="/alert/:id" element={<FullPageSingleAlert/>}/>
             <Route path="/lines" element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
             <Route path="*" element={<Navigate to="/" replace={true} />}/>
