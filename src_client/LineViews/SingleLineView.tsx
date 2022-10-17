@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { SingleLineResponse } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
+import DirectionChooser from '../RandomComponents/DirectionChooser';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -16,12 +17,21 @@ interface ImplSingleLineViewProps {
 function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingleLineViewProps) {
     const navigate = ReactRouter.useNavigate();
 
+    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState(0);
+
     const onDismissModal = (event: React.MouseEvent) => {
         event.preventDefault();
         event.stopPropagation();
 
         navigate(-1);
     };
+
+    const onNewDirectionSelected = React.useCallback(
+        (index) => {
+            setSelectedDirectionIdx(index);
+        },
+        [setSelectedDirectionIdx]
+    );
 
     const line = data?.line_details;
     
@@ -48,22 +58,22 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     : null
             }
             {!line ? null :
-                <div className="single-alert-content">
-                    <AgencyTag agency_id={line.agency.agency_id}
-                               agency_name={line.agency.agency_name}
-                               is_night_line={line.is_night_line} />
-                    {/* <div className="destinations"> */}
-                        <div className={"line-number line-number-verybig operator-" + line.agency.agency_id}>
-                            {line.route_short_name}
+                <div className="single-line-content">
+                    <div className="destinations">
+                        <div className="line-and-agency">
+                            <AgencyTag agency_id={line.agency.agency_id}
+                                    agency_name={line.agency.agency_name}
+                                    is_night_line={line.is_night_line}
+                                    hideName={true} />
+                            <div className={"line-number line-number-bigger operator-" + line.agency.agency_id}>
+                                {line.route_short_name}
+                            </div>
                         </div>
-                        {/* <h1>{line.headsign_1}</h1>
-                        {
-                            !line.headsign_2 ? null : <>
-                                <span className="direction-separator">⬍</span>
-                                <h1>{line.headsign_2}</h1>
-                            </>
-                        } */}
-                    {/* </div> */}
+                        <DirectionChooser changes_for_line={line.dirs_flattened}
+                                          selectedIndex={selectedDirectionIdx}
+                                          onNewSelection={onNewDirectionSelected}
+                                          hideCaption={true} />
+                    </div>
                 </div>
             }
         </div>

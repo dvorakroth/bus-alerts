@@ -209,6 +209,15 @@ hr {
     font-size: 20px;
 }
 
+.line-number.line-number-bigger,
+.line-number-bigger .line-number {
+    min-width: 60px;
+    height: 60px;
+
+    line-height: 60px;
+    font-size: 27px;
+}
+
 .line-number.line-number-verybig,
 .line-number-verybig .line-number {
     min-width: 80px;
@@ -812,7 +821,8 @@ a.more-details:active {
     padding: 0 10px;
 }
 
-.single-alert-content {
+.single-alert-content,
+.single-line-content {
     position: relative;
 
     flex-grow: 1;
@@ -862,9 +872,49 @@ a.more-details:active {
     //     background-color: #d8d8d8;
     // }
 
-    .agency-tag {
+    h2 ~ .agency-tag {
         width: 100%;
         justify-content: center;
+    }
+
+    > .destinations {
+        display: flex;
+
+        // justify-content: flex-start;
+        align-items: center;
+
+        .direction-chooser-wrapper {
+            margin-right: 3px;
+            width: 100%;
+        }
+
+        .direction-chooser {
+            margin: 0;
+
+            > :first-child {
+                margin-top: 0;
+            }
+
+            > :last-child {
+                margin-bottom: 0;
+            }
+        }
+
+        > .line-and-agency {
+            display: flex;
+            flex-direction: column;
+            align-self: flex-start;
+
+            > .line-number {
+                align-self: center;
+                
+                margin-top: 8px;
+            }
+
+            > .agency-tag {
+                justify-content: center;
+            }
+        }
     }
 }
 
@@ -947,13 +997,13 @@ a.more-details:active {
             display: block;
 
             position: absolute;
-            top: -5px;
-            right: -5px;
-            bottom: -5px;
-            left: -5px;
+            top: -2px;
+            right: -2px;
+            bottom: -2px;
+            left: -2px;
 
             border: 3px solid black;
-            border-radius: 10px;
+            border-radius: 8px;
         }
     }
 }

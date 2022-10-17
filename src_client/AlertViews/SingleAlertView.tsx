@@ -8,6 +8,7 @@ import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_heb
 import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { LoadingOverlay } from "./AlertListPage";
+import DirectionChooser from "../RandomComponents/DirectionChooser";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -260,117 +261,6 @@ function LineChooser(
                 </React.Fragment>
             )}
         </div>;
-}
-
-const CHOOSE_DIRECTION_LABEL = "בחרו כוון:";
-const TOWARDS_LABEL = "ל";
-const DIRECTION_NAME_LABEL = "כוון";
-const ALTERNATIVE_NAME_LABEL = "חלופה";
-
-function direction_text(direction: string, alt_name?: string, dir_name?: string) {
-    let result = TOWARDS_LABEL + direction;
-
-    if (dir_name || alt_name) {
-        const dir_part =
-            dir_name
-                ? `${DIRECTION_NAME_LABEL} ${dir_name}`
-                : null;
-        
-        const alt_part =
-            alt_name
-                ? (
-                    alt_name == '#'
-                        ? ALTERNATIVE_NAME_LABEL
-                        : `${ALTERNATIVE_NAME_LABEL} ${alt_name}`
-                )
-                : null;
-        
-        result += ' (';
-        
-        if (dir_part) {
-            result += dir_part;
-
-            if (alt_part) {
-                result += ', ';
-            }
-        }
-
-        if (alt_part) {
-            result += alt_part;
-        }
-
-        result += ')';
-    }
-
-    return result;
-}
-
-interface DirectionChooserDirectionProps {
-    direction: string;
-    alt_name?: string;
-    dir_name?: string;
-    isSelected: boolean;
-    index: number;
-    onDirectionClick: (index: number, event: React.MouseEvent) => void;
-}
-
-const DirectionChooserDirection = React.memo(
-    (
-        {
-            direction,
-            alt_name,
-            dir_name,
-            isSelected,
-            onDirectionClick,
-            index
-        }: DirectionChooserDirectionProps
-    ) => {
-        const onClick = (event: React.MouseEvent) => onDirectionClick?.(index, event);
-        return <li role="radio"
-                   aria-selected={isSelected}
-                   onClick={onClick}
-                   className={isSelected ? "is-selected" : null}>
-            {direction_text(direction, alt_name, dir_name)}
-        </li>;
-    }
-);
-
-interface DirectionChooserProps {
-    changes_for_line: {to_text: string, alt_name?: string, dir_name?: string}[];
-    selectedIndex: number;
-    onNewSelection: (index: number, event: React.MouseEvent) => void;
-}
-
-function DirectionChooser({changes_for_line, onNewSelection, selectedIndex}: DirectionChooserProps) {
-    const onDirectionClick = React.useCallback(
-        (index: number, event: React.MouseEvent) => {
-            // setSelection(index);
-            onNewSelection(index, event);
-        },
-        [onNewSelection]
-    );
-
-    return <div role="radiogroup" aria-labelledby="choose-direction-label">
-        <h2 id="choose-direction-label">{CHOOSE_DIRECTION_LABEL}</h2>
-        <ul className="direction-chooser">
-            {changes_for_line?.map?.((change, idx) =>
-                <DirectionChooserDirection key={idx}
-                                           direction={change.to_text}
-                                           alt_name={change.alt_name}
-                                           dir_name={change.dir_name}
-                                           isSelected={idx===selectedIndex}
-                                           index={idx}
-                                           onDirectionClick={onDirectionClick} />
-            )}
-            {changes_for_line?.length
-                ? null
-                : <DirectionChooserDirection direction=""
-                                             isSelected={false}
-                                             index={0}
-                                             onDirectionClick={null} />
-            }
-        </ul>
-    </div>;
 }
 
 interface LineChooserAndMapProps extends RelevantLinesListProps {

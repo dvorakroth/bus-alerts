@@ -193,6 +193,11 @@ export interface LinesListResponse {
 }
 
 export interface LineDir {
+    alt_id: string;
+    dir_id: string;
+    alt_name: string;
+    dir_name: string;
+    
     headsign: string;
     is_circular: boolean;
     stop_seq: string[];
@@ -200,10 +205,10 @@ export interface LineDir {
     city_list: string[];
 }
 
-export interface LineAlt {
-    alt_id: string;
-    directions: LineDir[];
-}
+// export interface LineAlt {
+//     alt_id: string;
+//     directions: LineDir[];
+// }
 
 export interface SingleLineDetails {
     pk: ActualLinePk;
@@ -212,7 +217,7 @@ export interface SingleLineDetails {
     headsign_1: string;
     headsign_2: string;
     is_night_line: boolean;
-    all_directions_grouped: LineAlt[];
+    dirs_flattened: LineDir[];
 }
 
 export interface SingleLineResponse {

@@ -12,6 +12,7 @@ Options:
 from datetime import datetime
 from functools import reduce
 import functools
+from itertools import chain
 import json
 import operator
 
@@ -22,7 +23,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -189,27 +190,65 @@ class ServiceAlertsApiServer:
                 "headsign_1": line_dict["headsign_1"],
                 "headsign_2": line_dict["headsign_2"],
                 "is_night_line": line_dict["is_night_line"],
-                "all_directions_grouped": []
+                # "all_directions_grouped": []
             },
             "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
         }
 
+        # the thought behind flattening these is that i want just one consolidated list
+        # shown to the user and sorted by the server, because flattening and sorting it
+        # in a react componen would be silly 
+        dirs_flattened = []
+        # collect this for the label_headsigns_for_direction_and_alternative function
+        dict_headsign_to_dir_alt_pairs = {}
+        headsigns_collected = set([])
+        dir_alt_pairs_collected = []
+
         for alt_orig in line_dict["all_directions_grouped"]:
             # we do a deep copy here so that we don't accidentally modify our original cache(?) of actual_lines
-            alt = {
-                "alt_id": alt_orig["alt_id"],
-                "directions": []
-            }
-            result["line_details"]["all_directions_grouped"].append(alt)
             for dir_orig in alt_orig["directions"]:
                 dir = {
-                    **dir_orig
+                    **dir_orig,
+                    "alt_id": alt_orig["alt_id"]
                 }
-                alt["directions"].append(dir)
+                dirs_flattened.append(dir)
 
                 rep_trip_id = self.gtfsdbapi.get_representative_trip_id(dir["route_id"], JERUSALEM_TZ.fromutc(datetime.utcnow()))
                 dir["stop_seq"] = self.gtfsdbapi.get_stop_seq(rep_trip_id)
                 dir["shape"] = self.gtfsdbapi.get_shape_points(rep_trip_id)
+
+                dir_alt_pairs_collected.append((dir["dir_id"], dir["alt_id"]))
+                headsign = dir["headsign"]
+                if headsign not in headsigns_collected:
+                    headsigns_collected.add(headsign)
+                    dict_headsign_to_dir_alt_pairs[headsign] = []
+                
+                dict_headsign_to_dir_alt_pairs[headsign].append((dir["dir_id"], alt_orig["alt_id"]))
+        
+        dir_alt_names = label_headsigns_for_direction_and_alternative(
+            dict(
+                map(
+                    lambda h: (h, dir_alt_pairs_collected),
+                    headsigns_collected
+                )
+            ),
+            dict_headsign_to_dir_alt_pairs,
+            map(
+                lambda d: (d["headsign"], (d["dir_id"], d["alt_id"])),
+                dirs_flattened
+            ),
+            True
+        )
+
+        for dir, (dir_name, alt_name) in zip(dirs_flattened, dir_alt_names):
+            dir["dir_name"] = dir_name
+            dir["alt_name"] = alt_name
+        
+        dirs_flattened.sort(
+            key = lambda d: (d["dir_name"] or "", d["alt_name"] or "")
+        )
+        
+        result["line_details"]["dirs_flattened"] = dirs_flattened
         
         return result
 
@@ -704,6 +743,8 @@ def line_pk_to_str(mot_license_id, route_short_name):
     return f"{route_short_name}_{mot_license_id}"
 
 def create_actual_lines_list(gtfs_db_url):
+    cherrypy.log("Started generating list of actual lines")
+
     sql_script = None
     with open("route_grouping_query.sql", "r") as f:
         # this feels so dirty lmao
@@ -739,6 +780,7 @@ def create_actual_lines_list(gtfs_db_url):
                     directions = alt["directions"]
 
                     for dir in directions:
+                        dir["headsign"] = dir["headsign"].replace("_", " - ")
                         if is_first_alt:
                             linedict["main_cities"].update(dir["city_list"])
                         else:
@@ -756,7 +798,7 @@ def create_actual_lines_list(gtfs_db_url):
                 ACTUAL_LINES_LIST.append(linedict)
                 ACTUAL_LINES_DICT[pk] = linedict
     
-    cherrypy.log("Generated list of actual lines")
+    cherrypy.log("Finished generating list of actual lines")
 
 
 def main():

@@ -89,6 +89,7 @@ def label_line_changes_headsigns_for_direction_and_alternative(line_changes):
     
     ordered_dir_alt_namepairs = label_headsigns_for_direction_and_alternative(
         dict_headsign_to_dir_alt_pairs,
+        dict_headsign_to_dir_alt_pairs,
         map(
             lambda x: [x["to_text"], x["dir_alt_pair"]],
             line_changes
@@ -100,22 +101,28 @@ def label_line_changes_headsigns_for_direction_and_alternative(line_changes):
         chg["dir_name"] = namepair[0]
         chg["alt_name"] = namepair[1]
 
-def label_headsigns_for_direction_and_alternative(dict_headsign_to_dir_alt_pairs, headsigns_with_diralts):
+def label_headsigns_for_direction_and_alternative(
+    alt_dict_headsign_to_dir_alt_pairs,
+    dir_dict_headsign_to_dir_alt_pairs,
+    headsigns_with_diralts,
+    label_dirs_per_alt=False
+):
 
-    def per_headsign(x):
-        headsign, dir_alt_pair = x
-        other_dups = dict_headsign_to_dir_alt_pairs[headsign]
+    def per_headsign(h):
+        headsign, dir_alt_pair = h
+        alt_dups = alt_dict_headsign_to_dir_alt_pairs[headsign]
+        dir_dups = dir_dict_headsign_to_dir_alt_pairs[headsign]
 
         dir_name = None
         alt_name = None
 
-        if len(other_dups) == 1:
+        if len(alt_dups) == 1 and len(dir_dups) == 1:
             # no duplicates for this headsign! yay upside down smiley
             return [dir_name, alt_name]
         
         dir_id, alt_id = dir_alt_pair
 
-        if any(map(lambda x: x[0] != dir_id, other_dups)):
+        if any(map(lambda x: x[0] != dir_id and (not label_dirs_per_alt or x[1] == alt_id), dir_dups)):
             # if there's any dups with a different direction id
 
             # in some distant nebulous future, i could try giving actual names
@@ -124,10 +131,10 @@ def label_headsigns_for_direction_and_alternative(dict_headsign_to_dir_alt_pairs
             dir_name = str(
                 # possibly the slowest most inefficient way to do this but as
                 # stated earlier, yours truly is truly bad at algo
-                sorted(set([d for d, a in other_dups])).index(dir_id) + 1
+                sorted(set([d for d, a in dir_dups if (not label_dirs_per_alt or a == alt_id)])).index(dir_id) + 1
             )
         
-        if alt_id not in ['#', '0'] and any(map(lambda x: x[1] != alt_id, other_dups)):
+        if alt_id not in ['#', '0'] and any(map(lambda x: x[1] != alt_id, alt_dups)):
             # if there's any dups with a different alternative id
             # (and also this isn't the main alternative)
 
@@ -149,12 +156,12 @@ def label_headsigns_for_direction_and_alternative(dict_headsign_to_dir_alt_pairs
             # note: if a not in ['#', '0'] cause we don't care about the main alternative here
             # i want to display: Towards A, Towards A (Alt 1), Towards A (Alt 2)
             # and not quite:     Towards A, Towards A (Alt 2), Towards A (Alt 3)
-            alternatives = sorted(set([a for d, a in other_dups if a not in ['#', '0']]))
+            alternatives = sorted(set([a for d, a in alt_dups if a not in ['#', '0']]))
 
             if len(alternatives) == 1:
                 # but also we want to display: Towards A, Towards A (Alt)
                 # and not qutie:               Towards A, Towards A (Alt 1)
-                # because "1" doesn't makes sense when there's just the one
+                # because "1" doesn't make sense when there's just the one
                 alt_name = "#"
             else:
                 alt_name = str(alternatives.index(alt_id) + 1)
