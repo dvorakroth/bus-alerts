@@ -206,6 +206,7 @@ class ServiceAlertsApiServer:
                 alt["directions"].append(dir)
 
                 dir["headsign"] = line_dict["all_headsigns_grouped"][alt_idx][dir_idx]
+                dir["is_circular"] = line_dict["all_is_circular_grouped"][alt_idx][dir_idx]
 
                 route_id = line_dict["all_route_ids_grouped"][alt_idx][dir_idx]
                 rep_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id, JERUSALEM_TZ.fromutc(datetime.utcnow()))

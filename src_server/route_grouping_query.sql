@@ -96,6 +96,7 @@ SELECT mot_license_id,
        MAX(tmp__routes.route_id) AS route_id,
        MAX(route_desc) AS route_desc,
        MAX(trip_headsign) AS headsign,
+       FALSE AS is_circular,
        BOOL_OR(is_night_line) AS is_night_line,
        NULL::JSON AS city_list
     --    0 AS best_trip_count -- will be calculated later because sql is hard lol
@@ -111,7 +112,30 @@ SET city_list = (
     SELECT rt.city_list
     FROM tmp__route_trips rt
     WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
-);
+),
+is_circular = (
+    -- distance between first and last stop lmao
+    SELECT asin(
+            sqrt(
+                sin(radians(s2.stop_lat-s1.stop_lat)/2)^2 +
+                sin(radians(s2.stop_lon-s1.stop_lon)/2)^2 *
+                cos(radians(s1.stop_lat)) *
+                cos(radians(s2.stop_lat))
+            )
+        ) * 7926.3352 AS distance
+    -- SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
+    FROM 
+        tmp__route_trips rt
+        INNER JOIN stoptimes st1
+        ON rt.trip_id = st1.trip_id AND st1.stop_sequence = rt.min_stop_sequence
+        INNER JOIN stops s1
+        ON st1.stop_id = s1.stop_id
+        INNER JOIN stoptimes st2
+        ON rt.trip_id = st2.trip_id AND st2.stop_sequence = rt.max_stop_sequence
+        INNER JOIN stops s2
+        ON st2.stop_id = s2.stop_id
+    WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
+) <= 0.5; -- if it's less than a half mile (800 m) then consider the line to be circular
 
 -- calculate best-trip-count-per-service-id field (ideally i'd want this to be
 -- best-trip-count-per-day, but gtfs services are complicated sooooo heuristic
@@ -170,7 +194,8 @@ SELECT mot_license_id,
        JSON_AGG(mot_direction_id) as all_mot_direction_ids,
        JSON_AGG(route_id ORDER BY mot_direction_id ASC) as all_route_ids,
        JSON_AGG(headsign ORDER BY mot_direction_id ASC) as all_headsigns,
-       JSON_AGG(city_list ORDER BY mot_direction_id ASC) as all_city_lists
+       JSON_AGG(city_list ORDER BY mot_direction_id ASC) as all_city_lists,
+       JSON_AGG(is_circular ORDER BY mot_direction_id ASC) as all_is_circular
     --    SUM(best_trip_count) sum_best_trip_count
 INTO TEMP TABLE tmp__actual_line_alts
 FROM tmp__actual_line_alt_directions
@@ -194,6 +219,7 @@ SELECT mot_license_id,
        JSON_AGG(all_route_ids ORDER BY mot_alternative_id ASC) AS all_route_ids_grouped,
        JSON_AGG(all_headsigns ORDER BY mot_alternative_id ASC) AS all_headsigns_grouped,
        JSON_AGG(all_city_lists ORDER BY mot_alternative_id ASC) AS all_city_lists_grouped,
+       JSON_AGG(all_is_circular ORDER BY mot_alternative_id ASC) AS all_is_circular_grouped,
        NULL::JSON AS all_stopids_distinct
 INTO TEMP TABLE tmp__actual_lines
 FROM tmp__actual_line_alts
@@ -248,29 +274,7 @@ SET agency_id = (
 UPDATE tmp__actual_lines
 SET headsign_2 = (
         CASE
-            WHEN (
-                -- distance between first and last stop lmao
-                SELECT asin(
-                        sqrt(
-                            sin(radians(s2.stop_lat-s1.stop_lat)/2)^2 +
-                            sin(radians(s2.stop_lon-s1.stop_lon)/2)^2 *
-                            cos(radians(s1.stop_lat)) *
-                            cos(radians(s2.stop_lat))
-                        )
-                    ) * 7926.3352 AS distance
-                -- SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
-                FROM 
-                    tmp__route_trips rt
-                    INNER JOIN stoptimes st1
-                    ON rt.trip_id = st1.trip_id AND st1.stop_sequence = rt.min_stop_sequence
-                    INNER JOIN stops s1
-                    ON st1.stop_id = s1.stop_id
-                    INNER JOIN stoptimes st2
-                    ON rt.trip_id = st2.trip_id AND st2.stop_sequence = rt.max_stop_sequence
-                    INNER JOIN stops s2
-                    ON st2.stop_id = s2.stop_id
-                WHERE rt.route_id = (all_route_ids_grouped #>> '{0, 0}')
-            ) <= 0.5 THEN
+            WHEN (all_is_circular_grouped #>> '{0, 0}')::BOOLEAN THEN
                 NULL -- keep the headsign_2 as null, this trip's first and last stops and less than a half mile (800 m) apart
             WHEN (all_headsigns_grouped #>> '{1, 0}') = headsign_1 THEN
                 NULL -- TODO: maybe use first stop's name? idk that'd involve switching headsign 1 and 2
