@@ -164,11 +164,11 @@ export interface ActualLine {
     headsign_1: string;
     headsign_2: string;
     is_night_line: boolean;
-    num_alternatives: number;
-    all_mot_alternative_ids: string[];
-    all_mot_direction_ids_groups: string[][];
-    all_route_ids_grouped: string[][];
-    all_headsigns_grouped: string[][];
+    // num_alternatives: number;
+    // all_mot_alternative_ids: string[];
+    // all_mot_direction_ids_groups: string[][];
+    // all_route_ids_grouped: string[][];
+    // all_headsigns_grouped: string[][];
 
     main_cities: string[];
     secondary_cities: string[];
@@ -194,13 +194,15 @@ export interface LinesListResponse {
 
 export interface LineDir {
     headsign: string;
+    is_circular: boolean;
     stop_seq: string[];
     shape: [number, number][];
+    city_list: string[];
 }
 
 export interface LineAlt {
     alt_id: string;
-    directions: LineDir[]
+    directions: LineDir[];
 }
 
 export interface SingleLineDetails {
@@ -210,7 +212,7 @@ export interface SingleLineDetails {
     headsign_1: string;
     headsign_2: string;
     is_night_line: boolean;
-    alts_dirs: LineAlt[];
+    all_directions_grouped: LineAlt[];
 }
 
 export interface SingleLineResponse {

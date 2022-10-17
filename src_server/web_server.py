@@ -149,6 +149,7 @@ class ServiceAlertsApiServer:
                 #     )
                 # TODO distance from user's current location
             }
+            del e["all_directions_grouped"]
             all_lines_enriched.append(e)
         
         lines_with_alert = sorted(
@@ -188,28 +189,25 @@ class ServiceAlertsApiServer:
                 "headsign_1": line_dict["headsign_1"],
                 "headsign_2": line_dict["headsign_2"],
                 "is_night_line": line_dict["is_night_line"],
-                "alts_dirs": []
+                "all_directions_grouped": []
             },
             "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
         }
 
-        for alt_idx, alt_id in enumerate(line_dict["all_mot_alternative_ids"]):
+        for alt_orig in line_dict["all_directions_grouped"]:
+            # we do a deep copy here so that we don't accidentally modify our original cache(?) of actual_lines
             alt = {
-                "alt_id": alt_id,
+                "alt_id": alt_orig["alt_id"],
                 "directions": []
             }
-            result["line_details"]["alts_dirs"].append(alt)
-            for dir_idx, dir_id in enumerate(line_dict["all_mot_direction_ids_grouped"][alt_idx]):
+            result["line_details"]["all_directions_grouped"].append(alt)
+            for dir_orig in alt_orig["directions"]:
                 dir = {
-                    "dir_id": dir_id
+                    **dir_orig
                 }
                 alt["directions"].append(dir)
 
-                dir["headsign"] = line_dict["all_headsigns_grouped"][alt_idx][dir_idx]
-                dir["is_circular"] = line_dict["all_is_circular_grouped"][alt_idx][dir_idx]
-
-                route_id = line_dict["all_route_ids_grouped"][alt_idx][dir_idx]
-                rep_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id, JERUSALEM_TZ.fromutc(datetime.utcnow()))
+                rep_trip_id = self.gtfsdbapi.get_representative_trip_id(dir["route_id"], JERUSALEM_TZ.fromutc(datetime.utcnow()))
                 dir["stop_seq"] = self.gtfsdbapi.get_stop_seq(rep_trip_id)
                 dir["shape"] = self.gtfsdbapi.get_shape_points(rep_trip_id)
         
@@ -700,10 +698,6 @@ def create_all_agencies_list(gtfsdbapi):
 ACTUAL_LINES_LIST = []
 ACTUAL_LINES_DICT = {}
 
-# ACTUAL_LINES_LIST_MINIMAL = []
-ACTUAL_LINES_DICT_MINIMAL = {}
-ACTUAL_LINES_MINIMAL_FIELDS = ["mot_license_id", "route_short_name", "agency_id", "headsign_1", "headsign_2", "is_night_line"]
-
 ACTUAL_LINES_BY_ROUTE_ID = {}
 
 def line_pk_to_str(mot_license_id, route_short_name):
@@ -735,34 +729,32 @@ def create_actual_lines_list(gtfs_db_url):
                 if hs_2:
                     linedict["headsign_2"] = hs_2.replace("_", " - ")
                 
-                linedict["main_cities"] = sorted(set(functools.reduce(
-                    operator.add,
-                    linedict["all_city_lists_grouped"][0]
-                )))
+                linedict["main_cities"] = set()
+                other_alts_cities = set()
+                linedict["all_stopids_distinct"] = set()
 
-                all_alts_cities = set(functools.reduce(
-                    operator.add,
-                    functools.reduce(
-                        operator.add,
-                        linedict["all_city_lists_grouped"]
-                    )
-                ))
+                is_first_alt = True
+                
+                for alt in linedict["all_directions_grouped"]:
+                    directions = alt["directions"]
 
-                linedict["secondary_cities"] = sorted(all_alts_cities.difference(linedict["main_cities"]))
+                    for dir in directions:
+                        if is_first_alt:
+                            linedict["main_cities"].update(dir["city_list"])
+                        else:
+                            other_alts_cities.update(dir["city_list"])
+                        
+                        ACTUAL_LINES_BY_ROUTE_ID[dir["route_id"]] = pk
+                        
+
+                    is_first_alt = False
+
+                linedict["secondary_cities"] = sorted(other_alts_cities.difference(linedict["main_cities"]))
 
                 linedict["all_stopids_distinct"] = set(linedict["all_stopids_distinct"])
 
                 ACTUAL_LINES_LIST.append(linedict)
                 ACTUAL_LINES_DICT[pk] = linedict
-
-                ACTUAL_LINES_DICT_MINIMAL[pk] = {
-                    colname: linedict[colname]
-                    for colname in ACTUAL_LINES_MINIMAL_FIELDS
-                }
-
-                for rr in linedict["all_route_ids_grouped"]:
-                    for r in rr:
-                        ACTUAL_LINES_BY_ROUTE_ID[r] = pk
     
     cherrypy.log("Generated list of actual lines")
 

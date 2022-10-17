@@ -190,12 +190,16 @@ SELECT mot_license_id,
        route_short_name,
        mot_alternative_id,
        BOOL_OR(is_night_line) AS is_night_line,
-       COUNT(mot_direction_id) as num_directions,
-       JSON_AGG(mot_direction_id) as all_mot_direction_ids,
-       JSON_AGG(route_id ORDER BY mot_direction_id ASC) as all_route_ids,
-       JSON_AGG(headsign ORDER BY mot_direction_id ASC) as all_headsigns,
-       JSON_AGG(city_list ORDER BY mot_direction_id ASC) as all_city_lists,
-       JSON_AGG(is_circular ORDER BY mot_direction_id ASC) as all_is_circular
+       JSON_AGG(
+           JSON_BUILD_OBJECT(
+               'dir_id', mot_direction_id,
+               'route_id', route_id,
+               'headsign', headsign,
+               'city_list', city_list,
+               'is_circular', is_circular
+           )
+           ORDER BY mot_direction_id ASC
+       ) all_directions
     --    SUM(best_trip_count) sum_best_trip_count
 INTO TEMP TABLE tmp__actual_line_alts
 FROM tmp__actual_line_alt_directions
@@ -213,13 +217,13 @@ SELECT mot_license_id,
        '' AS headsign_1,
        '' AS headsign_2,
        BOOL_OR(is_night_line) AS is_night_line,
-       COUNT(mot_alternative_id ORDER BY mot_alternative_id ASC) AS num_alternatives,
-       JSON_AGG(mot_alternative_id ORDER BY mot_alternative_id ASC) AS all_mot_alternative_ids,
-       JSON_AGG(all_mot_direction_ids ORDER BY mot_alternative_id ASC) AS all_mot_direction_ids_grouped,
-       JSON_AGG(all_route_ids ORDER BY mot_alternative_id ASC) AS all_route_ids_grouped,
-       JSON_AGG(all_headsigns ORDER BY mot_alternative_id ASC) AS all_headsigns_grouped,
-       JSON_AGG(all_city_lists ORDER BY mot_alternative_id ASC) AS all_city_lists_grouped,
-       JSON_AGG(all_is_circular ORDER BY mot_alternative_id ASC) AS all_is_circular_grouped,
+       JSON_AGG(
+           JSON_BUILD_OBJECT(
+               'alt_id', mot_alternative_id,
+               'directions', all_directions
+           )
+           ORDER BY mot_alternative_id ASC
+        ) AS all_directions_grouped,
        NULL::JSON AS all_stopids_distinct
 INTO TEMP TABLE tmp__actual_lines
 FROM tmp__actual_line_alts
@@ -231,24 +235,25 @@ UPDATE tmp__actual_lines
 SET agency_id = (
         SELECT r.agency_id
         FROM routes r
-        WHERE r.route_id = (all_route_ids_grouped #>> '{0, 0}')
+        WHERE r.route_id = (all_directions_grouped #>> '{0, directions, 0, route_id}')
         LIMIT 1
     ),
-    headsign_1 = (all_headsigns_grouped #>> '{0, 0}'),
+    headsign_1 = (all_directions_grouped #>> '{0, directions, 0, headsign}'),
     headsign_2 = (
         CASE
-            WHEN json_array_length(all_headsigns_grouped -> 0) = 1 THEN NULL
+            WHEN json_array_length(all_directions_grouped #> '{0, directions}') = 1 THEN NULL
 
-            ELSE (all_headsigns_grouped #>> '{0, 1}')
+            ELSE (all_directions_grouped #>> '{0, directions, 1, headsign}')
         END
     ),
     all_stopids_distinct = (
         SELECT JSON_AGG(DISTINCT stop_id)
         FROM tmp__route_trips
-        NATURAL JOIN (
-            SELECT JSON_ARRAY_ELEMENTS_TEXT(alt_routes.value) route_id
-            FROM JSON_ARRAY_ELEMENTS(all_route_ids_grouped) alt_routes
-        ) route_ids_flattened
+        INNER JOIN (
+            SELECT JSON_ARRAY_ELEMENTS(alt.value -> 'directions') dir
+            FROM JSON_ARRAY_ELEMENTS(all_directions_grouped) alt
+        ) dirs_flattened
+        ON dirs_flattened.dir ->> 'route_id' = tmp__route_trips.route_id
         CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(distinct_stop_ids) stop_id
     );
 
@@ -274,11 +279,11 @@ SET agency_id = (
 UPDATE tmp__actual_lines
 SET headsign_2 = (
         CASE
-            WHEN (all_is_circular_grouped #>> '{0, 0}')::BOOLEAN THEN
+            WHEN (all_directions_grouped #>> '{0, directions, 0, is_circular}')::BOOLEAN THEN
                 NULL -- keep the headsign_2 as null, this trip's first and last stops and less than a half mile (800 m) apart
-            WHEN (all_headsigns_grouped #>> '{1, 0}') = headsign_1 THEN
+            WHEN (all_directions_grouped #>> '{1, directions, 0, headsign}') = headsign_1 THEN
                 NULL -- TODO: maybe use first stop's name? idk that'd involve switching headsign 1 and 2
-            ELSE (all_headsigns_grouped #>> '{1, 0}')
+            ELSE (all_directions_grouped #>> '{1, directions, 0, headsign}')
         END
     )
 WHERE headsign_2 IS NULL;
