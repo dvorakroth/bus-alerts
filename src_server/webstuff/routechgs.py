@@ -69,32 +69,51 @@ def find_representative_date_for_route_changes_in_alert(alert):
 ROUTE_DESC_DIR_ALT_PATTERN = re.compile(r'^[^-]+-([^-]+)-([^-]+)$')
 
 
-def label_headsigns_for_direction_and_alternative(line_changes):
+def label_line_changes_headsigns_for_direction_and_alternative(line_changes):
     """for chg in line_changes: adds (direction 1, alternative 2) labels to duplicate headsigns,
     and deletes route_desc from the dictionary"""
 
-    route_desc_by_headsign = {}
+    dict_headsign_to_dir_alt_pairs = {}
 
     for chg in line_changes:
         headsign = chg["to_text"]
         route_desc = chg["route_desc"]
+        del chg["route_desc"]
 
-        if headsign not in route_desc_by_headsign:
-            route_desc_by_headsign[headsign] = []
+        if headsign not in dict_headsign_to_dir_alt_pairs:
+            dict_headsign_to_dir_alt_pairs[headsign] = []
         
-        route_desc_by_headsign[headsign].append(ROUTE_DESC_DIR_ALT_PATTERN.findall(route_desc)[0])
+        dir_alt_pair = ROUTE_DESC_DIR_ALT_PATTERN.findall(route_desc)[0]
+        dict_headsign_to_dir_alt_pairs[headsign].append(dir_alt_pair)
+        chg["dir_alt_pair"] = dir_alt_pair
     
-    # two iterations over the dataset cause im dumb and was never any good at algorithms
-    for chg in line_changes:
-        other_dups = route_desc_by_headsign[chg["to_text"]]
+    ordered_dir_alt_namepairs = label_headsigns_for_direction_and_alternative(
+        dict_headsign_to_dir_alt_pairs,
+        map(
+            lambda x: [x["to_text"], x["dir_alt_pair"]],
+            line_changes
+        )
+    )
+
+    for chg, namepair in zip(line_changes, ordered_dir_alt_namepairs):
+        del chg["dir_alt_pair"]
+        chg["dir_name"] = namepair[0]
+        chg["alt_name"] = namepair[1]
+
+def label_headsigns_for_direction_and_alternative(dict_headsign_to_dir_alt_pairs, headsigns_with_diralts):
+
+    def per_headsign(x):
+        headsign, dir_alt_pair = x
+        other_dups = dict_headsign_to_dir_alt_pairs[headsign]
+
+        dir_name = None
+        alt_name = None
 
         if len(other_dups) == 1:
             # no duplicates for this headsign! yay upside down smiley
-            del chg["route_desc"]
-            continue
+            return [dir_name, alt_name]
         
-        dir_id, alt_id = ROUTE_DESC_DIR_ALT_PATTERN.findall(chg["route_desc"])[0]
-        del chg["route_desc"]
+        dir_id, alt_id = dir_alt_pair
 
         if any(map(lambda x: x[0] != dir_id, other_dups)):
             # if there's any dups with a different direction id
@@ -102,13 +121,13 @@ def label_headsigns_for_direction_and_alternative(line_changes):
             # in some distant nebulous future, i could try giving actual names
             # to the directions and alternatives; but not today, not quite yet
             # bukra fil mishmish
-            chg["dir_name"] = str(
+            dir_name = str(
                 # possibly the slowest most inefficient way to do this but as
                 # stated earlier, yours truly is truly bad at algo
                 sorted(set([d for d, a in other_dups])).index(dir_id) + 1
             )
         
-        if alt_id != '#' and any(map(lambda x: x[1] != alt_id, other_dups)):
+        if alt_id not in ['#', '0'] and any(map(lambda x: x[1] != alt_id, other_dups)):
             # if there's any dups with a different alternative id
             # (and also this isn't the main alternative)
 
@@ -127,15 +146,19 @@ def label_headsigns_for_direction_and_alternative(line_changes):
             # numbers it is for now
 
             # again possibly the slowest most inefficient blah blah blah
-            # note: if a != '#' cause we don't care about the main alternative here
+            # note: if a not in ['#', '0'] cause we don't care about the main alternative here
             # i want to display: Towards A, Towards A (Alt 1), Towards A (Alt 2)
             # and not quite:     Towards A, Towards A (Alt 2), Towards A (Alt 3)
-            alternatives = sorted(set([a for d, a in other_dups if a != '#']))
+            alternatives = sorted(set([a for d, a in other_dups if a not in ['#', '0']]))
 
             if len(alternatives) == 1:
                 # but also we want to display: Towards A, Towards A (Alt)
                 # and not qutie:               Towards A, Towards A (Alt 1)
                 # because "1" doesn't makes sense when there's just the one
-                chg["alt_name"] = "#"
+                alt_name = "#"
             else:
-                chg["alt_name"] = str(alternatives.index(alt_id) + 1)
+                alt_name = str(alternatives.index(alt_id) + 1)
+        
+        return (dir_name, alt_name)
+    
+    return map(per_headsign, headsigns_with_diralts)

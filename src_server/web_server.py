@@ -22,7 +22,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_headsigns_for_direction_and_alternative
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -527,7 +527,7 @@ class ServiceAlertsApiServer:
             #     sort out any duplicate to_text
             for agency_id in changes_by_agency_and_line:
                 for line_number, line_changes in changes_by_agency_and_line[agency_id].items():
-                    label_headsigns_for_direction_and_alternative(line_changes)
+                    label_line_changes_headsigns_for_direction_and_alternative(line_changes)
 
             # 6. get all stops' metadata
             stops_for_map = self.gtfsdbapi.get_stops_for_map(all_stop_ids)
