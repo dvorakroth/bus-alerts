@@ -13,8 +13,10 @@ from datetime import datetime
 from functools import reduce
 import functools
 from itertools import chain
+import itertools
 import json
 import operator
+import os, os.path
 
 import cachetools, cachetools.func
 import cherrypy
@@ -23,7 +25,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -194,6 +196,9 @@ class ServiceAlertsApiServer:
             },
             "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
         }
+
+        # TODO: a cool feature to do would be a bbox per direction+alt, or even per direction+alt+alert, but that'll require some clever React.useEffect stuff in the client so maybe later
+        result["map_bounding_box"] = bounding_box_for_stops(result["all_stops"].keys(), result["all_stops"])
 
         # the thought behind flattening these is that i want just one consolidated list
         # shown to the user and sorted by the server, because flattening and sorting it
@@ -587,31 +592,15 @@ class ServiceAlertsApiServer:
                         #  - random order for maximum fun! party horn emoji!
                     )
             
-            # 8. get bounding box of affected stops, for setting the map's bounding box
-            map_bounding_box = {
-                "min_lon": None,
-                "min_lat": None,
-                "max_lon": None,
-                "max_lat": None
-            }
-
-            for stop_id in alert["added_stop_ids"] + alert["removed_stop_ids"] + list(near_added_stop_ids):
-                try:
-                    stop = stops_for_map[stop_id]
-                except KeyError:
-                    continue
-
-                lon = stop["stop_lon"]
-                lat = stop["stop_lat"]
-
-                if map_bounding_box["min_lon"] is None or map_bounding_box["min_lon"] > lon:
-                    map_bounding_box["min_lon"] = lon
-                if map_bounding_box["min_lat"] is None or map_bounding_box["min_lat"] > lat:
-                    map_bounding_box["min_lat"] = lat
-                if map_bounding_box["max_lon"] is None or map_bounding_box["max_lon"] < lon:
-                    map_bounding_box["max_lon"] = lon
-                if map_bounding_box["max_lat"] is None or map_bounding_box["max_lat"] < lat:
-                    map_bounding_box["max_lat"] = lat
+            # 8. bounding box for the map widget
+            map_bounding_box = bounding_box_for_stops(
+                itertools.chain(
+                    alert["added_stop_ids"],
+                    alert["removed_stop_ids"],
+                    list(near_added_stop_ids)
+                ),
+                stops_for_map
+            )
 
             return {
                 "route_changes": changes_by_agency_and_line,
@@ -745,8 +734,11 @@ def line_pk_to_str(mot_license_id, route_short_name):
 def create_actual_lines_list(gtfs_db_url):
     cherrypy.log("Started generating list of actual lines")
 
+    # https://stackoverflow.com/a/4060259
+    cwd = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
     sql_script = None
-    with open("route_grouping_query.sql", "r") as f:
+    with open(os.path.join(cwd, "route_grouping_query.sql"), "r") as f:
         # this feels so dirty lmao
         sql_script = f.read()
     
@@ -772,7 +764,6 @@ def create_actual_lines_list(gtfs_db_url):
                 
                 linedict["main_cities"] = set()
                 other_alts_cities = set()
-                linedict["all_stopids_distinct"] = set()
 
                 is_first_alt = True
                 

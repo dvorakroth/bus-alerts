@@ -197,7 +197,7 @@ export interface LineDir {
     dir_id: string;
     alt_name: string;
     dir_name: string;
-    
+
     headsign: string;
     is_circular: boolean;
     stop_seq: string[];
@@ -223,4 +223,5 @@ export interface SingleLineDetails {
 export interface SingleLineResponse {
     line_details: SingleLineDetails;
     all_stops: JsDict<StopForMap>;
+    map_bounding_box: BoundingBox;
 }

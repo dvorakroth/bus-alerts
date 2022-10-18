@@ -395,7 +395,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
                 }
             );
         }
-    }, [bbox]);
+    }, [bbox, map]);
 
     if (!route_changes) {
         return <div className="map-container-container before-loading"></div>;

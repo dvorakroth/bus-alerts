@@ -169,3 +169,33 @@ def label_headsigns_for_direction_and_alternative(
         return (dir_name, alt_name)
     
     return map(per_headsign, headsigns_with_diralts)
+
+def bounding_box_for_stops(stop_ids, stops_for_map):
+    """get bounding box of affected stops, for setting the map's bounding box"""
+
+    map_bounding_box = {
+        "min_lon": None,
+        "min_lat": None,
+        "max_lon": None,
+        "max_lat": None
+    }
+
+    for stop_id in stop_ids:
+        try:
+            stop = stops_for_map[stop_id]
+        except KeyError:
+            continue
+
+        lon = stop["stop_lon"]
+        lat = stop["stop_lat"]
+
+        if map_bounding_box["min_lon"] is None or map_bounding_box["min_lon"] > lon:
+            map_bounding_box["min_lon"] = lon
+        if map_bounding_box["min_lat"] is None or map_bounding_box["min_lat"] > lat:
+            map_bounding_box["min_lat"] = lat
+        if map_bounding_box["max_lon"] is None or map_bounding_box["max_lon"] < lon:
+            map_bounding_box["max_lon"] = lon
+        if map_bounding_box["max_lat"] is None or map_bounding_box["max_lat"] < lat:
+            map_bounding_box["max_lat"] = lat
+    
+    return map_bounding_box

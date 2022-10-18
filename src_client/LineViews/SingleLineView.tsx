@@ -1,8 +1,9 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
-import { SingleLineResponse } from '../data';
+import { JsDict, RouteChange, SingleLineResponse } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
+import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -19,12 +20,15 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState(0);
 
-    const onDismissModal = (event: React.MouseEvent) => {
-        event.preventDefault();
-        event.stopPropagation();
+    const onDismissModal = React.useCallback(
+        (event: React.MouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
 
-        navigate(-1);
-    };
+            navigate(-1);
+        },
+        [navigate]
+    );
 
     const onNewDirectionSelected = React.useCallback(
         (index) => {
@@ -34,6 +38,38 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     );
 
     const line = data?.line_details;
+
+    const route_changes_struct = React.useMemo(
+        () => {
+            if (!line) return null;
+
+            const result: JsDict<JsDict<RouteChange[]>> = {
+                changes: {}
+            };
+
+            for (let dirIdx = 0; dirIdx < line.dirs_flattened.length; dirIdx++) {
+                const dir = line.dirs_flattened[dirIdx];
+                result.changes[dirIdx] = [
+                    // just the one for now, i'll need to do something servery about this when there's actual alert data
+                    {
+                        agency_id: null,
+                        agency_name: null,
+                        line_number: line.route_short_name,
+                        to_text: dir.headsign,
+                        alt_name: dir.alt_name,
+                        dir_name: dir.dir_name,
+
+                        shape: dir.shape,
+                        deleted_stop_ids: [],
+                        updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false])
+                    }
+                ]
+            }
+
+            return result;
+        },
+        [line]
+    );
     
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -46,7 +82,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         <div className={"single-alert-content-container" /* i'll... explain later */}
              style={isLoading ? {overflowY: 'hidden'} : {}}> 
             {
-                !line && !isLoading
+                (!line && !isLoading)
                     ? <>
                         <div className="no-alerts-today">
                             <span>אולי היה כאן דף,</span>
@@ -74,6 +110,10 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
+                    <RouteChangesMapView route_changes={route_changes_struct}
+                                            stops={data?.all_stops}
+                                            selection={["changes", ""+selectedDirectionIdx, 0]}
+                                            map_bounding_box={data?.map_bounding_box} />
                 </div>
             }
         </div>
@@ -92,13 +132,27 @@ export default function FullPageSingleLineView({isModal}: Props) {
     React.useEffect(() => {
         if (!data) {
             fetch("/api/single_line?id=" + encodeURIComponent(params.id))
-                .then((response) => response.json())
-                .then((data: SingleLineResponse) => {
-                    setData(data);
-                    setIsLoading(false);
-                });
+                .then(
+                    (response) => response.json().then(
+                        (data: SingleLineResponse) => {
+                            setData(data);
+                            setIsLoading(false);
+                        },
+                        (error) => {
+                            console.error("Error while parsing reponse JSON: ", error);
+                            setData(null);
+                            setIsLoading(false);
+                        }
+                    ),
+                    (error) => {
+                        console.error("Error while fetching single line details: ", error);
+                        setData(null);
+                        setIsLoading(false);
+                    }
+                )
+                ;
         }
     });
 
-    return <ImplSingleLineView data={data} isLoading={isLoading} isModal={false} showDistance={false}/>;
+    return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} showDistance={false}/>;
 }
