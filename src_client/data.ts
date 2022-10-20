@@ -129,6 +129,8 @@ export interface RouteChange {
     shape: [number, number][]; // geojson compatible [lon, lat] coords
     deleted_stop_ids: string[]; // ids because stop_code isn't unique haha this is fine
     updated_stop_sequence: [string, boolean][]; // [stop_id, is_new]
+
+    map_bounding_box?: BoundingBox;
 }
 
 export interface BoundingBox {

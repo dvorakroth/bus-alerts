@@ -275,6 +275,7 @@ export interface RouteChangesMapViewProps {
     stops: JsDict<StopForMap>,
     selection: [string, string, number];
     map_bounding_box: BoundingBox;
+    onSelectionMoveToBBox?: boolean;
 }
 
 const FIT_BOUNDS_OPTIONS = {
@@ -287,7 +288,18 @@ const FIT_BOUNDS_OPTIONS = {
     maxZoom: 15,
 };
 
-export const RouteChangesMapView = ({route_changes, stops, selection, map_bounding_box}: RouteChangesMapViewProps) => {
+function traverseRouteChanges(
+    route_changes: JsDict<JsDict<RouteChange[]>>,
+    selection: [string, string, number]
+): RouteChange {
+    let current: any = route_changes;
+    for (const k of selection || []) {
+        current = current?.[k];
+    }
+    return current;
+}
+
+export const RouteChangesMapView = ({route_changes, stops, selection, map_bounding_box, onSelectionMoveToBBox}: RouteChangesMapViewProps) => {
     const mapContainer = React.useRef<HTMLDivElement>(null);
     const map = React.useRef<mapboxgl.Map>(null);
     const previousSelection = React.useRef<[string, string, number]>(selection);
@@ -295,13 +307,28 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
     const [isLoading, setIsLoading] = React.useState<boolean>(!!route_changes);
     const [isLookingAtBbox, setIsLookingAtBbox] = React.useState<boolean>(true);
 
-    const bbox = React.useMemo<[[number, number], [number, number]]>(
-        () => !map_bounding_box ? null : [
-            [map_bounding_box.min_lon, map_bounding_box.min_lat],
-            [map_bounding_box.max_lon, map_bounding_box.max_lat]
-        ],
-        [map_bounding_box]
-    );
+    const bboxRaw = React.useRef<BoundingBox>(null);
+    const bbox = React.useRef<[[number, number], [number, number]]>(null);
+
+    React.useEffect(() => {
+        // set bbox.current to either the current selected change's bbox, or the global bbox
+
+        let candidate = map_bounding_box;
+
+        const rc = traverseRouteChanges(route_changes, selection);
+
+        if (rc?.map_bounding_box) {
+            candidate = rc.map_bounding_box;
+        }
+
+        if (bboxRaw.current != candidate) {
+            bboxRaw.current = candidate;
+            bbox.current = !candidate ? null : [
+                [candidate.min_lon, candidate.min_lat],
+                [candidate.max_lon, candidate.max_lat]
+            ];
+        }
+    }, [...selection, map_bounding_box, route_changes]);
 
     React.useEffect(() => {
         if (!route_changes || !stops) {
@@ -323,7 +350,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             accessToken: MAPBOX_ACCESS_TOKEN,
             container: mapContainer.current,
             style: 'https://api.maptiler.com/maps/893ed6e5-f439-431b-a9a6-885c01fa3e48/style.json?key=XQ643Hu2aW2ClNCu8gL4',
-            bounds: bbox,
+            bounds: bbox.current,
             fitBoundsOptions: FIT_BOUNDS_OPTIONS
         });
 
@@ -331,7 +358,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             const bounds = map.current.getBounds();
 
             setIsLookingAtBbox(
-                bounds.contains(bbox[0]) && bounds.contains(bbox[1])
+                bounds.contains(bbox.current[0]) && bounds.contains(bbox.current[1])
             );
         })
 
@@ -368,8 +395,9 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             map.current.remove();
             map.current = null;
         };
-    }, [route_changes, stops, map_bounding_box]);
+    }, [route_changes, stops]);
 
+    // this is basically our "event handler" for when the users changes their selection
     React.useEffect(() => {
         if (!map.current) {
             return;
@@ -381,14 +409,32 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             stringForSelection(...selection),
             map.current
         );
-    }, selection)
 
+        if (onSelectionMoveToBBox) {
+            goBackToChanges();
+        }
+    }, selection);
+
+    // this is for showing/hiding the "go back to where the changes are" button
+    // and it's identical to the map's onmove handler
+    React.useEffect(() => {
+        if (!map.current || !bbox.current) {
+            return;
+        }
+        const bounds = map.current.getBounds();
+
+        setIsLookingAtBbox(
+            bounds.contains(bbox.current[0]) && bounds.contains(bbox.current[1])
+        );
+    }, [bbox.current]);
+
+    // and this is for when the user clicks the "go back to where the changes are" button
     const goBackToChanges = React.useCallback(() => {
         if(map.current) {
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const reduceMotion = window?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
             
             map.current.fitBounds(
-                bbox,
+                bbox.current,
                 {
                     ...FIT_BOUNDS_OPTIONS,
                     animate: !reduceMotion
@@ -403,7 +449,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
 
     return <div className="map-container-container">
         <button className={"back-to-changes" + (isLookingAtBbox ? " hidden" : "")}
-                onClick={goBackToChanges}>
+                onClick={goBackToChanges}>{/* TODO: different string for when there's no changes */}
             לחצו לחזרה לאזור השינויים
         </button>
         <div className={"map-container"} ref={mapContainer}></div>

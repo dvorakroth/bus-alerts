@@ -113,7 +113,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
                                             selection={["changes", ""+selectedDirectionIdx, 0]}
-                                            map_bounding_box={data?.map_bounding_box} />
+                                            map_bounding_box={data?.map_bounding_box}
+                                            onSelectionMoveToBBox={true} />
                 </div>
             }
         </div>
