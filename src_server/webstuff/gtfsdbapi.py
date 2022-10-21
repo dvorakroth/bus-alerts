@@ -183,6 +183,7 @@ class GtfsDbApi:
                 cursor.execute(
                     """
                         SELECT
+                            routes.route_id,
                             routes.route_desc,
                             routes.agency_id,
                             route_short_name as line_number,

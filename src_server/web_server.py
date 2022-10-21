@@ -25,7 +25,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops, compute_stop_ids_incl_adj_for_single_route_change
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -193,12 +193,10 @@ class ServiceAlertsApiServer:
                 "headsign_2": line_dict["headsign_2"],
                 "is_night_line": line_dict["is_night_line"],
                 # "all_directions_grouped": []
-            },
-            "all_stops": self.gtfsdbapi.get_stop_metadata(line_dict["all_stopids_distinct"])
+            }
         }
 
-        # TODO: a cool feature to do would be a bbox per direction+alt, or even per direction+alt+alert, but that'll require some clever React.useEffect stuff in the client so maybe later
-        result["map_bounding_box"] = bounding_box_for_stops(result["all_stops"].keys(), result["all_stops"])
+        all_stop_ids = set(line_dict["all_stopids_distinct"])
 
         # the thought behind flattening these is that i want just one consolidated list
         # shown to the user and sorted by the server, because flattening and sorting it
@@ -229,6 +227,80 @@ class ServiceAlertsApiServer:
                     dict_headsign_to_dir_alt_pairs[headsign] = []
                 
                 dict_headsign_to_dir_alt_pairs[headsign].append((dir["dir_id"], alt_orig["alt_id"]))
+        
+        # get list of alerts, but only the ones relevant for this line's route_ids
+        all_alerts, all_alerts_metadata = self._all_alerts()
+
+        alerts_grouped = []
+
+        for dir in dirs_flattened:
+            alerts_grouped.append(
+                [
+                    a for a in all_alerts
+                    if dir["route_id"] in a["relevant_route_ids"]
+                    and not a["is_expired"]
+                ]
+            )
+
+        # at first, just get every alert's route_changes (but limited to each route_id) on its own
+
+        for dir, alerts in zip(dirs_flattened, alerts_grouped):
+            dir["route_changes"] = []
+            dir["other_alerts"]  = []
+
+            for alert in alerts:
+                alert_minimal = {
+                    "header": alert["header"],
+                    "description": alert["description"],
+                    "active_periods": alert["active_periods"],
+                    "is_deleted": alert["is_deleted"],
+                }                    
+
+                chgs_struct = self._cached_route_changes(alert["id"], alert)
+                agency_id = result["line_details"]["agency"]["agency_id"]
+                line_number = result["line_details"]["route_short_name"]
+
+                if "departure_changes" in alert:
+                    dc = alert["departure_changes"] or {}
+                    a = dc.get(agency_id, {}) or {}
+                    l = a.get(line_number, []) or []
+                    for dep_chg in l:
+                        if dep_chg["route_id"] == dir["route_id"]:
+                            alert_minimal["departure_change"] = dep_chg
+                            break
+
+                relevant_change_struct = None
+
+                if "route_changes" in chgs_struct:
+                    rc = chgs_struct["route_changes"] or {}
+                    a = rc.get(agency_id, {}) or {}
+                    l = a.get(line_number, []) or []
+                    for chg in l:
+                        if chg["route_id"] == dir["route_id"]:
+                            relevant_change_struct = chg
+                            break
+                
+                if relevant_change_struct != None:
+                    dir["route_changes"].append(alert_minimal)
+                    alert_minimal["shape"] = relevant_change_struct["shape"]
+                    alert_minimal["deleted_stop_ids"] = relevant_change_struct["deleted_stop_ids"]
+                    alert_minimal["updated_stop_sequence"] = relevant_change_struct["updated_stop_sequence"]
+                    alert_minimal["bbox_stop_ids"] = compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, dir["stop_seq"])
+                    all_stop_ids.update(alert_minimal["bbox_stop_ids"])
+                else:
+                    dir["other_alerts"].append(alert_minimal)
+        
+        result["all_stops"] = self.gtfsdbapi.get_stop_metadata(all_stop_ids)
+        result["map_bounding_box"] = bounding_box_for_stops(result["all_stops"].keys(), result["all_stops"])
+
+        for dir in dirs_flattened:
+            for rc in dir["route_changes"]:
+                rc["map_bounding_box"] = bounding_box_for_stops(rc["bbox_stop_ids"], result["all_stops"])
+                # TODO fill in missing shapes
+
+        # TODO LATER: divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
+        # TODO LATER: refactor the route_changes logic so that we can sequentially apply alert after alert to the same route
+        # TODO LATER: user that to give the user a list of time periods + cumulative map for each time period
         
         dir_alt_names = label_headsigns_for_direction_and_alternative(
             dict(
@@ -436,8 +508,13 @@ class ServiceAlertsApiServer:
             if alert is None:
                 alert = self.alertdbapi.get_single_alert(alert_id)[0]
             
+            # TODO: it looks like i never took care of the REGION use case lmaooooooo
+            #       i'd feel much more comfortable implementing it if they,,, uh,,,,,,,,,,,, ever used it :|
+            #       but sure; i can try to do it al iver just in case
             if alert["use_case"] not in [
-                USE_CASE.STOPS_CANCELLED.value, USE_CASE.ROUTE_CHANGES_FLEX.value, USE_CASE.ROUTE_CHANGES_SIMPLE.value
+                USE_CASE.STOPS_CANCELLED.value,
+                USE_CASE.ROUTE_CHANGES_FLEX.value,
+                USE_CASE.ROUTE_CHANGES_SIMPLE.value
             ]:
                 return {}
             
@@ -670,7 +747,7 @@ class ServiceAlertsApiServer:
         for agency_id in changes_by_agency_and_line:
             for line_number in changes_by_agency_and_line[agency_id]:
                 changes_by_agency_and_line[agency_id][line_number].sort(
-                    key=lambda x: x["to_text"]
+                    key=lambda x: x["to_text"] # TODO uhhhh this doesn't look like the same sort wtf did i do here lol
                 )
 
         return {

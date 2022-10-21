@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
-import { JsDict, RouteChange, SingleLineResponse } from '../data';
+import { JsDict, AlertWithRouteChange, RouteChange, RouteChangeForMap, SingleLineResponse } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -43,33 +43,29 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         () => {
             if (!line) return null;
 
-            const result: JsDict<JsDict<RouteChange[]>> = {
-                changes: {}
-            };
+            return {
+                changes: line.dirs_flattened.reduce<JsDict<RouteChangeForMap[]>>(
+                    (o, d, idx) => {
+                        const chgs = d.route_changes;
 
-            for (let dirIdx = 0; dirIdx < line.dirs_flattened.length; dirIdx++) {
-                const dir = line.dirs_flattened[dirIdx];
-                result.changes[dirIdx] = [
-                    // just the one for now, i'll need to do something servery about this when there's actual alert data
-                    {
-                        agency_id: null,
-                        agency_name: null,
-                        line_number: line.route_short_name,
-                        to_text: dir.headsign,
-                        alt_name: dir.alt_name,
-                        dir_name: dir.dir_name,
-
-                        shape: dir.shape,
-                        deleted_stop_ids: [],
-                        updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false])
-                    }
-                ]
+                        if (chgs?.length) {
+                            o[idx] = d.route_changes;
+                        } else {
+                            o[idx] = [{
+                                shape: d.shape,
+                                deleted_stop_ids: [],
+                                updated_stop_sequence: d.stop_seq.map((stop_id) => [stop_id, false]), 
+                                has_no_changes: true
+                            }];
+                        }
+                        return o;
+                    },
+                    {}
+                )
             }
-
-            return result;
         },
         [line]
-    );
+    )
     
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -105,11 +101,14 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 {line.route_short_name}
                             </div>
                         </div>
+                        { /* TODO: show a hazard.svg next to directions that have alerts */}
                         <DirectionChooser changes_for_line={line.dirs_flattened}
                                           selectedIndex={selectedDirectionIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
+                    { /* TODO: alert selector (or alert period selector, in the future) */}
+                    {/* TODO: "no changes to route" overlay for map? or maybe hide map for alerts with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
                                             selection={["changes", ""+selectedDirectionIdx, 0]}

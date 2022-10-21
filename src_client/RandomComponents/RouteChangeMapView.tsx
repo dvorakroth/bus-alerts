@@ -1,11 +1,11 @@
 import * as mapboxgl from 'mapbox-gl';
 import * as React from "react";
-import { BoundingBox, JsDict, RouteChange, StopForMap } from '../data';
+import { BoundingBox, JsDict, RouteChangeForMap, StopForMap } from '../data';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRxMnBkdTBjIn0.IDeZtjeHSZmEXyD3o7p6ww';
 
-function newShapesForChange(change: RouteChange, stops: JsDict<StopForMap>) {
+function newShapesForChange(change: RouteChangeForMap, stops: JsDict<StopForMap>) {
     const newStopidLists = [];
 
     let currentNewStopidList = [];
@@ -65,7 +65,7 @@ const IMAGE_ICON_X = 'map-x';
 
 function convertSingleChangeToMapData(
     selector: string,
-    change: RouteChange,
+    change: RouteChangeForMap,
     stops: JsDict<StopForMap>
 ): JsDict<any[]> {
     const newShapes = newShapesForChange(change, stops);
@@ -128,7 +128,7 @@ function stringForSelection(agency_id: string, line_number: string, i: number) {
 
 function convertChangesToMapData(
     initialSelection: [string, string, number],
-    route_changes: JsDict<JsDict<RouteChange[]>>,
+    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
     map: mapboxgl.Map,
     stops: JsDict<StopForMap>,
     xImage: HTMLImageElement | ImageBitmap
@@ -271,7 +271,7 @@ function setLayerFilters(
 }
 
 export interface RouteChangesMapViewProps {
-    route_changes: JsDict<JsDict<RouteChange[]>>,
+    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
     stops: JsDict<StopForMap>,
     selection: [string, string, number];
     map_bounding_box: BoundingBox;
@@ -289,9 +289,9 @@ const FIT_BOUNDS_OPTIONS = {
 };
 
 function traverseRouteChanges(
-    route_changes: JsDict<JsDict<RouteChange[]>>,
+    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
     selection: [string, string, number]
-): RouteChange {
+): RouteChangeForMap {
     let current: any = route_changes;
     for (const k of selection || []) {
         current = current?.[k];

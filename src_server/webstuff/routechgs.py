@@ -199,3 +199,47 @@ def bounding_box_for_stops(stop_ids, stops_for_map):
             map_bounding_box["max_lat"] = lat
     
     return map_bounding_box
+
+def compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, orig_stop_seq):
+
+    stop_ids = set()
+
+    first = True
+    prev_stop_id    = None
+    prev_is_deleted = None
+    for stop_id in orig_stop_seq:
+        is_deleted = stop_id in alert_minimal["deleted_stop_ids"]
+
+        if is_deleted:
+            # deleted stops need to be in the bounding box
+            stop_ids.add(stop_id)
+
+            if not first and not prev_is_deleted:
+                # and also non-deleted stops that come right before a deleted stop
+                stop_ids.add(prev_stop_id)
+        elif not first and prev_is_deleted:
+            # and also also non-deleted stops that come right after a new stop
+            stop_ids.add(stop_id)
+
+    first = True
+    prev_stop_id = None
+    prev_is_new  = None
+    for stop_id, is_new in alert_minimal["updated_stop_sequence"]:
+        if is_new:
+            # new stops need to be in the bounding box
+            stop_ids.add(stop_id)
+        
+            if not first and not prev_is_new:
+                # and also non-new stops that come right before a new stop
+                stop_ids.add(prev_stop_id)
+        elif not first and prev_is_new:
+            # and also also non-new stops that come right after a new stop
+            stop_ids.add(stop_id)
+    
+        first = False
+        prev_stop_id = stop_id
+        prev_is_new  = is_new
+    
+    return stop_ids
+
+    # return bounding_box_for_stops(stop_ids, all_stops)

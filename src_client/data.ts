@@ -117,7 +117,8 @@ export interface StopForMap {
     stop_lon: number;
 }
 
-export interface RouteChange {
+export type RouteChange = {
+    route_id: string;
     agency_id: string;
     agency_name: string;
     line_number: string;
@@ -125,12 +126,15 @@ export interface RouteChange {
     to_text: string; // headsign? city? stop? haha w/e
     alt_name?: string; // god help us all
     dir_name?: string; // alt_name and dir_name are for giving slightly more informative headsigns when there's duplicates
-    
+} & RouteChangeForMap;
+
+export interface RouteChangeForMap {
     shape: [number, number][]; // geojson compatible [lon, lat] coords
     deleted_stop_ids: string[]; // ids because stop_code isn't unique haha this is fine
     updated_stop_sequence: [string, boolean][]; // [stop_id, is_new]
-
     map_bounding_box?: BoundingBox;
+    
+    has_no_changes?: boolean;
 }
 
 export interface BoundingBox {
@@ -141,6 +145,7 @@ export interface BoundingBox {
 }
 
 export interface DepartureChange {
+    route_id: string;
     agency_id: string;
     agency_name: string;
     line_number: string;
@@ -195,6 +200,7 @@ export interface LinesListResponse {
 }
 
 export interface LineDir {
+    route_id: string;
     alt_id: string;
     dir_id: string;
     alt_name: string;
@@ -205,7 +211,25 @@ export interface LineDir {
     stop_seq: string[];
     shape: [number, number][];
     city_list: string[];
+
+    route_changes: AlertWithRouteChange[];
+    other_alerts: AlertMinimal[];
 }
+
+export interface AlertMinimal {
+    header: TranslatedString;
+    description: TranslatedString;
+
+    active_periods: {
+        raw: [number, number][],
+        consolidated: ActivePeriod[]
+    };
+
+    is_deleted: boolean;
+    departure_change?: DepartureChange;
+}
+
+export type AlertWithRouteChange = AlertMinimal & RouteChangeForMap
 
 // export interface LineAlt {
 //     alt_id: string;
