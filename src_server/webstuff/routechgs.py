@@ -220,6 +220,10 @@ def compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, orig_stop_s
         elif not first and prev_is_deleted:
             # and also also non-deleted stops that come right after a new stop
             stop_ids.add(stop_id)
+        
+        first = False
+        prev_stop_id = stop_id
+        prev_is_deleted = is_deleted
 
     first = True
     prev_stop_id = None
@@ -240,6 +244,12 @@ def compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, orig_stop_s
         prev_stop_id = stop_id
         prev_is_new  = is_new
     
-    return stop_ids
+    if not len(stop_ids):
+        # sometimes the route changes don't actually have any changes????
+        # i have no idea what the fuck they're doing over there in the wherever
+        # they're doing whatever ther fuck it is they're doing
+        return set(map(lambda x: x[0], alert_minimal["updated_stop_sequence"]))
+    else:
+        return stop_ids
 
     # return bounding_box_for_stops(stop_ids, all_stops)

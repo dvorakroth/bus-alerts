@@ -286,7 +286,8 @@ class ServiceAlertsApiServer:
                     alert_minimal["deleted_stop_ids"] = relevant_change_struct["deleted_stop_ids"]
                     alert_minimal["updated_stop_sequence"] = relevant_change_struct["updated_stop_sequence"]
                     alert_minimal["bbox_stop_ids"] = compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, dir["stop_seq"])
-                    all_stop_ids.update(alert_minimal["bbox_stop_ids"])
+                    all_stop_ids.update(alert_minimal["deleted_stop_ids"])
+                    all_stop_ids.update(map(lambda x: x[0], alert_minimal["updated_stop_sequence"]))
                 else:
                     dir["other_alerts"].append(alert_minimal)
         
@@ -296,7 +297,12 @@ class ServiceAlertsApiServer:
         for dir in dirs_flattened:
             for rc in dir["route_changes"]:
                 rc["map_bounding_box"] = bounding_box_for_stops(rc["bbox_stop_ids"], result["all_stops"])
-                # TODO fill in missing shapes
+            
+            if not dir["shape"] or not len(dir["shape"]):
+                dir["shape"] = [
+                    [result["all_stops"][stop_id]["stop_lon"], result["all_stops"][stop_id]["stop_lat"]]
+                    for stop_id in dir["stop_seq"]
+                ]
 
         # TODO LATER: divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
         # TODO LATER: refactor the route_changes logic so that we can sequentially apply alert after alert to the same route
