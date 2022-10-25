@@ -1,4 +1,5 @@
 import * as React from "react";
+import hazardSvg from '../assets/hazard.svg';
 
 const CHOOSE_DIRECTION_LABEL = "בחרו כוון:";
 const TOWARDS_LABEL = "ל";
@@ -54,6 +55,7 @@ interface DirectionChooserDirectionProps {
     is_circular?: boolean;
     alt_name?: string;
     dir_name?: string;
+    has_alerts?: boolean;
     isSelected: boolean;
     index: number;
     onDirectionClick: (index: number, event: React.MouseEvent) => void;
@@ -61,7 +63,7 @@ interface DirectionChooserDirectionProps {
 const DirectionChooserDirection = React.memo(
     (
         {
-            direction, is_circular, alt_name, dir_name, isSelected, onDirectionClick, index
+            direction, is_circular, alt_name, dir_name, has_alerts, isSelected, onDirectionClick, index
         }: DirectionChooserDirectionProps
     ) => {
         const onClick = (event: React.MouseEvent) => onDirectionClick?.(index, event);
@@ -69,13 +71,21 @@ const DirectionChooserDirection = React.memo(
             aria-selected={isSelected}
             onClick={onClick}
             className={isSelected ? "is-selected" : null}>
+            {!has_alerts ? null : <img src={hazardSvg} alt="יש התראות" height="15" />}
             {direction_text(direction, is_circular, alt_name, dir_name)}
         </li>;
     }
 );
 type DirectionItem =
-    ({ to_text: string; } | { headsign: string; }) & { is_circular?: boolean, alt_name?: string; dir_name?: string; };
-function extractToTextOrHeadsign(d: DirectionItem): string {
+    ({ to_text: string; } | { headsign: string; }) 
+    & {
+        is_circular?: boolean,
+        alt_name?: string,
+        dir_name?: string,
+        has_alerts?: boolean
+    };
+
+    function extractToTextOrHeadsign(d: DirectionItem): string {
     return (d as any).to_text || (d as any).headsign;
 }
 interface DirectionChooserProps {
@@ -103,7 +113,8 @@ export default function DirectionChooser({ changes_for_line, onNewSelection, sel
                 dir_name={change.dir_name}
                 isSelected={idx === selectedIndex}
                 index={idx}
-                onDirectionClick={onDirectionClick} />
+                onDirectionClick={onDirectionClick}
+                has_alerts={change.has_alerts} />
             )}
             {changes_for_line?.length
                 ? null

@@ -65,7 +65,17 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
             }
         },
         [line]
-    )
+    );
+
+    const directions_for_chooser = React.useMemo(
+        () => line?.dirs_flattened?.map?.(
+            (dir) => ({
+                ...dir,
+                has_alerts: !!(dir.route_changes?.length || dir.other_alerts?.length)
+            })
+        ),
+        [line]
+    );
     
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -101,8 +111,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 {line.route_short_name}
                             </div>
                         </div>
-                        { /* TODO: show a hazard.svg next to directions that have alerts */}
-                        <DirectionChooser changes_for_line={line.dirs_flattened}
+                        <DirectionChooser changes_for_line={directions_for_chooser}
                                           selectedIndex={selectedDirectionIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />

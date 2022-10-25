@@ -993,6 +993,12 @@ a.more-details:active {
         background: #ccc;
         cursor: pointer;
 
+        & > img {
+            position: relative;
+            left: 3px;
+            top: 2px;
+        }
+
         &.is-selected::before {
             content: "";
             display: block;
