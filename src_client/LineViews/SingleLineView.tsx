@@ -18,7 +18,7 @@ interface ImplSingleLineViewProps {
 function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingleLineViewProps) {
     const navigate = ReactRouter.useNavigate();
 
-    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState(0);
+    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(null);
 
     const onDismissModal = React.useCallback(
         (event: React.MouseEvent) => {
@@ -39,17 +39,23 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const line = data?.line_details;
 
-    const route_changes_struct = React.useMemo(
+    const [route_changes_struct, firstIdxWithChanges] = React.useMemo(
         () => {
-            if (!line) return null;
+            if (!line) return [null, null];
 
-            return {
+            let firstIdxWithChanges: number = null;
+
+            return [{
                 changes: line.dirs_flattened.reduce<JsDict<RouteChangeForMap[]>>(
                     (o, d, idx) => {
                         const chgs = d.route_changes;
 
                         if (chgs?.length) {
                             o[idx] = d.route_changes;
+
+                            if (firstIdxWithChanges === null) {
+                                firstIdxWithChanges = idx;
+                            }
                         } else {
                             o[idx] = [{
                                 shape: d.shape,
@@ -62,7 +68,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     },
                     {}
                 )
-            }
+            }, firstIdxWithChanges];
         },
         [line]
     );
@@ -76,6 +82,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         ),
         [line]
     );
+
+    const actualSelectedIdx = selectedDirectionIdx ?? firstIdxWithChanges ?? 0;
     
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -112,7 +120,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                             </div>
                         </div>
                         <DirectionChooser changes_for_line={directions_for_chooser}
-                                          selectedIndex={selectedDirectionIdx}
+                                          selectedIndex={actualSelectedIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
@@ -120,7 +128,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for alerts with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
-                                            selection={["changes", ""+selectedDirectionIdx, 0]}
+                                            selection={["changes", ""+actualSelectedIdx, 0]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                 </div>
