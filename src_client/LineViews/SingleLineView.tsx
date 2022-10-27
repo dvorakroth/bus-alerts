@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
+import { LoadingOverlay } from '../AlertViews/AlertListPage';
 import { JsDict, AlertWithRouteChange, RouteChange, RouteChangeForMap, SingleLineResponse, TranslatedString } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
@@ -151,6 +152,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                 </div>
             }
         </div>
+
+        <LoadingOverlay shown={isLoading} />
     </div>
 }
 
