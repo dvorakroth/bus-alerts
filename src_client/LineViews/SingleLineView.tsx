@@ -151,9 +151,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                             onSelectionMoveToBBox={true} />
                 </div>
             }
+            <LoadingOverlay shown={isLoading} />
         </div>
-
-        <LoadingOverlay shown={isLoading} />
     </div>
 }
 
