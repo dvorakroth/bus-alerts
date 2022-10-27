@@ -397,7 +397,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
         };
     }, [route_changes, stops]);
 
-    // this is basically our "event handler" for when the users changes their selection
+    // this is basically our "event handler" for when the user changes their selection
     React.useEffect(() => {
         if (!map.current) {
             return;
