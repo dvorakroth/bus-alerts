@@ -919,6 +919,18 @@ a.more-details:active {
     }
 }
 
+.single-line-alert-list {
+    list-style-type: none;
+
+    > * {
+        margin-bottom: 8px;
+    }
+
+    > .selected {
+        list-style-type: "🠔";
+    }
+}
+
 .active-periods {
     list-style-type: none;
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
-import { JsDict, AlertWithRouteChange, RouteChange, RouteChangeForMap, SingleLineResponse } from '../data';
+import { JsDict, AlertWithRouteChange, RouteChange, RouteChangeForMap, SingleLineResponse, TranslatedString } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -19,6 +19,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const navigate = ReactRouter.useNavigate();
 
     const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(null);
+    const [selectedRouteChangeIdx, setSelectedRouteChangeIdx] = React.useState<number>(0);
 
     const onDismissModal = React.useCallback(
         (event: React.MouseEvent) => {
@@ -33,13 +34,21 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const onNewDirectionSelected = React.useCallback(
         (index) => {
             setSelectedDirectionIdx(index);
+            setSelectedRouteChangeIdx(0);
         },
-        [setSelectedDirectionIdx]
+        [setSelectedDirectionIdx, setSelectedRouteChangeIdx]
+    );
+
+    const onNewRouteChangeSelected = React.useCallback(
+        (index) => {
+            setSelectedRouteChangeIdx(index);
+        },
+        [setSelectedRouteChangeIdx]
     );
 
     const line = data?.line_details;
 
-    const [route_changes_struct, firstIdxWithChanges] = React.useMemo(
+    const [route_changes_struct, firstDirectionIdxWithChanges] = React.useMemo(
         () => {
             if (!line) return [null, null];
 
@@ -83,8 +92,10 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         [line]
     );
 
-    const actualSelectedIdx = selectedDirectionIdx ?? firstIdxWithChanges ?? 0;
+    const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
     
+    const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
+
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
             <div className="nav-content">
@@ -120,15 +131,21 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                             </div>
                         </div>
                         <DirectionChooser changes_for_line={directions_for_chooser}
-                                          selectedIndex={actualSelectedIdx}
+                                          selectedIndex={actualSelectedDirectionIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
-                    { /* TODO: alert selector (or alert period selector, in the future) */}
+                    { /* TODO: alert period selector, in the future */}
+                    {
+                        !route_changes?.length ? null
+                            : <AlertChooser alerts={route_changes}
+                                        selectedIdx={selectedRouteChangeIdx}
+                                        onNewSelection={onNewRouteChangeSelected} />
+                    }
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for alerts with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
-                                            selection={["changes", ""+actualSelectedIdx, 0]}
+                                            selection={["changes", ""+actualSelectedDirectionIdx, selectedRouteChangeIdx]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                 </div>
@@ -172,4 +189,28 @@ export default function FullPageSingleLineView({isModal}: Props) {
     });
 
     return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} showDistance={false}/>;
+}
+
+interface AlertChooserProps {
+    alerts: {header: TranslatedString, is_deleted: boolean}[];
+    selectedIdx: number | null;
+    onNewSelection: (idx: number, event: React.MouseEvent) => void;
+}
+
+function AlertChooser({alerts, selectedIdx, onNewSelection}: AlertChooserProps) {
+    const cb = React.useCallback((idx, event) => {
+        onNewSelection?.(idx, event);
+        event.preventDefault();
+        event.stopPropagation();
+    }, [onNewSelection]);
+    
+    return <ul className="single-line-alert-list">
+        {alerts.map(({header, is_deleted}, idx) => (
+            <li key={idx} className={(is_deleted ? "deleted " : "") + (idx === selectedIdx ? "selected" : "")}>
+                <a href="#" onClick={cb.bind(window, idx)}>
+                    {header.he}
+                </a>
+            </li>
+        ))}
+    </ul>
 }
