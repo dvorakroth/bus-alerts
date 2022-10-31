@@ -25,7 +25,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops, compute_stop_ids_incl_adj_for_single_route_change
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops, compute_stop_ids_incl_adj_for_single_route_change, list_of_alerts_to_active_period_intersections_and_bitmasks, apply_alert_to_route
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -200,7 +200,7 @@ class ServiceAlertsApiServer:
 
         # the thought behind flattening these is that i want just one consolidated list
         # shown to the user and sorted by the server, because flattening and sorting it
-        # in a react componen would be silly 
+        # in a react component would be silly 
         dirs_flattened = []
         # collect this for the label_headsigns_for_direction_and_alternative function
         dict_headsign_to_dir_alt_pairs = {}
@@ -304,7 +304,9 @@ class ServiceAlertsApiServer:
                     for stop_id in dir["stop_seq"]
                 ]
 
-        # TODO LATER: divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
+            # divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
+            dir["testing_alert_intersections_bitmasks"] = list_of_alerts_to_active_period_intersections_and_bitmasks(dir["route_changes"])
+
         # TODO LATER: refactor the route_changes logic so that we can sequentially apply alert after alert to the same route
         # TODO LATER: user that to give the user a list of time periods + cumulative map for each time period
         
@@ -514,9 +516,6 @@ class ServiceAlertsApiServer:
             if alert is None:
                 alert = self.alertdbapi.get_single_alert(alert_id)[0]
             
-            # TODO: it looks like i never took care of the REGION use case lmaooooooo
-            #       i'd feel much more comfortable implementing it if they,,, uh,,,,,,,,,,,, ever used it :|
-            #       but sure; i can try to do it al iver just in case
             if alert["use_case"] not in [
                 USE_CASE.STOPS_CANCELLED.value,
                 USE_CASE.ROUTE_CHANGES_FLEX.value,
@@ -524,82 +523,34 @@ class ServiceAlertsApiServer:
             ]:
                 return {}
             
-            representative_date = find_representative_date_for_route_changes_in_alert(alert)
             changes_by_agency_and_line = {}
 
             all_stop_ids = set(alert["removed_stop_ids"]).union(set(alert["added_stop_ids"]))
             near_added_stop_ids = set([])
 
+            representative_date = None
+
             for route_id in alert["relevant_route_ids"]:
-                # 2. for each route, get a representative trip (haha easy peasy)
-                representative_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id, representative_date)
-                raw_stop_seq = self.gtfsdbapi.get_stop_seq(representative_trip_id)
-                all_stop_ids.update(raw_stop_seq)
+                # 2. actually apply the changes in the alert to this route
+                d = apply_alert_to_route(
+                    alert,
+                    route_id,
+                    self.gtfsdbapi,
+                    representative_date,
+                    None,
+                    None,
+                    None,
+                    None,
+                    all_stop_ids
+                )
 
-                stop_seq = [
-                    (stop_id, False) # (stop_id, is_added)
-                    for stop_id in raw_stop_seq
-                ]
-                deleted_stop_ids = []
+                stop_seq = d["updated_stop_seq"]
+                representative_trip_id = d["representative_trip_id"]
+                raw_stop_seq = d["raw_stop_seq"]
+                deleted_stop_ids = d["deleted_stop_ids"]
+                representative_date = d["representative_date"]
 
-                # 3. for each route, compute new reperesentative trip (actually easy)
-                if alert["use_case"] == USE_CASE.STOPS_CANCELLED.value:
-                    # special case :|
-                    for removed_stop_id in alert["removed_stop_ids"]:
-                        times_removed = remove_all_occurrences_from_list(
-                            stop_seq,
-                            (removed_stop_id, False)
-                        )
-
-                        if times_removed > 0 or len(alert["relevant_route_ids"]) == 1:
-                            deleted_stop_ids.append(removed_stop_id)
-                else:
-                    # changes_for_route = alert.get("schedule_changes", {}).get(route_id, [])
-                    changes_for_route = alert["schedule_changes"][route_id]
-
-                    for change in changes_for_route:
-                        if "removed_stop_id" in change:
-                            times_removed = remove_all_occurrences_from_list(
-                                stop_seq,
-                                (change["removed_stop_id"], False)
-                            )
-
-                            if times_removed == 0:
-                                cherrypy.log(f"tried removing stop that's not on a route; route_id={route_id}, {repr(change)}, alert_id={alert_id or alert['id']}, trip_id={representative_trip_id})")
-                            
-                            if times_removed > 0 or len(alert["relevant_route_ids"]) == 1:
-                                deleted_stop_ids.append(change["removed_stop_id"])
-                        elif "added_stop_id" in change:
-                            dest_idx = None
-                            for idx, t in enumerate(stop_seq):
-                                # can't JUST search for (relative_stop_id, False) because the
-                                # relative_stop_id might have been added some previous iteration
-                                if t[0] == change["relative_stop_id"]:
-                                    dest_idx = idx
-                                    break
-                                # nice lil edge case the mot didn't think about:
-                                # what if a trip stops somewhere twice, and we're told to add
-                                # another stop before/after that one that appears twice?
-
-                                # should i like check for that edge case? and put the stop.....
-                                # uhm.... where.... the .... distance to the other stops?
-                                # is shortest? idk; or i'll just bug, and blame the government
-                                # because that's easier
-                            
-                            if dest_idx is None:
-                                # didn't find the stop we're supposed to add relative to
-                                cherrypy.log(
-                                    f"tried adding stop relative to stop not on route; route_id={route_id}, {repr(change)}, alert_id={alert_id or alert['id']}, trip_id={representative_trip_id}"
-                                )
-                                continue
-
-                            if not change["is_before"]:
-                                dest_idx += 1
-                            
-                            stop_seq.insert(dest_idx, (change["added_stop_id"], True))
-                            cherrypy.log(f"added stop {change['added_stop_id']} to route {route_id} at index {dest_idx}")
-
-                # --> 3+1/2. for the map bounding box, collect all stop_ids of stops that
+                # 3. for the map bounding box, collect all stop_ids of stops that
                 # are adjacent to added stops
 
                 prev_stop_id, prev_stop_is_added = stop_seq[1]

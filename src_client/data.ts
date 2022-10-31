@@ -214,6 +214,8 @@ export interface LineDir {
 
     route_changes: AlertWithRouteChange[];
     other_alerts: AlertMinimal[];
+
+    testing_alert_intersections_bitmasks: {start: number, end: number, bitmask: number}[];
 }
 
 export interface AlertMinimal {

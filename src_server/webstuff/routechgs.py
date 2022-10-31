@@ -1,11 +1,14 @@
+import functools
+import itertools
 import re
 from datetime import datetime
-
+import cherrypy
 import sys
+
 sys.path.append('../') # i hate python so much
 
-from load_service_alerts import parse_unixtime_into_jerusalem_tz, JERUSALEM_TZ
-
+from load_service_alerts import parse_unixtime_into_jerusalem_tz, JERUSALEM_TZ, USE_CASE
+from junkyard import remove_all_occurrences_from_list
 
 def find_representative_date_for_route_changes_in_alert(alert):
     _active_periods_parsed = map(
@@ -252,4 +255,173 @@ def compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, orig_stop_s
     else:
         return stop_ids
 
-    # return bounding_box_for_stops(stop_ids, all_stops)
+def list_of_alerts_to_active_period_intersections_and_bitmasks(alerts_minimal):
+    all_active_period_boundaries = []
+
+    for idx, alert_minimal in enumerate(alerts_minimal):
+        for start, end in alert_minimal["active_periods"]["raw"]:
+            all_active_period_boundaries.append((start or 0, idx, False))
+            all_active_period_boundaries.append((end or 7258118400, idx, True)) # alerts with no specified end time get the timestamp for 2200-01-01 00:00 UTC
+    
+    all_active_period_boundaries.sort()
+
+    all_periods = []
+    current_period = None
+
+    while len(all_active_period_boundaries):
+        timestamp, idx, is_end = all_active_period_boundaries.pop(0)
+
+        if not current_period:
+            # this is the first period boundary we're encountering
+
+            if is_end:
+                # i don't know what kind of terrible data would get us HERE
+                # but if it does, ignore it and hope for the best lol!
+                continue
+            
+            current_period = {"start": timestamp, "end": None, "bitmask": 0}
+            all_periods.append(current_period)
+        elif current_period["start"] != timestamp:
+            current_period["end"] = timestamp
+            current_period = {"start": timestamp, "end": None, "bitmask": current_period["bitmask"]}
+            all_periods.append(current_period)
+        
+        idx_bitmask = 1 << idx
+        if not is_end:
+            # this alert just started, add it to the bitmask
+            current_period["bitmask"] |= idx_bitmask
+        elif current_period["bitmask"] & idx_bitmask:
+            # this alert just ended, and it actually was in the bitmask
+            # (i could theoretically do &= ~idx_bitmask, but python's bitwise
+            # not feels unpredictable, so for my own sake, i added the extra
+            # check and did a xor instead)
+            current_period["bitmask"] ^= idx_bitmask
+    
+    return all_periods
+
+
+
+
+
+
+def apply_alert_to_route(
+    alert,
+    route_id,
+    gtfsdbapi,
+    representative_date = None,
+    representative_trip_id = None,
+    raw_stop_seq = None,
+    updated_stop_seq = None,
+    deleted_stop_ids = None,
+    mut_all_stop_ids_set = None
+):
+    # TODO: it looks like i never took care of the REGION use case lmaooooooo
+    #       i'd feel much more comfortable implementing it if they,,, uh,,,,,,,,,,,, ever used it :|
+    #       but sure; i can try to do it al iver just in case
+    if alert["use_case"] not in [
+        USE_CASE.STOPS_CANCELLED.value,
+        USE_CASE.ROUTE_CHANGES_FLEX.value,
+        USE_CASE.ROUTE_CHANGES_SIMPLE.value
+    ]:
+        return None
+
+    # if needed, get a representative date
+    if not representative_date and not representative_trip_id and not updated_stop_seq:
+        representative_date = find_representative_date_for_route_changes_in_alert(alert)
+    
+    # if needed, get a representative trip
+    if not representative_trip_id and not updated_stop_seq:
+        representative_trip_id = gtfsdbapi.get_representative_trip_id(route_id, representative_date)
+    
+    # and if needed, get that trip's stop sequence
+    if not updated_stop_seq:
+        if not raw_stop_seq:
+            raw_stop_seq = gtfsdbapi.get_stop_seq(representative_trip_id)
+        
+        if mut_all_stop_ids_set:
+            mut_all_stop_ids_set.update(raw_stop_seq)
+        
+        updated_stop_seq = [
+            (stop_id, False) # (stop_id, is_added)
+            for stop_id in raw_stop_seq
+        ]
+        deleted_stop_ids = []
+    
+    # and actually do the magic of computing the new stop sequence
+    if alert["use_case"] == USE_CASE.STOPS_CANCELLED.value:
+        # special case :|
+        for removed_stop_id in alert["removed_stop_ids"]:
+            times_removed = remove_all_occurrences_from_list(
+                # TODO: support removing a stop thats been inserted by an alert
+                updated_stop_seq,
+                (removed_stop_id, False)
+            )
+
+            if times_removed > 0 or len(alert["relevant_route_ids"]) == 1:
+                deleted_stop_ids.append(removed_stop_id)
+    else:
+        changes_for_route = alert["schedule_changes"][route_id]
+
+        for change in changes_for_route:
+            if "removed_stop_id" in change:
+                times_removed = remove_all_occurrences_from_list(
+                    # TODO: support removing a stop thats been inserted by an alert
+                    updated_stop_seq,
+                    (change["removed_stop_id"], False)
+                )
+
+                if times_removed == 0:
+                    cherrypy.log(f"tried removing stop that's not on a route; route_id={route_id}, {repr(change)}, alert_id={alert['id']}, trip_id={representative_trip_id})")
+                
+                if times_removed > 0 or len(alert["relevant_route_ids"]) == 1:
+                    deleted_stop_ids.append(change["removed_stop_id"])
+            elif "added_stop_id" in change:
+                dest_idx = None
+                for idx, t in enumerate(updated_stop_seq):
+                    # can't JUST search for (relative_stop_id, False) because the
+                    # relative_stop_id might have been added some previous iteration
+                    if t[0] == change["relative_stop_id"]:
+                        dest_idx = idx
+                        break
+                    # nice lil edge case the mot didn't think about:
+                    # what if a trip stops somewhere twice, and we're told to add
+                    # another stop before/after that one that appears twice?
+
+                    # should i like check for that edge case? and put the stop.....
+                    # uhm.... where.... the .... distance to the other stops?
+                    # is shortest? idk; or i'll just bug, and blame the government
+                    # because that's easier
+                
+                if dest_idx is None:
+                    # didn't find the stop we're supposed to add relative to
+                    cherrypy.log(
+                        f"tried adding stop relative to stop not on route; route_id={route_id}, {repr(change)}, alert_id={alert['id']}, trip_id={representative_trip_id}"
+                    )
+                    continue
+
+                if not change["is_before"]:
+                    dest_idx += 1
+                
+                updated_stop_seq.insert(dest_idx, (change["added_stop_id"], True))
+                cherrypy.log(f"added stop {change['added_stop_id']} to route {route_id} at index {dest_idx}")
+
+                if mut_all_stop_ids_set:
+                    mut_all_stop_ids_set.add(change["added_stop_id"])
+    
+    if mut_all_stop_ids_set:
+        mut_all_stop_ids_set.update(deleted_stop_ids)
+
+    # aaahahahahahahahha in like 2 weeks im gonna look at this return statemnet
+    # and be so perplexed lmao sgonna be real funny and by funny i mean ill get
+    # [REDACTED] again ahahahahah
+    return {
+        "alert": alert,
+        "route_id": route_id,
+        "gtfsdbapi": gtfsdbapi,
+        "representative_date": representative_date,
+        "representative_trip_id": representative_trip_id,
+        "raw_stop_seq": raw_stop_seq,
+        "updated_stop_seq": updated_stop_seq,
+        "deleted_stop_ids": deleted_stop_ids,
+        "mut_all_stop_ids_set": mut_all_stop_ids_set
+    }
