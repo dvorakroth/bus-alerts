@@ -307,7 +307,6 @@ class ServiceAlertsApiServer:
             # divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
             dir["testing_alert_intersections_bitmasks"] = list_of_alerts_to_active_period_intersections_and_bitmasks(dir["route_changes"])
 
-        # TODO LATER: refactor the route_changes logic so that we can sequentially apply alert after alert to the same route
         # TODO LATER: user that to give the user a list of time periods + cumulative map for each time period
         
         dir_alt_names = label_headsigns_for_direction_and_alternative(
