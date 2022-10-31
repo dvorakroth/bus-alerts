@@ -25,7 +25,7 @@ import psycopg2
 from load_service_alerts import JERUSALEM_TZ, USE_CASE
 from junkyard import deepcopy_decorator, extract_city_from_stop_desc, line_number_for_sorting, remove_all_occurrences_from_list
 from webstuff.alerts import alert_find_next_relevant_date, cached_distance_to_alert, sort_alerts
-from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops, compute_stop_ids_incl_adj_for_single_route_change, list_of_alerts_to_active_period_intersections_and_bitmasks, apply_alert_to_route
+from webstuff.routechgs import find_representative_date_for_route_changes_in_alert, label_line_changes_headsigns_for_direction_and_alternative, label_headsigns_for_direction_and_alternative, bounding_box_for_stops, compute_stop_ids_incl_adj_for_single_route_change, list_of_alerts_to_active_period_intersections_and_bitmasks, does_alert_have_route_changes, apply_alert_to_route
 
 from webstuff.alertdbapi import AlertDbApi
 from webstuff.gtfsdbapi import GtfsDbApi
@@ -245,67 +245,103 @@ class ServiceAlertsApiServer:
         # at first, just get every alert's route_changes (but limited to each route_id) on its own
 
         for dir, alerts in zip(dirs_flattened, alerts_grouped):
-            dir["route_changes"] = []
+            route_change_alerts = []
             dir["other_alerts"]  = []
 
             for alert in alerts:
-                alert_minimal = {
-                    "header": alert["header"],
-                    "description": alert["description"],
-                    "active_periods": alert["active_periods"],
-                    "is_deleted": alert["is_deleted"],
-                }                    
-
-                chgs_struct = self._cached_route_changes(alert["id"], alert)
-                agency_id = result["line_details"]["agency"]["agency_id"]
-                line_number = result["line_details"]["route_short_name"]
-
-                if "departure_changes" in alert:
-                    dc = alert["departure_changes"] or {}
-                    a = dc.get(agency_id, {}) or {}
-                    l = a.get(line_number, []) or []
-                    for dep_chg in l:
-                        if dep_chg["route_id"] == dir["route_id"]:
-                            alert_minimal["departure_change"] = dep_chg
-                            break
-
-                relevant_change_struct = None
-
-                if "route_changes" in chgs_struct:
-                    rc = chgs_struct["route_changes"] or {}
-                    a = rc.get(agency_id, {}) or {}
-                    l = a.get(line_number, []) or []
-                    for chg in l:
-                        if chg["route_id"] == dir["route_id"]:
-                            relevant_change_struct = chg
-                            break
-                
-                if relevant_change_struct != None:
-                    dir["route_changes"].append(alert_minimal)
-                    alert_minimal["shape"] = relevant_change_struct["shape"]
-                    alert_minimal["deleted_stop_ids"] = relevant_change_struct["deleted_stop_ids"]
-                    alert_minimal["updated_stop_sequence"] = relevant_change_struct["updated_stop_sequence"]
-                    alert_minimal["bbox_stop_ids"] = compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, dir["stop_seq"])
-                    all_stop_ids.update(alert_minimal["deleted_stop_ids"])
-                    all_stop_ids.update(map(lambda x: x[0], alert_minimal["updated_stop_sequence"]))
+                if does_alert_have_route_changes(alert):
+                    route_change_alerts.append(alert)
                 else:
+                    alert_minimal = {
+                        "header": alert["header"],
+                        "description": alert["description"],
+                        "active_periods": alert["active_periods"],
+                        "is_deleted": alert["is_deleted"],
+                    }
+
+                    if "departure_changes" in alert:
+                        agency_id = result["line_details"]["agency"]["agency_id"]
+                        line_number = result["line_details"]["route_short_name"]
+                        dc = alert["departure_changes"] or {}
+                        a = dc.get(agency_id, {}) or {}
+                        l = a.get(line_number, []) or []
+                        for dep_chg in l:
+                            if dep_chg["route_id"] == dir["route_id"]:
+                                alert_minimal["departure_change"] = dep_chg
+                                break
+                    
                     dir["other_alerts"].append(alert_minimal)
+                # if relevant_change_struct != None:
+                #     dir["route_changes"].append(alert_minimal)
+                #     alert_minimal["shape"] = relevant_change_struct["shape"]
+                #     alert_minimal["deleted_stop_ids"] = relevant_change_struct["deleted_stop_ids"]
+                #     alert_minimal["updated_stop_sequence"] = relevant_change_struct["updated_stop_sequence"]
+                #     alert_minimal["bbox_stop_ids"] = compute_stop_ids_incl_adj_for_single_route_change(alert_minimal, dir["stop_seq"])
+                #     all_stop_ids.update(alert_minimal["deleted_stop_ids"])
+                #     all_stop_ids.update(map(lambda x: x[0], alert_minimal["updated_stop_sequence"]))
+                # else:
+                #     dir["other_alerts"].append(alert_minimal)
+            
+            # now after we got all those alerts we can actually do the ~*~*MAGIC*~*~
+
+            # divide the route_change_alerts active_period_raw into a sequence of {alert_bitmask, start_time, end_time}
+            alert_periods = list_of_alerts_to_active_period_intersections_and_bitmasks(route_change_alerts)
+
+            for period in alert_periods:
+                start_date = JERUSALEM_TZ.localize(datetime.fromtimestamp(period["start"])).replace(hour=0, minute=0, second=0, microsecond=0)
+
+                state = {
+                    "alert": None,
+                    "route_id": dir["route_id"],
+                    "gtfsdbapi": self.gtfsdbapi,
+                    "representative_date": start_date,
+                    "mut_all_stop_ids_set": all_stop_ids
+                }
+
+                bitmask = period["bitmask"]
+                alert_iter = iter(route_change_alerts)
+                while bitmask:
+                    is_active = not not (bitmask & 1)
+                    bitmask >>= 1
+                    alert = next(alert_iter)
+
+                    if not is_active:
+                        continue
+                    
+                    state["alert"] = alert
+                    state = apply_alert_to_route(**state) #aaaaaaaaaaaaaaaaaaa
+                
+                # TODO: bbox 
+                if "updated_stop_seq" in state:
+                    period["updated_stop_sequence"] = state["updated_stop_seq"]
+                    period["deleted_stop_ids"] = state["deleted_stop_ids"]
+                    period["raw_stop_seq"] = state["raw_stop_seq"]
+                    period["shape"] = self.gtfsdbapi.get_shape_points(state["representative_trip_id"])
+                else:
+                    period["deleted_stop_ids"] = []
+                    period["raw_stop_seq"] = self.gtfsdbapi.get_representative_trip_id(dir["route_id"], start_date)
+                    period["updated_stop_sequence"] = list(map(lambda x: (x, False), self.gtfsdbapi.get_stop_seq(rep_trip_id)))
+                    period["shape"] = self.gtfsdbapi.get_shape_points(rep_trip_id)
+
+            
+            dir["alert_periods"] = alert_periods
+
         
         result["all_stops"] = self.gtfsdbapi.get_stop_metadata(all_stop_ids)
         result["map_bounding_box"] = bounding_box_for_stops(result["all_stops"].keys(), result["all_stops"])
 
         for dir in dirs_flattened:
-            for rc in dir["route_changes"]:
-                rc["map_bounding_box"] = bounding_box_for_stops(rc["bbox_stop_ids"], result["all_stops"])
+            # for rc in dir["alert_periods"]:
+                # TODO
+                # rc["map_bounding_box"] = bounding_box_for_stops(rc["bbox_stop_ids"], result["all_stops"])
             
             if not dir["shape"] or not len(dir["shape"]):
+                # TODO this but also for all alert_periods
                 dir["shape"] = [
                     [result["all_stops"][stop_id]["stop_lon"], result["all_stops"][stop_id]["stop_lat"]]
                     for stop_id in dir["stop_seq"]
                 ]
 
-            # divide their active_period_raw into a sequence of (alert_bitmask, start_time, end_time)
-            dir["testing_alert_intersections_bitmasks"] = list_of_alerts_to_active_period_intersections_and_bitmasks(dir["route_changes"])
 
         # TODO LATER: user that to give the user a list of time periods + cumulative map for each time period
         
@@ -515,11 +551,7 @@ class ServiceAlertsApiServer:
             if alert is None:
                 alert = self.alertdbapi.get_single_alert(alert_id)[0]
             
-            if alert["use_case"] not in [
-                USE_CASE.STOPS_CANCELLED.value,
-                USE_CASE.ROUTE_CHANGES_FLEX.value,
-                USE_CASE.ROUTE_CHANGES_SIMPLE.value
-            ]:
+            if not does_alert_have_route_changes(alert):
                 return {}
             
             changes_by_agency_and_line = {}

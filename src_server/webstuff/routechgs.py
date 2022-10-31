@@ -301,7 +301,12 @@ def list_of_alerts_to_active_period_intersections_and_bitmasks(alerts_minimal):
 
 
 
-
+def does_alert_have_route_changes(alert):
+    return alert["use_case"] in [
+        USE_CASE.STOPS_CANCELLED.value,
+        USE_CASE.ROUTE_CHANGES_FLEX.value,
+        USE_CASE.ROUTE_CHANGES_SIMPLE.value
+    ]
 
 
 def apply_alert_to_route(
@@ -318,11 +323,7 @@ def apply_alert_to_route(
     # TODO: it looks like i never took care of the REGION use case lmaooooooo
     #       i'd feel much more comfortable implementing it if they,,, uh,,,,,,,,,,,, ever used it :|
     #       but sure; i can try to do it al iver just in case
-    if alert["use_case"] not in [
-        USE_CASE.STOPS_CANCELLED.value,
-        USE_CASE.ROUTE_CHANGES_FLEX.value,
-        USE_CASE.ROUTE_CHANGES_SIMPLE.value
-    ]:
+    if not does_alert_have_route_changes(alert):
         return None
 
     # if needed, get a representative date

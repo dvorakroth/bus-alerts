@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { JsDict, AlertWithRouteChange, RouteChange, RouteChangeForMap, SingleLineResponse, TranslatedString } from '../data';
+import { JsDict, RouteChange, RouteChangeForMap, SingleLineResponse, TranslatedString } from '../data';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -59,10 +59,10 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
             return [{
                 changes: line.dirs_flattened.reduce<JsDict<RouteChangeForMap[]>>(
                     (o, d, idx) => {
-                        const chgs = d.route_changes;
+                        const periods = d.alert_periods;
 
-                        if (chgs?.length) {
-                            o[idx] = d.route_changes;
+                        if (periods?.length) {
+                            o[idx] = periods;
 
                             if (firstIdxWithChanges === null) {
                                 firstIdxWithChanges = idx;
@@ -88,7 +88,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         () => line?.dirs_flattened?.map?.(
             (dir) => ({
                 ...dir,
-                has_alerts: !!(dir.route_changes?.length || dir.other_alerts?.length)
+                has_alerts: !!(dir.alert_periods?.length || dir.other_alerts?.length)
             })
         ),
         [line]
@@ -96,7 +96,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
     
-    const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
+    // const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
+    const alert_periods = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.alert_periods;
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -139,8 +140,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     </div>
                     { /* TODO: alert period selector, in the future */}
                     {
-                        !route_changes?.length ? null
-                            : <AlertChooser alerts={route_changes}
+                        !alert_periods?.length ? null
+                            : <AlertPeriodChooser alert_periods={alert_periods}
                                         selectedIdx={selectedRouteChangeIdx}
                                         onNewSelection={onNewRouteChangeSelected} />
                     }
@@ -151,7 +152,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                     
-                    <ul>
+                    {/* <ul>
                         {line.dirs_flattened[actualSelectedDirectionIdx].testing_alert_intersections_bitmasks.map(({start, end, bitmask}) => (
                             end >= DateTime.now().toSeconds() ? <li>
                                 {DateTime.fromSeconds(start).toISO()}<br/>
@@ -159,7 +160,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 {bitmask.toString(2)}<br/>
                             </li> : null
                         ))}
-                    </ul>
+                    </ul> */}
                 </div>
             }
             <LoadingOverlay shown={isLoading} />
@@ -204,13 +205,13 @@ export default function FullPageSingleLineView({isModal}: Props) {
     return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} showDistance={false}/>;
 }
 
-interface AlertChooserProps {
-    alerts: {header: TranslatedString, is_deleted: boolean}[];
+interface AlertPeriodChooserProps {
+    alert_periods: {start: number, end: number, bitmask: number}[];
     selectedIdx: number | null;
     onNewSelection: (idx: number, event: React.MouseEvent) => void;
 }
 
-function AlertChooser({alerts, selectedIdx, onNewSelection}: AlertChooserProps) {
+function AlertPeriodChooser({alert_periods, selectedIdx, onNewSelection}: AlertPeriodChooserProps) {
     const cb = React.useCallback((idx, event) => {
         onNewSelection?.(idx, event);
         event.preventDefault();
@@ -218,10 +219,12 @@ function AlertChooser({alerts, selectedIdx, onNewSelection}: AlertChooserProps) 
     }, [onNewSelection]);
     
     return <ul className="single-line-alert-list">
-        {alerts.map(({header, is_deleted}, idx) => (
-            <li key={idx} className={(is_deleted ? "deleted " : "") + (idx === selectedIdx ? "selected" : "")}>
+        {alert_periods.map(({start, end, bitmask}, idx) => (
+            <li key={idx} className={(idx === selectedIdx ? "selected" : "")}>
                 <a href="#" onClick={cb.bind(window, idx)}>
-                    {header.he}
+                    {DateTime.fromSeconds(start).toISO()}<br/>
+                    {DateTime.fromSeconds(end || 0).toISO()}<br/>
+                    {bitmask.toString(2)}<br/>
                 </a>
             </li>
         ))}

@@ -199,6 +199,12 @@ export interface LinesListResponse {
     uses_location: boolean;
 }
 
+export type AlertPeriod = {
+    start: number;
+    end: number;
+    bitmask: number;
+} & RouteChangeForMap;
+
 export interface LineDir {
     route_id: string;
     alt_id: string;
@@ -212,10 +218,8 @@ export interface LineDir {
     shape: [number, number][];
     city_list: string[];
 
-    route_changes: AlertWithRouteChange[];
+    alert_periods: AlertPeriod[];
     other_alerts: AlertMinimal[];
-
-    testing_alert_intersections_bitmasks: {start: number, end: number, bitmask: number}[];
 }
 
 export interface AlertMinimal {
@@ -231,7 +235,7 @@ export interface AlertMinimal {
     departure_change?: DepartureChange;
 }
 
-export type AlertWithRouteChange = AlertMinimal & RouteChangeForMap
+// export type AlertWithRouteChange = AlertMinimal & RouteChangeForMap
 
 // export interface LineAlt {
 //     alt_id: string;
