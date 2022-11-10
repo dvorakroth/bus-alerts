@@ -504,7 +504,10 @@ class ServiceAlertsApiServer:
                 for agency_id, line_numbers in lines.items()
             }
             alert["relevant_agencies"] = sorted(
-                map(lambda agency_id: metadata["agencies"][agency_id], alert["relevant_agencies"]),
+                filter(
+                    lambda x: not not x,
+                    map(lambda agency_id: metadata["agencies"].get(agency_id, None), alert["relevant_agencies"])
+                ),
                 key=lambda agency: agency["agency_name"]
             )
             
@@ -710,6 +713,9 @@ class ServiceAlertsApiServer:
         for route_id in alert["relevant_route_ids"]:
             # 2. get metadata and compute headsign (upside down smiley)
             route_metadata = self.gtfsdbapi.get_route_metadata(route_id)
+
+            if not route_metadata:
+                continue # ignore bad route_ids, because, apparently, that's a thing that happens????
 
             representative_trip_id = self.gtfsdbapi.get_representative_trip_id(route_id, representative_date)
             route_metadata["to_text"] = self._get_headsign(representative_trip_id)

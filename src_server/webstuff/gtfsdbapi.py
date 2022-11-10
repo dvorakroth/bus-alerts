@@ -198,9 +198,14 @@ class GtfsDbApi:
                     ]
                 )
 
+                row = cursor.fetchone()
+
+                if not row or not cursor.description:
+                    return {}
+
                 return {
                     column.name: value
-                    for column, value in zip(cursor.description, cursor.fetchone())
+                    for column, value in zip(cursor.description, row)
                 }
         finally:
             self.gtfsconn.rollback()
