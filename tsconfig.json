@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",  
+  "extends": "@tsconfig/node-lts-strictest-esm/tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist/",
     "noImplicitAny": true,
@@ -6,6 +8,10 @@
     "target": "es6",
     "jsx": "react",
     "allowJs": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node16"
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   }
 }
