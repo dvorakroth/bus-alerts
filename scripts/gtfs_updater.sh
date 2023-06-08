@@ -7,11 +7,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 pushd ${DIR}
     #POSTGRES_DSN="$(python3 -c 'import configparser; c = configparser.ConfigParser(); c.read("config.ini"); print(c["psql"]["dsn"])')"
-    POSTGRES_DSN="postgres:///israel_gtfs"
-    POSTGRES_DSN_ALERTS="postgres:///israel_gtfs_sa"
-    #wget ftp://gtfs.mot.gov.il/israel-public-transportation.zip -O israel-public-transportation.zip
-    #wget ftp://gtfs.mot.gov.il/TripIdToDate.zip -O TripIdToDate.zip
-    #wget ftp://gtfs.mot.gov.il/ClusterToLine.zip -O ClusterToLine.zip
+    POSTGRES_DSN="postgres://postgres:123@localhost/israel_gtfs"
+    POSTGRES_DSN_ALERTS="postgres://postgres:123@localhost/israel_gtfs_sa"
+    # wget https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip -O israel-public-transportation.zip
+    # wget https://gtfs.mot.gov.il/gtfsfiles/TripIdToDate.zip -O TripIdToDate.zip
+    # wget https://gtfs.mot.gov.il/gtfsfiles/ClusterToLine.zip -O ClusterToLine.zip
     psql -n $POSTGRES_DSN -c "drop view if exists stoptimes_int; drop table if exists agency, cities, routes, shapes, stops, stoptimes, translations, trip_id_to_date, trips, calendar, mot_clusters cascade;"
     psql $POSTGRES_DSN -f gtfs_schema.sql
     psql -n $POSTGRES_DSN_ALERTS -c "drop table if exists alert, alert_agency, alert_stop, alert_route cascade;"
