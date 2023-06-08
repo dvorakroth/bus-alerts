@@ -4,11 +4,11 @@ import * as ini from "ini";
 import * as winston from "winston";
 import got from "got";
 import pg from "pg";
-import Long from "long";
 import { DateTime } from "luxon";
 import { transit_realtime } from "gtfs-realtime-bindings";
-import { JERUSALEM_TZ, gtfsRtTranslationsToObject } from "./junkyard.js";
+import { JERUSALEM_TZ, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
 import { consolidateActivePeriods } from "./activePeriodConsolidation.js";
+import { AddStopChange, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
 
 const doc = `Load service alerts from MOT endpoint.
 
@@ -156,20 +156,204 @@ async function loadSingleEntity(
     const header = gtfsRtTranslationsToObject(alert.headerText?.translation || []);
     const description = gtfsRtTranslationsToObject(alert.descriptionText?.translation || []);
 
+    const cause = transit_realtime.Alert.Cause[alert.cause ?? transit_realtime.Alert.Cause.UNKNOWN_CAUSE];
+    const effect = transit_realtime.Alert.Effect[alert.effect ?? transit_realtime.Alert.Effect.OTHER_EFFECT];
+
+    const oldAramaic = (function() { // *sigh*
+        if (description.oar) {
+            const tmp = description.oar;
+            delete description.oar;
+            return tmp;
+        } else {
+            return null;
+        }
+    })();
+
+    let useCase: AlertUseCase|null = null;
+    let originalSelector: OriginalSelector = {};
+
+    const hasEnt = (alert.informedEntity?.length ?? 0) > 0;
+    const firstEnt = alert.informedEntity?.[0];
+
+    const relevantAgencies: string[] = [];
+    const relevantRouteIds: string[] = [];
+    const addedStopIds: string[] = [];
+    const removedStopIds: string[] = [];
+    let routeChanges: RouteChanges|null = null;
+    let departureChanges: DepartureChanges|null = null;
+
+    const hasOarRouteId = oldAramaic && oldAramaic.startsWith("route_id=");
+
+    if (hasOarRouteId || firstEnt?.stopId) {
+        if (!hasOarRouteId && !firstEnt?.routeId) {
+            // no old aramaic, no route_id -- only stop_id
+            useCase = AlertUseCase.StopsCancelled;
+
+            const stop_ids = (alert.informedEntity?.map(e => e.stopId).filter(s => !!s) ?? []) as string[];
+
+            originalSelector = {
+                stop_ids
+            };
+
+            removedStopIds.push(...stop_ids);
+            relevantRouteIds.push(...await fetchAllRouteIdsAtStopsInDateranges(
+                gtfsDb,
+                removedStopIds,
+                activePeriods
+            ));
+            relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+        } else {
+            // route_id and stop_id
+            const routeStopPairs: [string, string][] = [];
+            routeChanges = {};
+            if (routeChanges === null) {
+                throw "???"; //shouldn't happen; this is just here to typescript doesn't yell at me
+            }
+
+            for (const entity of alert.informedEntity ?? []) {
+                if (!entity.stopId || !entity.routeId) {
+                    continue; // this actually happened once and bugged the api server's code -_-
+                }
+
+                removedStopIds.push(entity.stopId);
+                routeStopPairs.push([entity.routeId, entity.stopId]);
+
+                if (!routeChanges.hasOwnProperty(entity.routeId)) {
+                    routeChanges[entity.routeId] = [];
+                    relevantRouteIds.push(entity.routeId);
+                }
+
+                routeChanges[entity.routeId]?.push({
+                    removed_stop_id: entity.stopId
+                });
+            }
+
+            if (!oldAramaic) {
+                useCase = AlertUseCase.RouteChangesSimple;
+                originalSelector = {route_stop_pairs: routeStopPairs};
+            } else {
+                useCase = AlertUseCase.RouteChangesFlex;
+                originalSelector = {
+                    route_stop_pairs: routeStopPairs,
+                    old_aramaic: oldAramaic
+                };
+                const oarAdditions = parseOldAramaicRoutechgs(oldAramaic);
+
+                // merge the schedule changes we got from old aramaic text
+                // into the schedule changes we got from informed_entity[]
+                for (const [routeId, additions] of Object.entries(oarAdditions)) {
+                    if (!routeChanges.hasOwnProperty(routeId)) {
+                        routeChanges[routeId] = additions;
+                        relevantRouteIds.push(routeId);
+                    } else {
+                        // put additions before removals because the additions
+                        // can be relative to a stop that gets removed
+                        // and i wanna be good to future me and avoid these bugs(?)
+                        routeChanges[routeId]?.splice(0, 0, ...additions);
+                    }
+
+                    addedStopIds.push(...additions.map(a => a.added_stop_id));
+                }
+            }
+
+            inPlaceSortAndUnique(removedStopIds);
+            inPlaceSortAndUnique(addedStopIds);
+            inPlaceSortAndUnique(relevantRouteIds);
+            relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+        }
+    } else if (firstEnt?.trip?.tripId) {
+        useCase = AlertUseCase.ScheduleChanges;
+
+        const trips: TripSelector[] = [];
+        const allFakeTripIds: Set<string> = new Set<string>([]); // dolan y
+        departureChanges = {};
+        if (departureChanges === null) {
+            throw "???"; // once again: shouldn't happen, only here so typescript won't yell at me
+        }
+
+        for (const entity of alert.informedEntity ?? []) {
+            const trip = {
+                route_id: entity.trip?.routeId ?? "",
+                fake_trip_id: entity.trip?.tripId ?? "", // ugh -_-
+                action: entity.trip?.scheduleRelationship ?? transit_realtime.TripDescriptor.ScheduleRelationship.SCHEDULED,
+                start_time: entity.trip?.startTime ?? ""
+            };
+            trips.push(trip);
+
+            if (!departureChanges.hasOwnProperty(trip.route_id)) {
+                departureChanges[trip.route_id] = {
+                    added: [],
+                    removed: []
+                };
+                relevantRouteIds.push(trip.route_id);
+            }
+
+            if (
+                trip.action === transit_realtime.TripDescriptor.ScheduleRelationship.CANCELED
+                && trip.fake_trip_id
+                && trip.fake_trip_id !== "0"
+            ) {
+                departureChanges[trip.route_id]?.removed?.push(trip.fake_trip_id);
+                allFakeTripIds.add(trip.fake_trip_id);
+            } else if (
+                trip.action === transit_realtime.TripDescriptor.ScheduleRelationship.ADDED
+                || !trip.fake_trip_id
+                || trip.fake_trip_id === "0"
+            ) {
+                departureChanges[trip.route_id]?.added.push(trip.start_time);
+            }
+        }
+
+        // convert removed trips from fake ids (-____-) to actual times
+        const departureTimes = await fetchDeparturesForFakeTripIds(gtfsDb, [...allFakeTripIds]);
+        for (const change of Object.values(departureChanges)) {
+            change.removed = copySortAndUnique(
+                change.removed.map(fakeId => departureTimes[fakeId]??"")
+            );
+            change.added = copySortAndUnique(change.added);
+        }
+
+        relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+        originalSelector = {trips};
+    }
     // TODO
 }
 
-function forceToNumberOrNull(value: number|Long|null|undefined) {
-    // if you're still using my shitty typescript code in the year 2255
-    // (when the 2^53-1 unix epoch problem becomes relevant)
-    // then, uh,,,,,,,,,, i hope my generation didn't destroy the planet *too* much lol
-    if (typeof value === "number") {
-        return value;
-    } else if (!value) {
-        return null;
-    } else {
-        return value.toNumber();
+function parseOldAramaicRoutechgs(routechgsText: string) {
+    const results: {[routeId: string]: AddStopChange[]} = {};
+
+    for (const command of routechgsText.split(";")) {
+        if (!command) {
+            continue;
+        }
+
+        const values = (function() {
+            const obj: {[_: string]: string} = {};
+            for (const x of command.split(",")) {
+                const [k, v] = x.split("=");
+                obj[k??""] = v??"";
+            }
+            return obj;
+        })();
+
+        const routeId = values["route_id"] ?? "";
+        const added_stop_id = values["add_stop_id"] ?? "";
+        const is_before = values.hasOwnProperty("before_stop_id");
+
+        if (!results.hasOwnProperty(routeId)) {
+            results[routeId] = [];
+        }
+
+        results[routeId]?.push({
+            added_stop_id,
+            relative_stop_id: is_before
+                ? (values["before_stop_id"]??"")
+                : (values["after_stop_id"]??""),
+            is_before
+        });
     }
+
+    return results;
 }
 
 async function markAlertsDeletedIfNotInList(
@@ -180,4 +364,27 @@ async function markAlertsDeletedIfNotInList(
     // TODO
 }
 
+async function fetchAllRouteIdsAtStopsInDateranges(
+    gtfsDb: pg.Client,
+    stopIds: string[],
+    activePeriods: [number|null, number|null][]
+): Promise<string[]> {
+    // TODO
+    return [];
+}
 
+async function fetchUniqueAgenciesForRoutes(
+    gtfsDb: pg.Client,
+    routeIds: string[]
+): Promise<string[]> {
+    // TODO
+    return [];
+}
+
+async function fetchDeparturesForFakeTripIds(
+    gtfsDb: pg.Client,
+    fakeTripIds: string[]
+): Promise<{[fakeTripId: string]: string}> {
+    // TODO
+    return {};
+}

@@ -1,5 +1,6 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { DateTime } from "luxon";
+import Long from "long";
 
 export type ArrayOrValue = ArrayOrValue[]|boolean|string|number|null|undefined;
 
@@ -102,4 +103,30 @@ export function copySortAndUnique<T = number|string>(arr: T[]) {
     return [...arr]
         .sort()
         .filter((item, idx, arr) => !idx || item !== arr[idx - 1]);
+}
+
+export function inPlaceSortAndUnique<T = number|string>(arr: T[]) {
+    arr.sort();
+
+    let i = 1; // not 0! because we'll never delete the 0th element
+    while (i < arr.length) {
+        if (arr[i - 1] === arr[i]) {
+            arr.splice(i, 1);
+        } else {
+            i += 1;
+        }
+    }
+}
+
+export function forceToNumberOrNull(value: number|Long|null|undefined) {
+    // if you're still using my shitty typescript code in the year 2255
+    // (when the 2^53-1 unix epoch problem becomes relevant)
+    // then, uh,,,,,,,,,, i hope my generation didn't destroy the planet *too* much lol
+    if (typeof value === "number") {
+        return value;
+    } else if (!value) {
+        return null;
+    } else {
+        return value.toNumber();
+    }
 }
