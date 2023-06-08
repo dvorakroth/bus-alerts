@@ -65,6 +65,14 @@ async function main() {
     const gtfsDb = new pg.Client(gtfsDbUrl);
     const alertsDb = new pg.Client(alertsDbUrl);
 
+    await gtfsDb.connect();
+    try {
+        await alertsDb.connect();
+    } catch(err) {
+        await gtfsDb.end();
+        throw err;
+    }
+
     try {
         await alertsDb.query("BEGIN");
         await loadIsraeliGtfsRt(gtfsDb, alertsDb, feed, TESTING_fake_today);
@@ -72,6 +80,9 @@ async function main() {
     } catch (err) {
         await alertsDb.query("ROLLBACK");
         throw err;
+    } finally {
+        await gtfsDb.end();
+        await alertsDb.end();
     }
 }
 
@@ -478,24 +489,56 @@ async function fetchUniqueAgenciesForRoutes(
     gtfsDb: pg.Client,
     routeIds: string[]
 ): Promise<string[]> {
-    // TODO
-    return [];
+    if (!routeIds.length) {
+        return [];
+    }
+
+    const res = await gtfsDb.query<{agency_id: string}, [string[]]>(
+        "SELECT DISTINCT agency_id FROM routes WHERE route_id = ANY($1::varchar[])",
+        [routeIds]
+    )
+
+    return res.rows.map(({agency_id}) => agency_id);
 }
 
 async function fetchDeparturesForFakeTripIds(
     gtfsDb: pg.Client,
     fakeTripIds: string[]
 ): Promise<{[fakeTripId: string]: string}> {
-    // TODO
-    return {};
+    if (!fakeTripIds.length) {
+        return {};
+    }
+
+    const res = await gtfsDb.query<{TripId: string, DepartureTime: string}, [string[]]>(
+        "SELECT DISTINCT \"TripId\", \"DepartureTime\" FROM trip_id_to_date WHERE \"TripId\" = ANY($1::varchar[]);",
+        [fakeTripIds]
+    );
+
+    return res.rows.reduce<{[fakeTripId: string]: string}>(
+        (obj, {TripId, DepartureTime}) => {
+            obj[TripId] = DepartureTime;
+            return obj;
+        },
+        {}
+    );
 }
 
 async function fetchStopsByPolygon(
     gtfsDb: pg.Client,
     polygon: [string, string][]
 ): Promise<string[]> {
-    // TODO
-    return [];
+    if (!polygon.length) {
+        return [];
+    }
+
+    const res = await gtfsDb.query<{stop_id: string}, [string]>(
+        "SELECT stop_id FROM stops WHERE point(stop_lat, stop_lon) <@ polygon $1;",
+        [
+            "(" + polygon.map(([lat,lon]) => `(${lat},${lon})`).join(",") + ")"
+        ]
+    );
+
+    return res.rows.map(({stop_id}) => stop_id);
 }
 
 async function createOrUpdateAlert(
