@@ -7,6 +7,8 @@ import pg from "pg";
 import Long from "long";
 import { DateTime } from "luxon";
 import { transit_realtime } from "gtfs-realtime-bindings";
+import { JERUSALEM_TZ, gtfsRtTranslationsToObject } from "./junkyard.js";
+import { consolidateActivePeriods } from "./activePeriodConsolidation.js";
 
 const doc = `Load service alerts from MOT endpoint.
 
@@ -65,7 +67,7 @@ async function main() {
 
     try {
         await alertsDb.query("BEGIN");
-        loadIsraeliGtfsRt(gtfsDb, alertsDb, feed, TESTING_fake_today);
+        await loadIsraeliGtfsRt(gtfsDb, alertsDb, feed, TESTING_fake_today);
         await alertsDb.query("COMMIT");
     } catch (err) {
         await alertsDb.query("ROLLBACK");
@@ -74,8 +76,6 @@ async function main() {
 }
 
 main();
-
-const JERUSALEM_TZ = "Asia/Jerusalem";
 
 const FILENAME_DATE_REGEX = /(?<year>\d+)\D(?<month>\d+)\D(?<day>\d+)\D(?<hour>\d+)\D(?<minute>\d+)\D(?<second>\d+)/g;
 function tryParseFilenameDate(filename: string): DateTime|null {
@@ -101,21 +101,21 @@ function tryParseFilenameDate(filename: string): DateTime|null {
 
 const CITY_LIST_PREFIX = "ההודעה רלוונטית לישובים: ";
 
-function loadIsraeliGtfsRt(
+async function loadIsraeliGtfsRt(
     gtfsDb: pg.Client,
     alertsDb: pg.Client,
     feed: transit_realtime.FeedMessage,
     TESTING_fake_today: DateTime|null
 ) {
     for (const entity of feed.entity) {
-        loadSingleEntity(gtfsDb, alertsDb, entity, TESTING_fake_today);
+        await loadSingleEntity(gtfsDb, alertsDb, entity, TESTING_fake_today);
     }
 
     LOGGER.info(`Added/updated ${feed.entity.length} alerts`)
-    markAlertsDeletedIfNotInList(alertsDb, feed.entity.map(({id}) => id), TESTING_fake_today);
+    await markAlertsDeletedIfNotInList(alertsDb, feed.entity.map(({id}) => id), TESTING_fake_today);
 }
 
-function loadSingleEntity(
+async function loadSingleEntity(
     gtfsDb: pg.Client,
     alertsDb: pg.Client,
     entity: transit_realtime.IFeedEntity,
@@ -172,7 +172,7 @@ function forceToNumberOrNull(value: number|Long|null|undefined) {
     }
 }
 
-function markAlertsDeletedIfNotInList(
+async function markAlertsDeletedIfNotInList(
     alertsDb: pg.Client,
     ids: string[],
     TESTING_fake_today: DateTime|null
@@ -180,180 +180,4 @@ function markAlertsDeletedIfNotInList(
     // TODO
 }
 
-type PrettyActivePeriod = 
-    {simple: [string|null, string|null]}
-    | {dates: string[], times: [string, string, boolean]};
 
-function consolidateActivePeriods(activePeriods: [number|null, number|null][]) {
-    const result: PrettyActivePeriod[] = [];
-
-    // "yyyy_mm_dd" -> [[starttime, endtime, doesEndNextDay], ...]
-    const mightNeedConsolidation: {[key: string]: [[number, number], [number, number], boolean][]} = {};
-
-    for (const [startUnixTime, endUnixTime] of activePeriods) {
-        const startTime = parseUnixtimeIntoJerusalemTz(startUnixTime);
-        const endTime   = parseUnixtimeIntoJerusalemTz(endUnixTime);
-
-        if (!startTime || !endTime) {
-            // an infinite range can't be consolidated
-            result.push({
-                simple: [startTime?.toISO() || null, endTime?.toISO() || null]
-            });
-            continue;
-        }
-
-        const startDay = startTime.set({
-            hour: 0,
-            minute: 0,
-            second: 0
-        });
-        const endDay = endTime.set({
-            hour: 0,
-            minute: 0,
-            second: 0
-        });
-
-        if (endDay.toSeconds() > startDay.plus({ days: 1 }).toSeconds()) {
-            // a range stretching out over more than one calendar day can't be consolidated
-            result.push({
-                simple: [startTime.toISO(), endTime.toISO()]
-            });
-            continue;
-        }
-
-        // now we're in an interesting case: a period stretching over 1-2 calendar days
-        const startDayKey = `${startDay.year}_${startDay.month}_${startDay.day}`;
-        if (!mightNeedConsolidation.hasOwnProperty(startDayKey)) {
-            mightNeedConsolidation[startDayKey] = [];
-        }
-
-        mightNeedConsolidation[startDayKey]?.push(
-            [[startTime.hour, startTime.minute], [endTime.hour, endTime.minute], endDay.toSeconds() > startDay.toSeconds()]
-        )
-    }
-
-    // now that we have a list of all the periods we might want to consolidate,
-    // do the actual consolidation!
-
-    // each item: {dates: [[y, m, d], [y, m, d], [y, m, d], ...], times: [[[h, m], [h, m], doesEndNextDay], ...]}
-    const consolidatedGroups: {dates: [number, number, number][], times: [[number, number], [number, number], boolean][]}[]= [];
-
-    for (const [dateKey, times] of Object.entries(mightNeedConsolidation)) {
-        let found = false;
-        const date = dateKey.split("_").map(x => parseInt(x)) as [number, number, number];
-
-        for (const {dates: otherDates, times: otherTimes} of consolidatedGroups) {
-            if (arraysDeepEqual(times, otherTimes)) {
-                // found another consolidated group with these same times!
-                found = true;
-                otherDates.push(date);
-                break;
-            }
-        }
-
-        if (!found) {
-            // no other dates with these same times encountered yet, so make a new group
-            consolidatedGroups.push({
-                dates: [date],
-                times
-            });
-        }
-    }
-
-    // TODO
-}
-
-type ArrayOrValue = ArrayOrValue[]|boolean|string|number|null|undefined;
-
-function arraysDeepEqual(a: ArrayOrValue[], b: ArrayOrValue[]): boolean {
-    if (a.length !== b.length) {
-        return false;
-    }
-
-    for (let i = 0; i < a.length && i < b.length; i++) {
-        const aEl = a[i];
-        const bEl = b[i];
-
-        if (typeof aEl !== typeof bEl) {
-            return false;
-        }
-
-        if (aEl === undefined || bEl === undefined
-            || aEl === null || bEl === null
-            || typeof aEl === "number" || typeof bEl === "number"
-            || typeof aEl === "string" || typeof bEl === "string"
-            || typeof aEl === "boolean" || typeof bEl === "boolean") {
-            if (aEl !== bEl) {
-                return false;
-            } else {
-                continue;
-            }
-        }
-
-        if (!arraysDeepEqual(a, b)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function parseUnixtimeIntoJerusalemTz(unixtime: number|null): DateTime|null {
-    if (!unixtime) {
-        // both 0 and null
-        return null;
-    } else {
-        return DateTime.fromSeconds(unixtime, {zone: JERUSALEM_TZ});
-    }
-}
-
-type TranslationObject = {
-    he?: string;
-    en?: string;
-    ar?: string;
-    oar?: string;
-};
-
-function gtfsRtTranslationsToObject(
-    translations: transit_realtime.TranslatedString.ITranslation[]
-): TranslationObject {
-    const result: any = {};
-
-    for (const {language, text} of translations) {
-        if (!language) continue;
-        result[language] = text;
-    }
-
-    return result;
-}
-
-const ALLOWED_UNICODE_REPLACEMENTS = {
-    ["\\u2013"]: "\u2013",
-    ["\\u2019"]: "\u2019"
-} as {[key: string]: string};
-
-function replaceUnicodeFails(s: string) {
-    // *sigh*
-
-    let i = 0;
-
-    while (i < s.length) {
-        i = s.indexOf("\\u", i);
-
-        if (i < 0 || (i + 6) > s.length) {
-            break;
-        }
-
-        const escSeq = s.substring(i, i + 6);
-        const replacement = ALLOWED_UNICODE_REPLACEMENTS[escSeq];
-
-        if (replacement) {
-            s = s.substring(0, i) + replacement + s.substring(i + 6);
-            i += replacement.length;
-        } else {
-            i += escSeq.length;
-        }
-    }
-
-    return s;
-}
