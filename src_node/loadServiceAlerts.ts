@@ -356,7 +356,7 @@ async function loadSingleEntity(
     }
 
     let polygon = null;
-    if (useCase === null && !foundAgencyIds.length && oldAramaic?.startsWith("region=")) {
+    if (useCase === null && !foundAgencyIds.length && oldAramaic?.startsWith(OAR_PREFIX_REGION)) {
         polygon = parseOldAramaicRegion(oldAramaic);
         useCase = AlertUseCase.Region;
         originalSelector = {old_aramaic: oldAramaic};
@@ -441,6 +441,22 @@ function parseOldAramaicRoutechgs(routechgsText: string) {
     return results;
 }
 
+const OAR_PREFIX_REGION = "region=";
+
+function parseOldAramaicRegion(regionText: string): [string, string][] {
+    // note for future me: their coords are lat,lon = y,x
+    // and this function returns strings, not floats (numbers), to avoid round errors lol
+    if (regionText.endsWith(";")) {
+        regionText = regionText.substring(0, regionText.length - 1);
+    }
+
+    if (regionText.startsWith(OAR_PREFIX_REGION)) {
+        regionText = regionText.substring(OAR_PREFIX_REGION.length);
+    }
+
+    return regionText.split(":").map(p => p.split(",") as [string, string]);
+}
+
 async function markAlertsDeletedIfNotInList(
     alertsDb: pg.Client,
     ids: string[],
@@ -472,4 +488,19 @@ async function fetchDeparturesForFakeTripIds(
 ): Promise<{[fakeTripId: string]: string}> {
     // TODO
     return {};
+}
+
+async function fetchStopsByPolygon(
+    gtfsDb: pg.Client,
+    polygon: [string, string][]
+): Promise<string[]> {
+    // TODO
+    return [];
+}
+
+async function createOrUpdateAlert(
+    alertsDb: pg.Client,
+    alertObj: AlertInDb
+): Promise<void> {
+    // TODO
 }
