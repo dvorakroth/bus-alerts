@@ -1,12 +1,6 @@
 import { DateTime } from "luxon";
 import { JERUSALEM_TZ, arraysDeepEqual, copySortAndUnique, parseUnixtimeIntoJerusalemTz } from "./junkyard.js";
-
-export type PrettyActivePeriod = 
-    {simple: [string|null, string|null]} // just ISO date strings
-    | {
-        dates: (string|[string, string])[], // each element: either "yyyy-MM-dd" OR a range ["yyyy-MM-dd", "yyyy-MM-dd"]
-        times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
-    };
+import { PrettyActivePeriod } from "./dbTypes.js";
 
 export function consolidateActivePeriods(activePeriods: [number|null, number|null][]) {
     const result: PrettyActivePeriod[] = [];

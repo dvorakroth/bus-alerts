@@ -7,7 +7,7 @@ import pg from "pg";
 import { DateTime } from "luxon";
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { JERUSALEM_TZ, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
-import { consolidateActivePeriods } from "./activePeriodConsolidation.js";
+import { consolidateActivePeriods } from "./activePeriodUtils.js";
 import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
 
 const doc = `Load service alerts from MOT endpoint.

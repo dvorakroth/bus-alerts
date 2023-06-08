@@ -1,5 +1,4 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
-import { PrettyActivePeriod } from "./activePeriodConsolidation.js";
 import { DateTime } from "luxon";
 
 export enum AlertUseCase {
@@ -65,6 +64,13 @@ export type TranslationObject = {
     ar?: string;
     oar?: string;
 };
+
+export type PrettyActivePeriod = 
+    {simple: [string|null, string|null]} // just ISO date strings
+    | {
+        dates: (string|[string, string])[], // each element: either "yyyy-MM-dd" OR a range ["yyyy-MM-dd", "yyyy-MM-dd"]
+        times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
+    };
 
 export type AlertInDb = {
     id: string,
