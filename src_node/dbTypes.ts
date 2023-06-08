@@ -1,4 +1,6 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
+import { PrettyActivePeriod } from "./activePeriodConsolidation.js";
+import { DateTime } from "luxon";
 
 export enum AlertUseCase {
     National = 1,
@@ -55,4 +57,38 @@ export type DepartureChanges = {
         added: string[],
         removed: string[]
     }
+};
+
+export type TranslationObject = {
+    he?: string;
+    en?: string;
+    ar?: string;
+    oar?: string;
+};
+
+export type AlertInDb = {
+    id: string,
+    first_start_time: DateTime,
+    last_end_time: DateTime,
+    raw_data: Uint8Array,
+
+    use_case: AlertUseCase,
+    original_selector: OriginalSelector,
+    cause: string,
+    effect: string,
+    url: TranslationObject,
+    header: TranslationObject,
+    description: TranslationObject,
+    active_periods: {
+        raw: [number|null, number|null][],
+        consolidated: PrettyActivePeriod[]
+    },
+    schedule_changes: DepartureChanges|RouteChanges|null,
+    is_national: boolean,
+    deletion_tstz: DateTime|null,
+
+    relevant_agencies: string[],
+    relevant_route_ids: string[],
+    added_stop_ids: string[],
+    removed_stop_ids: string[]
 };

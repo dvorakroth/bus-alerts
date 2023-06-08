@@ -8,7 +8,7 @@ import { DateTime } from "luxon";
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { JERUSALEM_TZ, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
 import { consolidateActivePeriods } from "./activePeriodConsolidation.js";
-import { AddStopChange, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
+import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
 
 const doc = `Load service alerts from MOT endpoint.
 
@@ -115,6 +115,8 @@ async function loadIsraeliGtfsRt(
     await markAlertsDeletedIfNotInList(alertsDb, feed.entity.map(({id}) => id), TESTING_fake_today);
 }
 
+const INFINITE_END_TIME = 7258118400; // 2200-01-01 00:00 UTC
+
 async function loadSingleEntity(
     gtfsDb: pg.Client,
     alertsDb: pg.Client,
@@ -147,7 +149,7 @@ async function loadSingleEntity(
             }
         } else {
             // no end time = forever (more realistically, until alert is deleted)
-            lastEndTime = 7258118400 // 2200-01-01 00:00 UTC
+            lastEndTime = INFINITE_END_TIME;
         }
     }
 
@@ -171,6 +173,7 @@ async function loadSingleEntity(
 
     let useCase: AlertUseCase|null = null;
     let originalSelector: OriginalSelector = {};
+    let isNational = false;
 
     const hasEnt = (alert.informedEntity?.length ?? 0) > 0;
     const firstEnt = alert.informedEntity?.[0];
@@ -210,21 +213,21 @@ async function loadSingleEntity(
                 throw "???"; //shouldn't happen; this is just here to typescript doesn't yell at me
             }
 
-            for (const entity of alert.informedEntity ?? []) {
-                if (!entity.stopId || !entity.routeId) {
+            for (const informedEntity of alert.informedEntity ?? []) {
+                if (!informedEntity.stopId || !informedEntity.routeId) {
                     continue; // this actually happened once and bugged the api server's code -_-
                 }
 
-                removedStopIds.push(entity.stopId);
-                routeStopPairs.push([entity.routeId, entity.stopId]);
+                removedStopIds.push(informedEntity.stopId);
+                routeStopPairs.push([informedEntity.routeId, informedEntity.stopId]);
 
-                if (!routeChanges.hasOwnProperty(entity.routeId)) {
-                    routeChanges[entity.routeId] = [];
-                    relevantRouteIds.push(entity.routeId);
+                if (!routeChanges.hasOwnProperty(informedEntity.routeId)) {
+                    routeChanges[informedEntity.routeId] = [];
+                    relevantRouteIds.push(informedEntity.routeId);
                 }
 
-                routeChanges[entity.routeId]?.push({
-                    removed_stop_id: entity.stopId
+                routeChanges[informedEntity.routeId]?.push({
+                    removed_stop_id: informedEntity.stopId
                 });
             }
 
@@ -240,7 +243,7 @@ async function loadSingleEntity(
                 const oarAdditions = parseOldAramaicRoutechgs(oldAramaic);
 
                 // merge the schedule changes we got from old aramaic text
-                // into the schedule changes we got from informed_entity[]
+                // into the schedule changes we got from informedEntity[]
                 for (const [routeId, additions] of Object.entries(oarAdditions)) {
                     if (!routeChanges.hasOwnProperty(routeId)) {
                         routeChanges[routeId] = additions;
@@ -271,12 +274,12 @@ async function loadSingleEntity(
             throw "???"; // once again: shouldn't happen, only here so typescript won't yell at me
         }
 
-        for (const entity of alert.informedEntity ?? []) {
+        for (const informedEntity of alert.informedEntity ?? []) {
             const trip = {
-                route_id: entity.trip?.routeId ?? "",
-                fake_trip_id: entity.trip?.tripId ?? "", // ugh -_-
-                action: entity.trip?.scheduleRelationship ?? transit_realtime.TripDescriptor.ScheduleRelationship.SCHEDULED,
-                start_time: entity.trip?.startTime ?? ""
+                route_id: informedEntity.trip?.routeId ?? "",
+                fake_trip_id: informedEntity.trip?.tripId ?? "", // ugh -_-
+                action: informedEntity.trip?.scheduleRelationship ?? transit_realtime.TripDescriptor.ScheduleRelationship.SCHEDULED,
+                start_time: informedEntity.trip?.startTime ?? ""
             };
             trips.push(trip);
 
@@ -316,7 +319,89 @@ async function loadSingleEntity(
         relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
         originalSelector = {trips};
     }
-    // TODO
+
+    const foundAgencyIds: string[] = [];
+    const foundCityNames: string[] = [];
+
+    if (useCase === null) {
+        if (hasEnt) {
+            for (const informedEntity of alert.informedEntity ?? []) {
+                if (informedEntity.agencyId && informedEntity.agencyId !== "1") { // dear mot,\r\nface palm\r\nregards
+                    foundAgencyIds.push(informedEntity.agencyId);
+                }
+            }
+        }
+
+        if (!foundAgencyIds.length && description.he) {
+            const i = description.he.indexOf(CITY_LIST_PREFIX);
+
+            if (i >= 0) {
+                useCase = AlertUseCase.Cities;
+                foundCityNames.push(...
+                    (description.he
+                        .substring(i + CITY_LIST_PREFIX.length)
+                        .split("\n")[0]
+                        ?.split(",") ?? [])
+                );
+                originalSelector = {cities: foundCityNames}
+            }
+        }
+    }
+
+    isNational = useCase === null && !foundAgencyIds.length && !foundCityNames.length && !oldAramaic;
+
+    if (isNational) {
+        useCase = AlertUseCase.National;
+        originalSelector = {};
+    }
+
+    let polygon = null;
+    if (useCase === null && !foundAgencyIds.length && oldAramaic?.startsWith("region=")) {
+        polygon = parseOldAramaicRegion(oldAramaic);
+        useCase = AlertUseCase.Region;
+        originalSelector = {old_aramaic: oldAramaic};
+
+        removedStopIds.push(...await fetchStopsByPolygon(gtfsDb, polygon));
+        relevantRouteIds.push(...await fetchAllRouteIdsAtStopsInDateranges(gtfsDb, removedStopIds, activePeriods));
+        relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+    }
+
+    if (!useCase && foundAgencyIds.length) {
+        useCase = AlertUseCase.Agency;
+        relevantAgencies.push(...foundAgencyIds);
+    }
+
+    transit_realtime.FeedEntity.encode(entity).finish()
+
+    const alertObj = <AlertInDb>{
+        id,
+        first_start_time: DateTime.fromSeconds(firstStartTime ?? 0, {zone: JERUSALEM_TZ}),
+        last_end_time: DateTime.fromSeconds(lastEndTime ?? INFINITE_END_TIME, {zone: JERUSALEM_TZ}),
+        raw_data: transit_realtime.FeedEntity.encode(entity).finish(),
+
+        use_case: useCase,
+        original_selector: originalSelector,
+        cause,
+        effect,
+        url,
+        header,
+        description,
+        active_periods: {
+            raw: activePeriods,
+            consolidated: consolidatedActivePeriods
+        },
+        schedule_changes: routeChanges ?? departureChanges ?? null,
+
+        is_national: isNational,
+        deletion_tstz: null,
+
+        relevant_agencies: inPlaceSortAndUnique(relevantAgencies),
+        relevant_route_ids: inPlaceSortAndUnique(relevantRouteIds),
+        added_stop_ids: inPlaceSortAndUnique(addedStopIds),
+        removed_stop_ids: inPlaceSortAndUnique(removedStopIds)
+    };
+
+    await createOrUpdateAlert(alertsDb, alertObj);
 }
 
 function parseOldAramaicRoutechgs(routechgsText: string) {

@@ -1,6 +1,7 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { DateTime } from "luxon";
 import Long from "long";
+import { TranslationObject } from "./dbTypes.js";
 
 export type ArrayOrValue = ArrayOrValue[]|boolean|string|number|null|undefined;
 
@@ -47,13 +48,6 @@ export function parseUnixtimeIntoJerusalemTz(unixtime: number|null): DateTime|nu
         return DateTime.fromSeconds(unixtime, {zone: JERUSALEM_TZ});
     }
 }
-
-export type TranslationObject = {
-    he?: string;
-    en?: string;
-    ar?: string;
-    oar?: string;
-};
 
 export function gtfsRtTranslationsToObject(
     translations: transit_realtime.TranslatedString.ITranslation[]
@@ -105,7 +99,7 @@ export function copySortAndUnique<T = number|string>(arr: T[]) {
         .filter((item, idx, arr) => !idx || item !== arr[idx - 1]);
 }
 
-export function inPlaceSortAndUnique<T = number|string>(arr: T[]) {
+export function inPlaceSortAndUnique<T = number|string>(arr: T[]): T[] {
     arr.sort();
 
     let i = 1; // not 0! because we'll never delete the 0th element
@@ -116,6 +110,8 @@ export function inPlaceSortAndUnique<T = number|string>(arr: T[]) {
             i += 1;
         }
     }
+
+    return arr;
 }
 
 export function forceToNumberOrNull(value: number|Long|null|undefined) {
