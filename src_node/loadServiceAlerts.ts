@@ -468,12 +468,25 @@ function parseOldAramaicRegion(regionText: string): [string, string][] {
     return regionText.split(":").map(p => p.split(",") as [string, string]);
 }
 
+const TIME_FORMAT_ISO_NO_TZ = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+
 async function markAlertsDeletedIfNotInList(
     alertsDb: pg.Client,
-    ids: string[],
+    alertIdsToKeep: string[],
     TESTING_fake_today: DateTime|null
 ) {
-    // TODO
+    if (!alertIdsToKeep.length) {
+        return;
+    }
+
+    const now = TESTING_fake_today ?? DateTime.now().setZone(JERUSALEM_TZ);
+
+    const res = await alertsDb.query<never, [string, string[]]>(
+        "UPDATE alert SET deletion_tstz = $1::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\' " +
+        "WHERE deletion_tstz IS NULL AND id <> ALL($2::varchar[]);",
+        [now.toFormat(TIME_FORMAT_ISO_NO_TZ), alertIdsToKeep]
+    );
+    LOGGER.info(`Marked ${res.rowCount} alerts as deleted`);
 }
 
 async function fetchAllRouteIdsAtStopsInDateranges(
