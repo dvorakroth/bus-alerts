@@ -4,7 +4,7 @@ import { JERUSALEM_TZ, JsonObject, TIME_FORMAT_ISO_NO_TZ, copySortAndUnique, for
 import { consolidateActivePeriods, splitActivePeriodToSubperiods } from "./activePeriodUtils.js";
 import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
 import winston from "winston";
-import * as gtfsRealtimeBindings from "gtfs-realtime-bindings";
+import gtfsRealtimeBindings from "gtfs-realtime-bindings";
 
 const {transit_realtime} = gtfsRealtimeBindings;
 
