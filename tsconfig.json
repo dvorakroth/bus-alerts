@@ -9,7 +9,7 @@
     "jsx": "react",
     "allowJs": true,
     "moduleResolution": "node16",
-    "importsNotUsedAsValues": "preserve"
+    "importsNotUsedAsValues": "remove"
   },
   "ts-node": {
     "esm": true,
