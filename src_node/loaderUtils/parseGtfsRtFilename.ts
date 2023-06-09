@@ -2,10 +2,11 @@ import { DateTime } from "luxon";
 import winston from "winston";
 import { JERUSALEM_TZ, TIME_FORMAT_ISO_NO_TZ } from "./junkyard.js";
 
-const FILENAME_DATE_REGEX = /(?<year>\d+)\D(?<month>\d+)\D(?<day>\d+)\D(?<hour>\d+)\D(?<minute>\d+)\D(?<second>\d+)/g;
+const FILENAME_DATE_REGEX = /(?<year>\d+)\D(?<month>\d+)\D(?<day>\d+)\D(?<hour>\d+)\D(?<minute>\d+)/g;
 export function tryParseFilenameDate(filename: string): DateTime|null {
     const match = FILENAME_DATE_REGEX.exec(filename);
     if (!match) {
+        winston.debug(`no numbers found in filename: ${filename}`);
         return null;
     }
 
