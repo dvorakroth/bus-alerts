@@ -2,7 +2,7 @@ import pg from "pg";
 import { DateTime } from "luxon";
 import { JERUSALEM_TZ, JsonObject, TIME_FORMAT_ISO_NO_TZ, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
 import { consolidateActivePeriods, splitActivePeriodToSubperiods } from "./activePeriodUtils.js";
-import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
+import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "../dbTypes.js";
 import winston from "winston";
 import gtfsRealtimeBindings from "gtfs-realtime-bindings";
 

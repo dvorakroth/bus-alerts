@@ -8,8 +8,8 @@ import pg from "pg";
 import path from 'path';
 import url from 'url';
 import gtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { loadIsraeliGtfsRt } from "./loadServiceAlertsImpl.js";
-import { tryParseFilenameDate } from "./parseGtfsRtFilename.js";
+import { loadIsraeliGtfsRt } from "./loaderUtils/loadServiceAlertsImpl.js";
+import { tryParseFilenameDate } from "./loaderUtils/parseGtfsRtFilename.js";
 
 const {transit_realtime} = gtfsRealtimeBindings;
 

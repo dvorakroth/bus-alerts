@@ -1,7 +1,7 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
 import { DateTime } from "luxon";
 import Long from "long";
-import { TranslationObject } from "./dbTypes.js";
+import { TranslationObject } from "../dbTypes.js";
 
 export type ArrayOrValue = ArrayOrValue[]|boolean|string|number|null|undefined;
 
