@@ -48,9 +48,9 @@ winston.configure({
  // read config.ini and stuff //
 ///////////////////////////////
 
-// need to ts-ignore the __dirname line because i don't want to set my
-// whole entire project as a node(-only?) project in case it messes up
-// the client code lol
+// need to ts-ignore the __url line because i don't want to set my
+// whole entire project as a node(-only?) project in case it messes
+// up the client code lol
 // @ts-ignore
 const __url = import.meta.url;
 const __dirname = path.dirname(url.fileURLToPath(__url));
