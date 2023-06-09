@@ -5,10 +5,12 @@ import * as winston from "winston";
 import got from "got";
 import pg from "pg";
 import { DateTime } from "luxon";
-import { transit_realtime } from "gtfs-realtime-bindings";
+import * as gtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { JERUSALEM_TZ, JsonObject, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
-import { consolidateActivePeriods } from "./activePeriodUtils.js";
+import { consolidateActivePeriods, splitActivePeriodToSubperiods } from "./activePeriodUtils.js";
 import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
+
+const {transit_realtime} = gtfsRealtimeBindings;
 
 const doc = `Load service alerts from MOT endpoint.
 
@@ -105,7 +107,7 @@ function tryParseFilenameDate(filename: string): DateTime|null {
         LOGGER.warn(`couldn't make a date out of numbers in filename: ${filename}\n${result.invalidExplanation}`);
         return null;
     } else {
-        LOGGER.info(`found date ${result.toISO()} in filename ${filename}`);
+        LOGGER.info(`found date ${result.toFormat(TIME_FORMAT_ISO_NO_TZ)} in filename ${filename}`);
         return result;
     }
 }
@@ -115,11 +117,11 @@ const CITY_LIST_PREFIX = "ההודעה רלוונטית לישובים: ";
 async function loadIsraeliGtfsRt(
     gtfsDb: pg.Client,
     alertsDb: pg.Client,
-    feed: transit_realtime.FeedMessage,
+    feed: gtfsRealtimeBindings.transit_realtime.FeedMessage,
     TESTING_fake_today: DateTime|null
 ) {
     for (const entity of feed.entity) {
-        await loadSingleEntity(gtfsDb, alertsDb, entity, TESTING_fake_today);
+        await loadSingleEntity(gtfsDb, alertsDb, entity);
     }
 
     LOGGER.info(`Added/updated ${feed.entity.length} alerts`)
@@ -131,8 +133,7 @@ const INFINITE_END_TIME = 7258118400; // 2200-01-01 00:00 UTC
 async function loadSingleEntity(
     gtfsDb: pg.Client,
     alertsDb: pg.Client,
-    entity: transit_realtime.IFeedEntity,
-    TESTING_fake_today: DateTime|null
+    entity: gtfsRealtimeBindings.transit_realtime.IFeedEntity
 ) {
     const id = entity.id;
     const alert = entity.alert||{};
@@ -495,8 +496,188 @@ async function fetchAllRouteIdsAtStopsInDateranges(
     stopIds: string[],
     activePeriods: [number|null, number|null][]
 ): Promise<string[]> {
-    // TODO
-    return [];
+    if (!stopIds.length || !activePeriods.length) {
+        return [];
+    }
+
+    const {queryText, queryValues} = generateQuery__fetchAllRouteIdsAtStopsInDateranges(
+        stopIds,
+        activePeriods
+    );
+
+    const res = await gtfsDb.query<{route_id: string}, typeof queryValues>(
+        queryText,
+        queryValues
+    );
+
+    return res.rows.map(({route_id}) => route_id);
+}
+
+const GTFS_CALENDAR_DOW = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
+    stopIds: string[],
+    activePeriods: [number|null, number|null][]
+): {queryText: string, queryValues: [string[], ...string[]]} {
+    // i fear the day when i need to maintain this function haha upside down smiley emoji
+    // (NOTE 2023-06-09 13:36 haha i need to not just *maintain* this, but REWRITE IT in typescript haha upside down smiley emoji)
+    // (NOTE 2023-06-09 14:53 fuck me haha)
+
+    let paramCounter = 0;
+    let queryText = `
+        SELECT DISTINCT route_id FROM trips
+        INNER JOIN stoptimes_int ON trips.trip_id = stoptimes_int.trip_id
+        INNER JOIN calendar ON trips.service_id = calendar.service_id
+        WHERE stoptimes_int.stop_id IN $${++paramCounter}::varchar[]
+    `;
+    const queryValues: [string[], ...string[]] = [stopIds];
+
+    const allPeriodConditions: string[] = [];
+    const allPeriodValues: string[] = [];
+
+    for (const [startUnixtime, endUnixtime] of activePeriods) {
+        const activePeriodParts = splitActivePeriodToSubperiods(
+            startUnixtime,
+            endUnixtime
+        );
+
+        for (const part of activePeriodParts) {
+            if (!part) {
+                continue;
+            }
+            const [start, end] = part;
+
+            let partCondition = "";
+            const partValues: string[] = [];
+
+            if (start && !end) {
+                partCondition = `
+                    calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time
+                    >=
+                    $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                `;
+                partValues.push(start.toFormat(TIME_FORMAT_ISO_NO_TZ));
+            } else if (!start && end) {
+                partCondition = `
+                    calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time
+                    <
+                    $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                `;
+                partValues.push(end.toFormat(TIME_FORMAT_ISO_NO_TZ));
+            } else if (start && end) {
+                partCondition = `
+                    (
+                        calendar.start_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time,
+                        calendar.end_date AT TIME ZONE \'Asia/Jerusalem\' + stoptimes_int.arrival_time + INTERVAL \'1 second\'
+                    )
+                    OVERLAPS (
+                        $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\',
+                        $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                    )
+                `;
+                partValues.push(start.toFormat(TIME_FORMAT_ISO_NO_TZ));
+                partValues.push(end.toFormat(TIME_FORMAT_ISO_NO_TZ));
+
+                // loop through all days in this part
+                // and add their DOWs to relevant_dow
+                const relevantDow = new Set<number>();
+
+                for (
+                    let d = start;
+                    d.toSeconds() < end.toSeconds() && relevantDow.size < 7;
+                    d = d.plus({days: 1})
+                ) {
+                    relevantDow.add(d.weekday - 1); // subtract 1, because GTFS_CALENDAR_DOW is a 0-indexed array
+                }
+
+                const isLessThanADay = start.plus({days: 1}).toSeconds() > end.toSeconds();
+
+                if (0 < relevantDow.size && relevantDow.size < 7) {
+                    partCondition += `
+                        AND (
+                            (
+                                stoptimes_int.arrival_time < INTERVAL \'24 hours\'
+                                AND (
+                                    ${[...relevantDow].map(
+                                        dow => `calendar.${GTFS_CALENDAR_DOW[dow]} = TRUE`
+                                    ).join(" OR ")}
+                                )
+                                ${isLessThanADay
+                                    ? `
+                                        AND
+                                            (
+                                                $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                                +
+                                                stoptimes_int.arrival_time
+                                            )
+                                        BETWEEN
+                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                        AND
+                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                    `
+                                    : ""
+                                }
+                            ) OR (
+                                stoptimes_int.arrival_time >= INTERVAL \'24 hours\'
+                                AND (
+                                    ${[...relevantDow].map(
+                                        dow => `calendar.${GTFS_CALENDAR_DOW[(dow + 6) % 7]} = TRUE`
+                                    ).join(" OR ")}
+                                )
+                                ${isLessThanADay
+                                    ? `
+                                        AND
+                                            (
+                                                $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                                +
+                                                stoptimes_int.arrival_time
+                                            )
+                                        BETWEEN
+                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                        AND
+                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                    `
+                                    : ""
+                                }
+                            )
+                        )
+                    `;
+                    if (isLessThanADay) {
+                        partValues.push(...[
+                            start
+                                .set({hour: 0, minute: 0, second: 0, millisecond: 0})
+                                .toFormat(TIME_FORMAT_ISO_NO_TZ),
+                            start.toFormat(TIME_FORMAT_ISO_NO_TZ),
+                            end.toFormat(TIME_FORMAT_ISO_NO_TZ),
+                            start
+                                .set({hour: 0, minute: 0, second: 0, millisecond: 0})
+                                .plus({days: 1})
+                                .toFormat(TIME_FORMAT_ISO_NO_TZ),
+                            start.toFormat(TIME_FORMAT_ISO_NO_TZ),
+                            end.toFormat(TIME_FORMAT_ISO_NO_TZ)
+                        ]);
+                    }
+                }
+            }
+
+            if (partCondition.length) {
+                allPeriodConditions.push(partCondition);
+                allPeriodValues.push(...partValues);
+            }
+        }
+    }
+
+    if (allPeriodConditions.length) {
+        queryText +=
+            "AND ("
+            + allPeriodConditions.map(s => "(" + s + ")").join(" OR ")
+            + ")";
+        queryValues.push(...allPeriodValues);
+    }
+
+    queryText += ";";
+
+    return {queryText, queryValues};
 }
 
 async function fetchUniqueAgenciesForRoutes(
@@ -589,8 +770,8 @@ async function createOrUpdateAlert(
     // cryptic because pg.Client.query<>() has a million overloads
     const values: CreateAlertValues = [
         alertObj.id,
-        alertObj.first_start_time.toISO(),
-        alertObj.last_end_time.toISO(),
+        alertObj.first_start_time.toFormat(TIME_FORMAT_ISO_NO_TZ),
+        alertObj.last_end_time.toFormat(TIME_FORMAT_ISO_NO_TZ),
         alertObj.raw_data,
         alertObj.use_case,
 
@@ -604,7 +785,7 @@ async function createOrUpdateAlert(
         alertObj.active_periods,
         alertObj.schedule_changes,
         alertObj.is_national,
-        alertObj.deletion_tstz?.toISO() ?? null
+        alertObj.deletion_tstz?.toFormat(TIME_FORMAT_ISO_NO_TZ) ?? null
     ];
 
     await alertsDb.query<never, CreateAlertValues>(
