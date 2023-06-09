@@ -453,11 +453,13 @@ def create_or_update_alert(alertconn, alert_dict):
                 alert_dict["last_end_time"],
                 alert_dict["raw_data"],
                 alert_dict["use_case"],
+
                 alert_dict["original_selector"],
                 alert_dict["cause"],
                 alert_dict["effect"],
                 alert_dict["url"],
                 alert_dict["header"],
+                
                 alert_dict["description"],
                 psycopg2.extras.Json(alert_dict["active_periods"]),
                 alert_dict["schedule_changes"],

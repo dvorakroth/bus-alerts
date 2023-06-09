@@ -809,7 +809,7 @@ def create_actual_lines_list(gtfs_db_url):
     cwd = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
     sql_script = None
-    with open(os.path.join(cwd, "route_grouping_query.sql"), "r") as f:
+    with open(os.path.join(cwd, "route_grouping_query.sql"), "r", encoding="utf-8") as f:
         # this feels so dirty lmao
         sql_script = f.read()
     
