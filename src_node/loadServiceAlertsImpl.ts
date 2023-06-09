@@ -376,6 +376,7 @@ async function markAlertsDeletedIfNotInList(
 
     const now = TESTING_fake_today ?? DateTime.now().setZone(JERUSALEM_TZ);
 
+    winston.debug('markAlertsDeletedIfNotInList');
     const res = await alertsDb.query<never, [string, string[]]>(
         `UPDATE alert
         SET deletion_tstz = $1::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\' 
@@ -399,6 +400,8 @@ async function fetchAllRouteIdsAtStopsInDateranges(
         activePeriods
     );
 
+    winston.debug('fetchAllRouteIdsAtStopsInDateranges');
+    // winston.debug(queryText);
     const res = await gtfsDb.query<{route_id: string}, typeof queryValues>(
         queryText,
         queryValues
@@ -582,6 +585,7 @@ async function fetchUniqueAgenciesForRoutes(
         return [];
     }
 
+    winston.debug('fetchUniqueAgenciesForRoutes');
     const res = await gtfsDb.query<{agency_id: string}, [string[]]>(
         "SELECT DISTINCT agency_id FROM routes WHERE route_id = ANY($1::varchar[])",
         [routeIds]
@@ -598,6 +602,7 @@ async function fetchDeparturesForFakeTripIds(
         return {};
     }
 
+    winston.debug('fetchDeparturesForFakeTripIds');
     const res = await gtfsDb.query<{TripId: string, DepartureTime: string}, [string[]]>(
         "SELECT DISTINCT \"TripId\", \"DepartureTime\" FROM trip_id_to_date WHERE \"TripId\" = ANY($1::varchar[]);",
         [fakeTripIds]
@@ -620,6 +625,7 @@ async function fetchStopsByPolygon(
         return [];
     }
 
+    winston.debug('fetchStopsByPolygon');
     const res = await gtfsDb.query<{stop_id: string}, [string]>(
         "SELECT stop_id FROM stops WHERE point(stop_lat, stop_lon) <@ polygon $1;",
         [
@@ -682,6 +688,7 @@ async function createOrUpdateAlert(
         alertObj.deletion_tstz?.toFormat(TIME_FORMAT_ISO_NO_TZ) ?? null
     ];
 
+    winston.debug('createOrUpdateAlert insert into alert');
     await alertsDb.query<never, CreateAlertValues>(
         `INSERT INTO alert VALUES (
             $1,

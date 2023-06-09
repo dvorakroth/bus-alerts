@@ -109,9 +109,15 @@ async function main() {
         await alertsDb.query("BEGIN");
         await loadIsraeliGtfsRt(gtfsDb, alertsDb, feed, TESTING_fake_today);
         await alertsDb.query("COMMIT");
-    } catch (err) {
+    } catch (err: any) {
         await alertsDb.query("ROLLBACK");
-        throw err;
+
+        if (err.constructor === pg.DatabaseError) {
+            // try to print some details about database errors, because their default toString doesnt lol
+            winston.error(`DatabaseError: ${err.toString()}\n${JSON.stringify(err, void 0, 4)}`);
+        } else {
+            throw err;
+        }
     } finally {
         await gtfsDb.end();
         await alertsDb.end();
