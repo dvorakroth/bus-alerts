@@ -5,6 +5,11 @@ import { TranslationObject } from "./dbTypes.js";
 
 export type ArrayOrValue = ArrayOrValue[]|boolean|string|number|null|undefined;
 
+type JsonSimpleValue = string | number | boolean | null;
+type JsonArray = (JsonSimpleValue|JsonObject|JsonArray)[];
+export type JsonObject = 
+    {[k: string]: JsonObject|JsonSimpleValue|JsonArray};
+
 export function arraysDeepEqual(a: ArrayOrValue[], b: ArrayOrValue[]): boolean {
     if (a.length !== b.length) {
         return false;

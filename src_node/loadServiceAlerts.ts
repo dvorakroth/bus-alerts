@@ -6,7 +6,7 @@ import got from "got";
 import pg from "pg";
 import { DateTime } from "luxon";
 import { transit_realtime } from "gtfs-realtime-bindings";
-import { JERUSALEM_TZ, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
+import { JERUSALEM_TZ, JsonObject, copySortAndUnique, forceToNumberOrNull, gtfsRtTranslationsToObject, inPlaceSortAndUnique } from "./junkyard.js";
 import { consolidateActivePeriods } from "./activePeriodUtils.js";
 import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "./dbTypes.js";
 
@@ -482,8 +482,9 @@ async function markAlertsDeletedIfNotInList(
     const now = TESTING_fake_today ?? DateTime.now().setZone(JERUSALEM_TZ);
 
     const res = await alertsDb.query<never, [string, string[]]>(
-        "UPDATE alert SET deletion_tstz = $1::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\' " +
-        "WHERE deletion_tstz IS NULL AND id <> ALL($2::varchar[]);",
+        `UPDATE alert
+        SET deletion_tstz = $1::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\' 
+        WHERE deletion_tstz IS NULL AND id <> ALL($2::varchar[]);`,
         [now.toFormat(TIME_FORMAT_ISO_NO_TZ), alertIdsToKeep]
     );
     LOGGER.info(`Marked ${res.rowCount} alerts as deleted`);
@@ -554,9 +555,196 @@ async function fetchStopsByPolygon(
     return res.rows.map(({stop_id}) => stop_id);
 }
 
+type CreateAlertValues = [
+    string, string, string, Uint8Array, number,
+    JsonObject, string, string, JsonObject, JsonObject,
+    JsonObject, JsonObject, JsonObject|null, boolean, string|null
+];
+
+type AlertAgencyValue = {
+    alert_id: string,
+    agency_id: string
+};
+
+type AlertRouteValue = {
+    alert_id: string,
+    route_id: string
+};
+
+type AlertStopValue = {
+    alert_id: string,
+    stop_id: string,
+    is_added: boolean,
+    is_removed: boolean
+};
+
 async function createOrUpdateAlert(
     alertsDb: pg.Client,
     alertObj: AlertInDb
 ): Promise<void> {
-    // TODO
+
+
+    // this isn't just plopped in directly in the function call because
+    // then if i get one of the types wrong, typescript's error gets really
+    // cryptic because pg.Client.query<>() has a million overloads
+    const values: CreateAlertValues = [
+        alertObj.id,
+        alertObj.first_start_time.toISO(),
+        alertObj.last_end_time.toISO(),
+        alertObj.raw_data,
+        alertObj.use_case,
+
+        alertObj.original_selector,
+        alertObj.cause,
+        alertObj.effect,
+        alertObj.url,
+        alertObj.header,
+
+        alertObj.description,
+        alertObj.active_periods,
+        alertObj.schedule_changes,
+        alertObj.is_national,
+        alertObj.deletion_tstz?.toISO() ?? null
+    ];
+
+    await alertsDb.query<never, CreateAlertValues>(
+        `INSERT INTO alert VALUES (
+            $1,
+            $2::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\',
+            $3::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\',
+            $4::BYTEA,
+            $5,
+
+            $6::JSON,
+            $7,
+            $8,
+            $9::JSON,
+            $10::JSON,
+
+            $11::JSON,
+            $12::JSON,
+            $13::JSON,
+            $14::BOOLEAN,
+            $15::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+        ) ON CONFLICT (id) DO UPDATE SET
+            first_start_time = EXCLUDED.first_start_time,
+            last_end_time = EXCLUDED.last_end_time,
+            raw_data = EXCLUDED.raw_data,
+            use_case = EXCLUDED.use_case,
+            original_selector = EXCLUDED.original_selector,
+            cause = EXCLUDED.cause,
+            effect = EXCLUDED.effect,
+            url = EXCLUDED.url,
+            header = EXCLUDED.header,
+            description = EXCLUDED.description,
+            active_periods = EXCLUDED.active_periods,
+            schedule_changes = EXCLUDED.schedule_changes,
+            is_national = EXCLUDED.is_national,
+            deletion_tstz = CASE WHEN EXCLUDED.deletion_tstz IS NULL
+                    THEN NULL
+                    ELSE LEAST(EXCLUDED.deletion_tstz, alert.deletion_tstz)
+                END;`,
+        values
+    );
+
+    LOGGER.debug("Added/updated alert with id: " + alertObj.id);
+
+    const agencyDeletionRes = await alertsDb.query<never, [string, string[]]>(
+        `DELETE FROM alert_agency
+        WHERE alert_id=$1 AND agency_id <> ALL($2::varchar[]);`,
+        [
+            alertObj.id,
+            alertObj.relevant_agencies
+        ]
+    );
+
+    LOGGER.debug(`Deleted ${agencyDeletionRes.rowCount} rows from alert_agency`);
+
+    const routeDeletionRes = await alertsDb.query<never, [string, string[]]>(
+        `DELETE FROM alert_route
+        WHERE alert_id=$1 AND route_id <> ALL($2::varchar[]);`,
+        [
+            alertObj.id,
+            alertObj.relevant_route_ids
+        ]
+    );
+
+    LOGGER.debug(`Deleted ${routeDeletionRes.rowCount} rows from alert_route`);
+
+    const allStopIds = alertObj.removed_stop_ids.concat(alertObj.added_stop_ids);
+    inPlaceSortAndUnique(allStopIds);
+
+    const stopDeletionsRes = await alertsDb.query<never, [string, string[]]>(
+        `DELETE FROM alert_stop
+        WHERE alert_id=$1 AND stop_id <> ALL($2::varchar[]);`,
+        [
+            alertObj.id,
+            allStopIds
+        ]
+    );
+
+    LOGGER.debug(`Deleted ${stopDeletionsRes.rowCount} rows from alert_stop`);
+
+    if (alertObj.relevant_agencies.length) {
+        const agencyEntries = alertObj.relevant_agencies.map(
+            agency_id => <AlertAgencyValue>{
+                alert_id: alertObj.id,
+                agency_id
+            }
+        );
+
+        const agencyAdditionRes = await alertsDb.query<never, [string]>(
+            `INSERT INTO alert_agency
+                (
+                    SELECT m.*
+                    FROM json_populate_recordset(NULL::alert_agency, $1::JSON) m
+                )
+            ON CONFLICT DO NOTHING;`,
+            [JSON.stringify(agencyEntries)] // this has to be stringified because node-pg doesn't know how to send over JSON arrays, only objects
+        );
+
+        LOGGER.debug(`Added ${agencyAdditionRes.rowCount} rows to alert_agency`);
+    }
+
+    if (alertObj.relevant_route_ids.length) {
+        const routeEntries = alertObj.relevant_route_ids.map(
+            route_id => <AlertRouteValue>{
+                alert_id: alertObj.id,
+                route_id
+            }
+        );
+
+        const routeAdditionRes = await alertsDb.query<never, [string]>(
+            `INSERT INTO alert_route
+                (
+                    SELECT m.*
+                    FROM json_populate_recordset(NULL::alert_route, $1::JSON) m
+                )
+            ON CONFLICT DO NOTHING;`,
+            [JSON.stringify(routeEntries)] // this has to be stringified because node-pg doesn't know how to send over JSON arrays, only objects
+        );
+
+        LOGGER.debug(`Added ${routeAdditionRes.rowCount} rows to alert_route`);
+    }
+
+    if (allStopIds.length) {
+        const allStopEntries = allStopIds.map(stop_id => <AlertStopValue>{
+            alert_id: alertObj.id,
+            stop_id,
+            is_added: alertObj.added_stop_ids.indexOf(stop_id) >= 0,
+            is_removed: alertObj.removed_stop_ids.indexOf(stop_id) >= 0
+        });
+
+        const stopAdditionRes = await alertsDb.query<never, [string]>(
+            `INSERT INTO alert_stop
+                (
+                    SELECT m.*
+                    FROM json_populate_recordset(NULL::alert_stop, $1::JSON) m
+                )
+            ON CONFLICT DO NOTHING;`,
+            [JSON.stringify(allStopEntries)] // this has to be stringified because node-pg doesn't know how to send over JSON arrays, only objects
+        );
+
+        LOGGER.debug(`Added ${stopAdditionRes.rowCount} rows to alert_stop`);
+    }
 }
