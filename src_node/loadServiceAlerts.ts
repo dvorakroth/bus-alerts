@@ -1,7 +1,7 @@
 import { docopt } from "docopt";
 import * as fs from "fs";
 import * as ini from "ini";
-import * as winston from "winston";
+import winston from "winston";
 import got from "got";
 import { DateTime } from "luxon";
 import pg from "pg";
@@ -14,7 +14,7 @@ const {transit_realtime} = gtfsRealtimeBindings;
 const doc = `Load service alerts from MOT endpoint.
 
 Usage:
-    ts-node loadServiceAlerts.ts [-h] [-c <file>] [-f <pbfile>]
+    loadServiceAlerts.ts [-h] [-c <file>] [-f <pbfile>]
 
 Options:
     -h, --help                       Show this help message and exit.
@@ -23,8 +23,18 @@ Options:
                                      If the filename contains six numbers separated from each other by non-number characters, it'll get treated as a yyyy mm dd hh mm ss date
 `;
 
+const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
+
+const logFormat = winston.format.printf(({level, message, timestamp}) => {
+    return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+});
+
 winston.configure({
-    level: 'debug', // TODO change this to info when the script is run in prod
+    level: IS_PRODUCTION ? 'info' : 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        logFormat
+    ),
     transports: [
         new winston.transports.Console(),
         // TODO uh,,,, other stuff? idk ask elad lol
@@ -37,6 +47,13 @@ winston.configure({
 
 async function main() {
     const options = docopt(doc);
+
+    // Test logging and docopt with this one simple trick that nodejs doesn't want you to know!
+    // winston.info(JSON.stringify(options));
+    // if (options) {
+    //     const a = null as any;
+    //     console.log(a.jkl);
+    // }
 
     const configPath = options["--config"] || "config.ini";
     const pbFilename = options["--file"] || null;
