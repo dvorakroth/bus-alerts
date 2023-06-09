@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { JERUSALEM_TZ } from "../junkyard.js";
-import { generateQuery__fetchAllRouteIdsAtStopsInDateranges } from "../loadServiceAlerts.js";
+import { generateQuery__fetchAllRouteIdsAtStopsInDateranges } from "../loadServiceAlertsImpl.js";
 
 const activePeriodsISO = [
     [null, "2020-01-01T00:00:00"],

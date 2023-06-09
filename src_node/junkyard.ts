@@ -43,6 +43,7 @@ export function arraysDeepEqual(a: ArrayOrValue[], b: ArrayOrValue[]): boolean {
     return true;
 }
 
+export const TIME_FORMAT_ISO_NO_TZ = "yyyy-MM-dd'T'HH:mm:ss.SSS";
 export const JERUSALEM_TZ = "Asia/Jerusalem";
 
 export function parseUnixtimeIntoJerusalemTz(unixtime: number|null): DateTime|null {
