@@ -425,7 +425,7 @@ export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
         SELECT DISTINCT route_id FROM trips
         INNER JOIN stoptimes_int ON trips.trip_id = stoptimes_int.trip_id
         INNER JOIN calendar ON trips.service_id = calendar.service_id
-        WHERE stoptimes_int.stop_id IN $${++paramCounter}::varchar[]
+        WHERE stoptimes_int.stop_id = ANY($${++paramCounter}::varchar[])
     `;
     const queryValues: [string[], ...string[]] = [stopIds];
 
@@ -508,9 +508,9 @@ export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
                                                 stoptimes_int.arrival_time
                                             )
                                         BETWEEN
-                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                            ($${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\')
                                         AND
-                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                            ($${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\')
                                     `
                                     : ""
                                 }
@@ -530,9 +530,9 @@ export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
                                                 stoptimes_int.arrival_time
                                             )
                                         BETWEEN
-                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                            ($${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\')
                                         AND
-                                            $${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\'
+                                            ($${++paramCounter}::TIMESTAMP AT TIME ZONE \'Asia/Jerusalem\')
                                     `
                                     : ""
                                 }

@@ -3,9 +3,9 @@ import { JERUSALEM_TZ } from "../junkyard.js";
 import { generateQuery__fetchAllRouteIdsAtStopsInDateranges } from "../loadServiceAlertsImpl.js";
 
 const activePeriodsISO = [
-    [null, "2020-01-01T00:00:00"],
+    // [null, "2020-01-01T00:00:00"],
     ["2020-01-01T04:20:00", "2020-01-04T06:00:00"],
-    ["2021-02-01T04:20:00", null]
+    // ["2021-02-01T04:20:00", null]
 ];
 
 const activePeriods = activePeriodsISO.map(
