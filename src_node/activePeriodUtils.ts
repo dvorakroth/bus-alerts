@@ -166,3 +166,79 @@ function consolidateDateList(dateList: string[]) {
 
     return result;
 }
+
+type DateTimePair = [DateTime|null, DateTime|null];
+
+export function splitActivePeriodToSubperiods(
+    startUnixtime: number|null,
+    endUnixtime: number|null
+): (DateTimePair|null)[] {
+    /**
+     * Given two unix times for an alert's active_period, returns
+     * that period split up into 3 parts:
+     *     start_remainder: a period of less than 24 hours, that ends midnight
+     *     middle_part: a period of several days, midnight-to-midnight
+     *     end_remainder: a period of less than 24 hours, that starts midnight
+     * 
+     * Each of these parts can be None, or a sub-list with two datetimes in Asia/Jerusalem.
+     * Either of the two dates in the list could also be None.
+     *
+     * A part that is None should be ignored;
+     * A start time that is None is basically negative infinity;
+     * An end time that is None is, conversely, infinity;
+     * If all parts are None, that means no time bounds were given;
+     *         
+     * This is done so we can search for services+stoptimes that are active at
+     * a certain active_period because gtfs services are hard
+     */
+
+    let startLocal = startUnixtime
+        ? DateTime.fromSeconds(startUnixtime, {zone: JERUSALEM_TZ})
+        : null;
+    let endLocal = endUnixtime
+        ? DateTime.fromSeconds(endUnixtime, {zone: JERUSALEM_TZ})
+        : null;
+
+    const startsMidnight = startLocal && startLocal.toFormat("HH:mm") === "00:00";
+    const endsMidnight   = endLocal   &&   endLocal.toFormat("HH:mm") === "00:00";
+
+    // easy case: all within a single day
+    if (startLocal && endLocal && startLocal.toFormat("yyyy-MM-dd") === endLocal.toFormat("yyyy-MM-dd")) {
+        return [[startLocal, endLocal], null, null]; // do i really need those nulls??? who knows!!
+    }
+
+    let startRemainder:DateTimePair|null = null;
+    let middlePart:DateTimePair|null = null;
+    let endRemainder:DateTimePair|null = null;
+
+    if (startLocal && !startsMidnight) {
+        const midnightAfterStartDay = startLocal
+            .set({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0
+            })
+            .plus({days: 1});
+        startRemainder = [startLocal, midnightAfterStartDay];
+        startLocal = midnightAfterStartDay;
+    }
+
+    if (endLocal && !endsMidnight) {
+        const midnightBeforeEndDay = endLocal
+            .set({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0
+            });
+        endRemainder = [midnightBeforeEndDay, endLocal];
+        endLocal = midnightBeforeEndDay;
+    }
+
+    if (startLocal?.toSeconds() !== endLocal?.toSeconds()) {
+        middlePart = [startLocal, endLocal];
+    }
+
+    return [startRemainder, middlePart, endRemainder];
+}
