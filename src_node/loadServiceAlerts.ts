@@ -5,10 +5,12 @@ import winston from "winston";
 import got from "got";
 import { DateTime } from "luxon";
 import pg from "pg";
-
-import * as gtfsRealtimeBindings from "gtfs-realtime-bindings";
+import path from 'path';
+import url from 'url';
+import gtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { loadIsraeliGtfsRt } from "./loadServiceAlertsImpl.js";
-import { JERUSALEM_TZ, TIME_FORMAT_ISO_NO_TZ } from "./junkyard.js";
+import { tryParseFilenameDate } from "./parseGtfsRtFilename.js";
+
 const {transit_realtime} = gtfsRealtimeBindings;
 
 const doc = `Load service alerts from MOT endpoint.
@@ -45,6 +47,14 @@ winston.configure({
     ]
 });
 
+// need to ts-ignore the __dirname line because i don't want to set my
+// whole entire project as a node(-only?) project in case it messes up
+// the client code lol
+// @ts-ignore
+const __url = import.meta.url;
+
+const __dirname = path.dirname(url.fileURLToPath(__url));
+
 async function main() {
     const options = docopt(doc);
 
@@ -55,7 +65,7 @@ async function main() {
     //     console.log(a.jkl);
     // }
 
-    const configPath = options["--config"] || "config.ini";
+    const configPath = options["--config"] || path.join(__dirname, "config.ini");
     const pbFilename = options["--file"] || null;
 
     const config = ini.parse(fs.readFileSync(configPath, 'utf-8'));
