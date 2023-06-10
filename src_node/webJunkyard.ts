@@ -1,10 +1,11 @@
-import pg from "pg";
 import express from "express";
 import core from "express-serve-static-core";
+import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
+import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 
 export type DbLocals = {
-    gtfsDbPool: pg.Pool,
-    alertsDbPool: pg.Pool
+    alertsDbApi: AlertsDbApi
+    gtfsDbApi: GtfsDbApi
 };
 
 

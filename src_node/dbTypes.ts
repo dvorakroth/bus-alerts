@@ -72,17 +72,12 @@ export type PrettyActivePeriod =
         times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
     };
 
-export type AlertInDb = {
+type BaseAlertInDb = {
     id: string,
     first_start_time: DateTime,
     last_end_time: DateTime,
-    raw_data: Uint8Array,
 
     use_case: AlertUseCase,
-    original_selector: OriginalSelector,
-    cause: string,
-    effect: string,
-    url: TranslationObject,
     header: TranslationObject,
     description: TranslationObject,
     active_periods: {
@@ -91,10 +86,25 @@ export type AlertInDb = {
     },
     schedule_changes: DepartureChanges|RouteChanges|null,
     is_national: boolean,
-    deletion_tstz: DateTime|null,
 
     relevant_agencies: string[],
     relevant_route_ids: string[],
     added_stop_ids: string[],
     removed_stop_ids: string[]
+}
+
+export type AlertInDb = BaseAlertInDb & {
+    raw_data: Uint8Array,
+
+    original_selector: OriginalSelector,
+    cause: string,
+    effect: string,
+    url: TranslationObject,
+
+    deletion_tstz: DateTime|null
+}
+
+export type AlertWithRelatedInDb = BaseAlertInDb & {
+    is_deleted: boolean,
+    is_expired: boolean
 };

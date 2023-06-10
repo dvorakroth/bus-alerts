@@ -9,6 +9,9 @@ import express from "express";
 import morgan from "morgan";
 import { apiRouter } from "./apiRouter.js";
 import { DbLocals } from "./webJunkyard.js";
+import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
+import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
+import { DateTime } from "luxon";
 
 const doc = `Service Alerts App Web Server.
 
@@ -88,6 +91,11 @@ const alertsDbPool = new pg.Pool({
     connectionString: alertsDbUrl
 });
 
+pg.types.setTypeParser(
+    pg.types.builtins.TIMESTAMPTZ,
+    (isoStr) => DateTime.fromISO(isoStr)
+);
+
 // TODO create the "actual lines list"
 
 
@@ -108,14 +116,18 @@ const morganMiddleware = morgan(
 );
 app.use(morganMiddleware);
 
+// give all requests access to the db apis
 app.use((req, res: express.Response<any, DbLocals>, next) => {
-    res.locals.gtfsDbPool = gtfsDbPool;
-    res.locals.alertsDbPool = alertsDbPool;
+    res.locals.alertsDbApi = new AlertsDbApi(alertsDbPool);
+    res.locals.gtfsDbApi = new GtfsDbApi(gtfsDbPool);
+
     next();
 });
 
+// actually server the api
 app.use("/api", apiRouter);
 
+// error handler because the default express error handler is kinda shit
 const errHandler: express.ErrorRequestHandler = (err, req, res, next) => {
     winston.error(err);
 
@@ -130,8 +142,9 @@ const errHandler: express.ErrorRequestHandler = (err, req, res, next) => {
         res.status(500).send(err?.toString() + '\n');
     }
 }
-app.use(errHandler);
+app.use(errHandler); // errHandler is a const because typescript yells at me if i inline it
 
+// actually start up the server
 app.listen(port, () => {
     winston.info(`Server up and listening on port ${port}`);
 });
