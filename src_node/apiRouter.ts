@@ -5,11 +5,9 @@ import winston from "winston";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
 import { AlertForApi } from "./apiTypes.js";
-import { enrichAlerts } from "./webstuff/alerts.js";
+import { calculateDistanceToAlert, enrichAlerts } from "./webstuff/alerts.js";
 
 export const apiRouter = express.Router();
-
-const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
 
 // TODO actually implement the server lol
 apiRouter.get("/hello", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
@@ -48,6 +46,8 @@ type AllAlertsResult = {
     alerts: AlertForApi[],
     metadata: AlertSupplementalMetadata
 };
+
+const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
 
 async function getAllAlerts(db: DbLocals) {
     const cacheKey = "/allAlerts";
@@ -88,14 +88,55 @@ async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
         const alert = result.alerts[i];
         if (!alert) continue;
 
-        const distance = 0; // TODO lol
-        result.alerts[i] = {
-            ...alert,
-            distance
-        };
+        const alertRaw = result.rawAlertsById[alert.id];
+        if (!alertRaw) continue;
+
+        const distance = await distanceToAlertCached(
+            alert,
+            alertRaw,
+            result.metadata,
+            coord,
+            db
+        );
+
+        if (distance !== null) {
+            result.alerts[i] = {
+                ...alert,
+                distance
+            };
+        }
     }
 
     allAlertsCache.set(cacheKey, result);
+
+    return result;
+}
+
+const distancesCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+
+async function distanceToAlertCached(
+    alert: AlertForApi,
+    alertRaw: AlertWithRelatedInDb,
+    metadata: AlertSupplementalMetadata,
+    coord: [number, number],
+    db: DbLocals
+) {
+    const cacheKey = `alert_${alert.id}_____${JSON.stringify(coord)}`;
+
+    let result = distancesCache.get<number|null>(cacheKey);
+    if (result !== undefined) return result;
+
+    const [coordY, coordX] = coord; // ??
+
+    result = await calculateDistanceToAlert(
+        alert,
+        alertRaw,
+        metadata,
+        {x: coordX, y: coordY},
+        db.gtfsDbApi
+    );
+
+    distancesCache.set(cacheKey, result);
 
     return result;
 }

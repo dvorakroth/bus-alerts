@@ -1,7 +1,8 @@
+import proj4 from "proj4";
 import { DateTime } from "luxon";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
 import { JERUSALEM_TZ, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
-import { GtfsDbApi } from "./gtfsDbApi.js";
+import { AlertSupplementalMetadata, GtfsDbApi } from "./gtfsDbApi.js";
 import { AlertForApi, DepartureChangeDetail } from "../apiTypes.js";
 
 export async function enrichAlerts(alertsRaw: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi) {
@@ -329,4 +330,31 @@ async function getHeadsign(tripId: string, rawStopSeq: string[]|null = null, gtf
         const lastStopObj = await gtfsDbApi.getRelatedMetadata([], [], [lastStopId]);
         return lastStopObj.stops[lastStopId]?.stop_name ?? "";
     }
+}
+
+// israeli coordinate system
+proj4.defs("EPSG:2039","+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444444 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=23.772,17.49,17.859,0.3132,1.85274,-1.67299,-5.4262 +units=m +no_defs +type=crs");
+
+const COORD_TRANSFORMER = proj4("EPSG:4326", "EPSG:2039");
+
+export async function calculateDistanceToAlert(
+    alert: AlertForApi,
+    alertRaw: AlertWithRelatedInDb,
+    metadata: AlertSupplementalMetadata,
+    currentLocation: {x: number, y: number},
+    gtfsDbApi: GtfsDbApi
+) {
+    const currentLocationTransformed = COORD_TRANSFORMER.forward(currentLocation);
+
+    if (alert.use_case === AlertUseCase.Region && !alert.added_stops.length && !alert.removed_stops.length) {
+        // in the weird case where they define a polygon with no stops,
+        // use distance to that polygon
+
+        // TODO???
+        return 0;
+    }
+
+    // TODO
+
+    return null;
 }
