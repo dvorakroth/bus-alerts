@@ -2,24 +2,23 @@ import express from "express";
 import { DbLocals, asyncHandler, tryParsingQueryCoordinate } from "./webstuff/webJunkyard.js";
 import NodeCache from "node-cache";
 import winston from "winston";
-import { AlertInDb, AlertWithRelatedInDb } from "./dbTypes.js";
-import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
-import { AlertSupplementalMetadata, GtfsDbApi } from "./webstuff/gtfsDbApi.js";
+import { AlertWithRelatedInDb } from "./dbTypes.js";
+import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
 import { AlertForApi } from "./apiTypes.js";
 import { enrichAlerts } from "./webstuff/alerts.js";
 
 export const apiRouter = express.Router();
 
-const cache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
 
 // TODO actually implement the server lol
 apiRouter.get("/hello", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
-    let alertCount = cache.get<number>("/hello");
+    let alertCount = allAlertsCache.get<number>("/hello");
 
     if (alertCount === undefined) {
         winston.debug("/hello cache miss");
         alertCount = (await res.locals.alertsDbApi.getAlerts()).length;
-        cache.set("/hello", alertCount);
+        allAlertsCache.set("/hello", alertCount);
     }
 
     res.send(`hello, world! there are currently ${alertCount} alerts in the database\n`);
@@ -45,7 +44,7 @@ apiRouter.get("/all_alerts", asyncHandler(async (req, res: express.Response<any,
 }));
 
 type AllAlertsResult = {
-    alertsRaw: AlertWithRelatedInDb[],
+    rawAlertsById: Record<string, AlertWithRelatedInDb>,
     alerts: AlertForApi[],
     metadata: AlertSupplementalMetadata
 };
@@ -53,15 +52,21 @@ type AllAlertsResult = {
 async function getAllAlerts(db: DbLocals) {
     const cacheKey = "/allAlerts";
 
-    let result = cache.get<AllAlertsResult>(cacheKey);
+    let result = allAlertsCache.get<AllAlertsResult>(cacheKey);
     if (result) return result;
 
     const alertsRaw = await db.alertsDbApi.getAlerts();
     result = {
         ...await enrichAlerts(alertsRaw, db.gtfsDbApi),
-        alertsRaw
+        rawAlertsById: alertsRaw.reduce<Record<string, AlertWithRelatedInDb>>(
+            (r, alert) => {
+                r[alert.id] = alert;
+                return r;
+            },
+            {}
+        )
     };
-    cache.set(cacheKey, result);
+    allAlertsCache.set(cacheKey, result);
 
     return result;
 }
@@ -69,7 +74,7 @@ async function getAllAlerts(db: DbLocals) {
 async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
     const cacheKey = "/allAlerts___" + JSON.stringify(coord);
 
-    let result = cache.get<AllAlertsResult>(cacheKey);
+    let result = allAlertsCache.get<AllAlertsResult>(cacheKey);
     if (result) return result;
 
     result = {
@@ -90,7 +95,7 @@ async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
         };
     }
 
-    cache.set(cacheKey, result);
+    allAlertsCache.set(cacheKey, result);
 
     return result;
 }
