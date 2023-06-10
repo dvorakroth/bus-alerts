@@ -35,9 +35,11 @@ function App() {
 
     return <>
         <Routes location={state?.backgroundLocation || location}>
-            <Route index element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
+            {/* <Route index element={<LineListPage hasModal={!!state?.backgroundLocation} />} /> */}
+            <Route index element={<Navigate to="/alerts" replace={true} />}/>
+            
             <Route path="/line/:id" element={<FullPageSingleLineView isModal={false} />} />
-            <Route path="/lines" element={<Navigate to="/" replace={true} />} />
+            <Route path="/lines" element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
 
             <Route path="/alerts" element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>
             <Route path="/alert/:id" element={<FullPageSingleAlert/>}/>
