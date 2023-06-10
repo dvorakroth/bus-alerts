@@ -6,6 +6,7 @@ import fs from "fs";
 import * as ini from "ini";
 import pg from "pg";
 import express from "express";
+import morgan from "morgan";
 
 const doc = `Service Alerts App Web Server.
 
@@ -27,7 +28,7 @@ const logFormat = winston.format.printf(({level, message, timestamp}) => {
 });
 
 winston.configure({
-    level: IS_PRODUCTION ? 'info' : 'debug',
+    level: IS_PRODUCTION ? 'http' : 'debug',
     format: winston.format.combine(
         winston.format.timestamp(),
         logFormat
@@ -92,6 +93,18 @@ const alertsDbPool = new pg.Pool({
 ////////////////////////////////////
 
 const app = express();
+
+// log all requests
+const morganMiddleware = morgan(
+    ':method :url :status :res[content-length] bytes - :response-time ms - :referrer - :user-agent',
+    {
+        stream: {
+            write: (message) => winston.http(message.trim())
+        }
+    }
+);
+app.use(morganMiddleware);
+
 app.use((req, res, next) => {
     res.locals['gtfsDbPool'] = gtfsDbPool;
     res.locals['alertsDbPool'] = alertsDbPool;
