@@ -1,29 +1,19 @@
 import { DateTime } from "luxon";
-import { AlertUseCase, AlertWithRelatedInDb, DepartureChanges } from "../dbTypes.js";
-import { JERUSALEM_TZ, compareTuple, extractCityFromStopDesc, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
-import { GtfsDbApi, RouteMetadata } from "./gtfsDbApi.js";
+import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
+import { JERUSALEM_TZ, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
+import { GtfsDbApi } from "./gtfsDbApi.js";
+import { AlertForApi, DepartureChangeDetail } from "../apiTypes.js";
 
-type AlertAdditionalData = {
-    added_stops: [string, string][]; // stop_code, stop_name
-    removed_stops: [string, string][]; // ditto
-    relevant_lines: Record<string, string[]>; // agency_id -> [route_short_name, route_short_name, ...]
-    relevant_agencies: {agency_id: string, agency_name: string}[];
-
-    first_relevant_date: null|DateTime;
-    current_active_period_start: null|DateTime;
-
-    departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>; // agency_id -> line_number -> [change, change, change, ...]
-}
-
-async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi) {
+export async function enrichAlerts(alertsRaw: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi) {
     // chew up and regurgitate the data a bit for the client
     // like a wolf mother for her tiny adorable wolf pups
 
-    const metadata = await gtfsDbApi.getRelatedMetadataForAlerts(alerts);
+    const metadata = await gtfsDbApi.getRelatedMetadataForAlerts(alertsRaw);
 
-    const result: Record<string, AlertAdditionalData> = {}; // alert_id -> additional data
+    // const additionalData: Record<string, AlertAdditionalData> = {}; // alert_id -> additional data
+    const result: AlertForApi[] = [];
 
-    for (const alert of alerts) {
+    for (const alert of alertsRaw) {
         const added_stops: [string, string][] = [];
         const removed_stops: [string, string][] = [];
         const relevant_lines_sets: Record<string, Set<string>> = {};
@@ -99,7 +89,8 @@ async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi
 
         const departure_changes = await getDepartureChanges(alert, gtfsDbApi);
 
-        result[alert.id] = {
+        result.push({
+            ...alert,
             added_stops,
             removed_stops,
             relevant_lines,
@@ -107,12 +98,29 @@ async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi
             first_relevant_date,
             current_active_period_start,
             departure_changes
-        };
+        });
     }
 
-    // TODO sort? compose the alerts into the final api type?
+    sortAlerts(result);
 
-    return [result, metadata];
+    return {
+        alerts: result,
+        metadata
+    };
+}
+
+export function sortAlerts(alertsForApi: AlertForApi[]) {
+    alertsForApi.sort((a, b) => compareNple(alertSortingNple(a), alertSortingNple(b)));
+}
+
+function alertSortingNple(alert: AlertForApi) {
+    return [
+        alert.is_expired ? 1 : 0,
+        alert.is_deleted ? 1 : 0,
+        alert.distance ?? Infinity,
+        (alert.current_active_period_start ?? alert.last_end_time).toSeconds(),
+        (alert.is_expired || alert.is_deleted) ? (alert.is_national ? 0 : 1) : 0
+    ] as const;
 }
 
 function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime, null|DateTime] {
@@ -165,12 +173,6 @@ function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime,
 
     return [firstRelevantDate, currentActivePeriodStart];
 }
-
-type DepartureChangeDetail = RouteMetadata & {
-    to_text: string,
-    added_hours: string[],
-    removed_hours: string[]
-};
 
 async function getDepartureChanges(alert: AlertWithRelatedInDb, gtfsDbApi: GtfsDbApi) {
     // 1. if no departure changes, return {}; get representative date and prepare result variable
@@ -258,7 +260,7 @@ function findRepresentativeDateForRouteChangesInAlert(alert: AlertWithRelatedInD
     let representativeDate: DateTime|null = null;
 
     if (alert.is_expired) {
-        for (const [start, end] of activePeriodsParsed) {
+        for (const [_, end] of activePeriodsParsed) {
             if (!end) {
                 return todayInJerusalem;
             }

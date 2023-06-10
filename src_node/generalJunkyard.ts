@@ -65,8 +65,8 @@ export function compareTuple<S, T>(
 }
 
 export function compareNple(
-    a: any[],
-    b: any[]
+    a: readonly any[],
+    b: readonly any[]
 ): number {
     for(let i = 0; i < a.length && i < b.length; i++) {
         const aEl = a[i];

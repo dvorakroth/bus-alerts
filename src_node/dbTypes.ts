@@ -72,10 +72,11 @@ export type PrettyActivePeriod =
         times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
     };
 
-type BaseAlertInDb = {
-    id: string,
-    first_start_time: DateTime,
-    last_end_time: DateTime,
+export type BaseAlert = {
+    // in both db and api
+    id: string;
+    first_start_time: DateTime;
+    last_end_time: DateTime;
 
     use_case: AlertUseCase,
     header: TranslationObject,
@@ -84,7 +85,22 @@ type BaseAlertInDb = {
         raw: [number|null, number|null][],
         consolidated: PrettyActivePeriod[]
     },
-    is_national: boolean,
+    is_national: boolean
+};
+
+type BaseAlertInDb = BaseAlert & {
+    // id: string,
+    // first_start_time: DateTime,
+    // last_end_time: DateTime,
+
+    // use_case: AlertUseCase,
+    // header: TranslationObject,
+    // description: TranslationObject,
+    // active_periods: {
+    //     raw: [number|null, number|null][],
+    //     consolidated: PrettyActivePeriod[]
+    // },
+    // is_national: boolean,
 
     relevant_agencies: string[],
     relevant_route_ids: string[],

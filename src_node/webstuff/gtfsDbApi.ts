@@ -2,6 +2,7 @@ import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { GTFS_CALENDAR_DOW, copySortAndUnique } from "../generalJunkyard.js";
 import { DateTime } from "luxon";
+import { RouteMetadata } from "../apiTypes.js";
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
@@ -70,7 +71,7 @@ export class GtfsDbApi {
             }
         }
 
-        return {agencies, routes, stops};
+        return <AlertSupplementalMetadata>{agencies, routes, stops};
     }
 
     async getRouteMetadata(routeIds: string[]) {
@@ -239,10 +240,8 @@ type StopForMap = {
     stop_lat: number
 };
 
-export type RouteMetadata = {
-    route_id: string,
-    route_desc: string,
-    agency_id: string,
-    line_number: string,
-    agency_name: string
+export type AlertSupplementalMetadata = {
+    agencies: Record<string, Agency>,
+    routes: Record<string, Route>,
+    stops: Record<string, Stop>
 };
