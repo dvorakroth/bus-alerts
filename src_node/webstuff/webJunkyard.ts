@@ -1,7 +1,7 @@
 import express from "express";
 import core from "express-serve-static-core";
-import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
-import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
+import { AlertsDbApi } from "./alertsDbApi.js";
+import { GtfsDbApi } from "./gtfsDbApi.js";
 
 export type DbLocals = {
     alertsDbApi: AlertsDbApi
@@ -21,4 +21,17 @@ export function asyncHandler<
     return (req, res, next) => {
         return Promise.resolve((asyncFn as any)(req, res, next)).catch(next);
     }
+}
+
+const COORD_REGEX = /^(?<x>\d+(\.\d+)?)_(?<y>\d+(\.\d+)?)$/g;
+export function tryParsingQueryCoordinate(coordinate: string|undefined): null|[number, number] {
+    if (!coordinate) return null;
+
+    const match = coordinate.matchAll(COORD_REGEX).next().value;
+    if (!match) return null;
+
+    return [
+        Math.round(parseFloat(match.groups["x"]) * 1_000_000) / 1_000_000,
+        Math.round(parseFloat(match.groups["y"]) * 1_000_000) / 1_000_000
+    ];
 }

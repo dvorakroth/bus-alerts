@@ -8,7 +8,7 @@ import pg from "pg";
 import express from "express";
 import morgan from "morgan";
 import { apiRouter } from "./apiRouter.js";
-import { DbLocals } from "./webJunkyard.js";
+import { DbLocals } from "./webstuff/webJunkyard.js";
 import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
 import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";

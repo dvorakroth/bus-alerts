@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { JERUSALEM_TZ } from "../loaderUtils/junkyard.js";
+import { JERUSALEM_TZ } from "../loaderUtils/loaderJunkyard.js";
 import { splitActivePeriodToSubperiods } from "../loaderUtils/activePeriodUtils.js";
 
 const testDataISO = [

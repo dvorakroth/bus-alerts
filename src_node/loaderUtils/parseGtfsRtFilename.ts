@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import winston from "winston";
-import { JERUSALEM_TZ, TIME_FORMAT_ISO_NO_TZ } from "./junkyard.js";
+import { TIME_FORMAT_ISO_NO_TZ } from "./loaderJunkyard.js";
+import { JERUSALEM_TZ } from "../generalJunkyard.js";
 
 const FILENAME_DATE_REGEX = /(?<year>\d+)\D(?<month>\d+)\D(?<day>\d+)\D(?<hour>\d+)\D(?<minute>\d+)/g;
 export function tryParseFilenameDate(filename: string): DateTime|null {

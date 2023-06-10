@@ -1,5 +1,4 @@
 import { transit_realtime } from "gtfs-realtime-bindings";
-import { DateTime } from "luxon";
 import Long from "long";
 import { TranslationObject } from "../dbTypes.js";
 
@@ -44,16 +43,6 @@ export function arraysDeepEqual(a: ArrayOrValue[], b: ArrayOrValue[]): boolean {
 }
 
 export const TIME_FORMAT_ISO_NO_TZ = "yyyy-MM-dd'T'HH:mm:ss.SSS";
-export const JERUSALEM_TZ = "Asia/Jerusalem";
-
-export function parseUnixtimeIntoJerusalemTz(unixtime: number|null): DateTime|null {
-    if (!unixtime) {
-        // both 0 and null
-        return null;
-    } else {
-        return DateTime.fromSeconds(unixtime, {zone: JERUSALEM_TZ});
-    }
-}
 
 export function gtfsRtTranslationsToObject(
     translations: transit_realtime.TranslatedString.ITranslation[]
@@ -97,27 +86,6 @@ function replaceUnicodeFails(s: string) {
     }
 
     return s;
-}
-
-export function copySortAndUnique<T = number|string>(arr: T[]) {
-    return [...arr]
-        .sort()
-        .filter((item, idx, arr) => !idx || item !== arr[idx - 1]);
-}
-
-export function inPlaceSortAndUnique<T = number|string>(arr: T[]): T[] {
-    arr.sort();
-
-    let i = 1; // not 0! because we'll never delete the 0th element
-    while (i < arr.length) {
-        if (arr[i - 1] === arr[i]) {
-            arr.splice(i, 1);
-        } else {
-            i += 1;
-        }
-    }
-
-    return arr;
 }
 
 export function forceToNumberOrNull(value: number|Long|null|undefined) {
