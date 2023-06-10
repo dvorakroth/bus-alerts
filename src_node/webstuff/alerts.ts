@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
-import { AlertWithRelatedInDb } from "../dbTypes.js";
-import { JERUSALEM_TZ, compareTuple, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
-import { GtfsDbApi } from "./gtfsDbApi.js";
+import { AlertUseCase, AlertWithRelatedInDb, DepartureChanges } from "../dbTypes.js";
+import { JERUSALEM_TZ, compareTuple, extractCityFromStopDesc, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
+import { GtfsDbApi, RouteMetadata } from "./gtfsDbApi.js";
 
 type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
@@ -11,6 +11,8 @@ type AlertAdditionalData = {
 
     first_relevant_date: null|DateTime;
     current_active_period_start: null|DateTime;
+
+    departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>; // agency_id -> line_number -> [change, change, change, ...]
 }
 
 async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi) {
@@ -19,7 +21,7 @@ async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi
 
     const metadata = await gtfsDbApi.getRelatedMetadataForAlerts(alerts);
 
-    const result: AlertAdditionalData[] = [];
+    const result: Record<string, AlertAdditionalData> = {}; // alert_id -> additional data
 
     for (const alert of alerts) {
         const added_stops: [string, string][] = [];
@@ -95,19 +97,22 @@ async function enrichAlerts(alerts: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi
 
         const [first_relevant_date, current_active_period_start] = alertFindNextRelevantDate(alert);
 
-        // TODO departure changes
+        const departure_changes = await getDepartureChanges(alert, gtfsDbApi);
 
-        result.push({
+        result[alert.id] = {
             added_stops,
             removed_stops,
             relevant_lines,
             relevant_agencies,
             first_relevant_date,
-            current_active_period_start
-        });
+            current_active_period_start,
+            departure_changes
+        };
     }
 
-    return result;
+    // TODO sort? compose the alerts into the final api type?
+
+    return [result, metadata];
 }
 
 function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime, null|DateTime] {
@@ -159,4 +164,167 @@ function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime,
     }
 
     return [firstRelevantDate, currentActivePeriodStart];
+}
+
+type DepartureChangeDetail = RouteMetadata & {
+    to_text: string,
+    added_hours: string[],
+    removed_hours: string[]
+};
+
+async function getDepartureChanges(alert: AlertWithRelatedInDb, gtfsDbApi: GtfsDbApi) {
+    // 1. if no departure changes, return {}; get representative date and prepare result variable
+
+    if (alert.use_case !== AlertUseCase.ScheduleChanges) {
+        return {};
+    }
+
+    const result: Record<string, Record<string, DepartureChangeDetail[]>> = {};
+    const representativeDate = findRepresentativeDateForRouteChangesInAlert(alert);
+    const allRouteMetadata = await gtfsDbApi.getRouteMetadata(alert.relevant_route_ids);
+
+    for (const route_id of alert.relevant_route_ids) {
+        // 2. get metadata and compute headsign (upside down smiley)
+        const routeMetadata = allRouteMetadata[route_id];
+
+        if (!routeMetadata) {
+            continue; // ignore bad route_ids, because, apparently, that's a thing that happens????
+        }
+
+        const representativeTripId = await gtfsDbApi.getRepresentativeTripId(route_id, representativeDate);
+        const to_text = representativeTripId
+            ? await getHeadsign(representativeTripId, null, gtfsDbApi)
+            : "???";
+        
+        // 3. extract the departure changes from the less-nice data structure
+        const chgs = alert.schedule_changes?.[route_id];
+        const added_hours = chgs?.added ?? [];
+        const removed_hours = chgs?.removed ?? [];
+
+        // 4. add to the dict
+        const agency_id = routeMetadata.agency_id;
+        const line_number = routeMetadata.line_number;
+        
+        const departureChangeDetail = {
+            ...routeMetadata,
+            to_text,
+            added_hours,
+            removed_hours
+        };
+
+        const agencyChgs = (
+            result[agency_id] ?? (result[agency_id] = {})
+        );
+
+        const lineChgs = (
+            agencyChgs[line_number] ?? (agencyChgs[line_number] = [])
+        );
+
+        lineChgs.push(departureChangeDetail);
+    }
+
+    // 5. do the same sort as in getRouteChanges
+    // NOTE: i wrote that comment, and then time did its thing(?) and apparently
+    // this is now a different sort? lol who knows good luck have fun future me!
+    for (const agencyChgs of Object.values(result)) {
+        for (const lineChgs of Object.values(agencyChgs)) {
+            lineChgs.sort(
+                ({to_text: a}, {to_text: b}) => (
+                    a < b
+                        ? -1
+                        : a > b
+                        ? 1
+                        : 0
+                )
+            );
+        }
+    }
+
+    return result;
+}
+
+function findRepresentativeDateForRouteChangesInAlert(alert: AlertWithRelatedInDb) {
+    const activePeriodsParsed = alert.active_periods.raw.map(
+        ([start, end]) => [parseUnixtimeIntoJerusalemTz(start), parseUnixtimeIntoJerusalemTz(end)]
+    );
+
+    const todayInJerusalem = DateTime.now().setZone(JERUSALEM_TZ).set({
+        hour: 0,
+        minute: 0,
+        second: 0,
+        millisecond: 0
+    });
+
+    let representativeDate: DateTime|null = null;
+
+    if (alert.is_expired) {
+        for (const [start, end] of activePeriodsParsed) {
+            if (!end) {
+                return todayInJerusalem;
+            }
+
+            if (!representativeDate || end.toSeconds() > representativeDate.toSeconds()) {
+                representativeDate = end;
+            }
+        }
+    } else if (alert.is_deleted) {
+        return alert.last_end_time.set({
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0
+        });
+        // TODO maybe instead, return the date when the alert was deleted? or the minimum between them?
+    } else {
+        for (const [start, end] of activePeriodsParsed) {
+            if (!end && !start) {
+                // unbounded period - use today
+                return todayInJerusalem;
+            }
+
+            if (end && end.toSeconds() <= todayInJerusalem.toSeconds()) {
+                // period already ended; skip it
+                continue;
+            }
+
+            if (!start || start.toSeconds() <= todayInJerusalem.toSeconds()) {
+                // period is active now!
+                return todayInJerusalem;
+            }
+
+            // period is in the future
+            if (!representativeDate || start.toSeconds() < representativeDate.toSeconds()) {
+                representativeDate = start;
+            }
+        }
+    }
+
+    return representativeDate ?? todayInJerusalem;
+}
+
+async function getHeadsign(tripId: string, rawStopSeq: string[]|null = null, gtfsDbApi: GtfsDbApi) {
+    const headsign = await gtfsDbApi.getTripHeadsign(tripId);
+
+    if (headsign) {
+        return headsign.replace("_", " - ");
+    }
+
+    if (!rawStopSeq) {
+        rawStopSeq = await gtfsDbApi.getStopSeq(tripId)
+    }
+
+    const firstStopId = rawStopSeq[0] ?? "";
+    const lastStopId = rawStopSeq[rawStopSeq.length - 1] ?? "";
+
+    const endStopsDesc = await gtfsDbApi.getStopDesc([firstStopId, lastStopId]);
+
+    const firstStopCity = extractCityFromStopDesc(endStopsDesc[firstStopId] ?? "");
+    const lastStopCity  = extractCityFromStopDesc(endStopsDesc[lastStopId] ?? "");
+
+    if (firstStopCity !== lastStopCity) {
+        return lastStopCity;
+    } else {
+        const lastStopObj = await gtfsDbApi.getRelatedMetadata([], [], [lastStopId]);
+        return lastStopObj.stops[lastStopId]?.stop_name ?? "";
+    }
 }

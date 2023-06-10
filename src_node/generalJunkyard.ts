@@ -64,6 +64,23 @@ export function compareTuple<S, T>(
     return (a[1] < b[1]) ? -1 : 1;
 }
 
+export function compareNple(
+    a: any[],
+    b: any[]
+): number {
+    for(let i = 0; i < a.length && i < b.length; i++) {
+        const aEl = a[i];
+        const bEl = b[i];
+
+        if (aEl === bEl) continue;
+        
+        if (aEl < bEl) return -1;
+        if (aEl > bEl) return 1;
+    }
+
+    return 0;
+}
+
 export function lineNumberForSorting(lineNumber: string): [number, string] {
     for (const s of lineNumber.split(/\s+/)) {
         if (isDigit(s)) {
@@ -82,5 +99,19 @@ export function parseUnixtimeIntoJerusalemTz(unixtime: number|null): DateTime|nu
         return null;
     } else {
         return DateTime.fromSeconds(unixtime, {zone: JERUSALEM_TZ});
+    }
+}
+
+export const GTFS_CALENDAR_DOW = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
+// cursed and bad and stupid and of course this is what the mot gives us
+const STOP_DESC_CITY_PATTERN = /עיר: (.*) רציף:/g;
+
+export function extractCityFromStopDesc(stopDesc: string) {
+    const firstMatch = stopDesc.matchAll(STOP_DESC_CITY_PATTERN).next().value;
+    if (!firstMatch) {
+        return "";
+    } else {
+        return firstMatch[1] as string;
     }
 }

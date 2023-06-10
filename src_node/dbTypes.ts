@@ -84,14 +84,23 @@ type BaseAlertInDb = {
         raw: [number|null, number|null][],
         consolidated: PrettyActivePeriod[]
     },
-    schedule_changes: DepartureChanges|RouteChanges|null,
     is_national: boolean,
 
     relevant_agencies: string[],
     relevant_route_ids: string[],
     added_stop_ids: string[],
     removed_stop_ids: string[]
-}
+} & (
+    {
+        use_case: AlertUseCase.ScheduleChanges,
+        schedule_changes: DepartureChanges
+    } | {
+        use_case: AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple,
+        schedule_changes: RouteChanges
+    } | {
+        schedule_changes: null
+    }
+);
 
 export type AlertInDb = BaseAlertInDb & {
     raw_data: Uint8Array,

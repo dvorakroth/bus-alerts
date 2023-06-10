@@ -5,7 +5,7 @@ import { consolidateActivePeriods, splitActivePeriodToSubperiods } from "./activ
 import { AddStopChange, AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "../dbTypes.js";
 import winston from "winston";
 import gtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { JERUSALEM_TZ, copySortAndUnique, inPlaceSortAndUnique } from "../generalJunkyard.js";
+import { GTFS_CALENDAR_DOW, JERUSALEM_TZ, copySortAndUnique, inPlaceSortAndUnique } from "../generalJunkyard.js";
 
 const {transit_realtime} = gtfsRealtimeBindings;
 
@@ -410,8 +410,6 @@ async function fetchAllRouteIdsAtStopsInDateranges(
 
     return res.rows.map(({route_id}) => route_id);
 }
-
-const GTFS_CALENDAR_DOW = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
     stopIds: string[],

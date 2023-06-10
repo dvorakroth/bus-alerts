@@ -1,6 +1,7 @@
 import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
-import { copySortAndUnique } from "../generalJunkyard.js";
+import { GTFS_CALENDAR_DOW, copySortAndUnique } from "../generalJunkyard.js";
+import { DateTime } from "luxon";
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
@@ -71,6 +72,146 @@ export class GtfsDbApi {
 
         return {agencies, routes, stops};
     }
+
+    async getRouteMetadata(routeIds: string[]) {
+        if (!routeIds.length) {
+            return {};
+        }
+
+        const res = await this.gtfsDbPool.query<RouteMetadata, [string[]]>(
+            `
+                SELECT
+                    routes.route_id,
+                    routes.route_desc,
+                    routes.agency_id,
+                    route_short_name as line_number,
+                    agency_name
+                FROM routes
+                INNER JOIN agency
+                ON routes.agency_id = agency.agency_id
+                WHERE route_id = ANY($1::varchar[]);
+            `,
+            [routeIds]
+        );
+
+        const result: Record<string, RouteMetadata> = {};
+
+        for (const r of res.rows) {
+            result[r.route_id] = r;
+        }
+
+        return result;
+    }
+
+    async getRepresentativeTripId(routeId: string, preferredDate: DateTime) {
+        const preferredDateStr = preferredDate.toFormat("yyyy-MM-dd");
+
+        const res = await this.gtfsDbPool.query<{trip_id: string}, [string, string, string, string]>(
+            `
+                SELECT trips.trip_id
+                FROM trips
+                INNER JOIN calendar on trips.service_id = calendar.service_id
+                WHERE route_id=$1
+                ORDER BY
+                    daterange(start_date, end_date + 1) @> $2::DATE DESC,
+                    start_date - $3::DATE <= 0 DESC,
+                    ABS(start_date - $4::DATE) ASC,
+                    ${GTFS_CALENDAR_DOW[preferredDate.weekday - 1]} DESC
+                LIMIT 1;
+            `,
+            [
+                routeId,
+                preferredDateStr,
+                preferredDateStr,
+                preferredDateStr
+            ],
+        );
+
+        return res.rows[0]?.trip_id ?? null;
+    }
+
+    async getStopSeq(tripId: string) {
+        const res = await this.gtfsDbPool.query<{stop_id: string}, [string]>(
+            // why does this query do a seemingly useless join? i don't know
+            // i probably had a reason when i originally wrote it (making sure
+            // the stop_ids actually exist? sleep deprivation? who knows)
+            `
+                SELECT stops.stop_id
+                FROM stops
+                INNER JOIN stoptimes ON stops.stop_id = stoptimes.stop_id
+                WHERE stoptimes.trip_id = $1
+                ORDER BY stop_sequence ASC;
+            `,
+            [tripId]
+        );
+
+        return res.rows.map(({stop_id}) => stop_id);
+    }
+
+    async getTripHeadsign(tripId: string) {
+        const res = await this.gtfsDbPool.query<{trip_headsign: string}, [string]>(
+            `
+                SELECT
+                    trip_headsign
+                FROM trips
+                WHERE trip_id = $1;
+            `,
+            [tripId]
+        );
+
+        return res.rows[0]?.trip_headsign ?? "";
+    }
+
+    async getStopDesc(stopIds: string[]) {
+        if (!stopIds.length) {
+            return {};
+        }
+
+        const res = await this.gtfsDbPool.query<{stop_id: string, stop_desc: string}, [string[]]>(
+            `
+                SELECT
+                    stop_id,
+                    stop_desc
+                FROM stops
+                WHERE stop_id = ANY($1::varchar[]);
+            `,
+            [stopIds]
+        );
+
+        return res.rows.reduce<Record<string, string>>(
+            (r, {stop_id, stop_desc}) => {
+                r[stop_id] = stop_desc;
+                return r;
+            },
+            {}
+        );
+    }
+
+    async getStopsForMap(stopIds: string[]) {
+        if (!stopIds.length) {
+            return {};
+        }
+
+        const res = await this.gtfsDbPool.query<StopForMap, [string[]]>(
+            `
+                SELECT
+                    stop_id,
+                    stop_lon,
+                    stop_lat
+                FROM stops
+                WHERE stop_id = ANY($1::varchar[]);
+            `,
+            [stopIds]
+        );
+
+        return res.rows.reduce<Record<string, StopForMap>>(
+            (r, stop) => {
+                r[stop.stop_id] = stop;
+                return r;
+            },
+            {}
+        );
+    }
 }
 
 type Agency = {
@@ -86,8 +227,22 @@ type Route = {
 
 type Stop = {
     stop_id: string,
-    stop_lon: string,
-    stop_lat: string,
+    stop_lon: number,
+    stop_lat: number,
     stop_name: string,
     stop_code: string
+};
+
+type StopForMap = {
+    stop_id: string,
+    stop_lon: number,
+    stop_lat: number
+};
+
+export type RouteMetadata = {
+    route_id: string,
+    route_desc: string,
+    agency_id: string,
+    line_number: string,
+    agency_name: string
 };
