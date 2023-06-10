@@ -7,6 +7,8 @@ import * as ini from "ini";
 import pg from "pg";
 import express from "express";
 import morgan from "morgan";
+import { apiRouter } from "./apiRouter.js";
+import { DbLocals } from "./webJunkyard.js";
 
 const doc = `Service Alerts App Web Server.
 
@@ -23,13 +25,14 @@ Options:
 //////////////////////////////
 const IS_PRODUCTION = process.env['NODE_ENV'] === 'production';
 
-const logFormat = winston.format.printf(({level, message, timestamp}) => {
-    return `${timestamp} [${level.toUpperCase()}]: ${message}`;
+const logFormat = winston.format.printf(({level, message, timestamp, stack}) => {
+    return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
 });
 
 winston.configure({
     level: IS_PRODUCTION ? 'http' : 'debug',
     format: winston.format.combine(
+        winston.format.errors({ stack: true }),
         winston.format.timestamp(),
         logFormat
     ),
@@ -105,16 +108,29 @@ const morganMiddleware = morgan(
 );
 app.use(morganMiddleware);
 
-app.use((req, res, next) => {
-    res.locals['gtfsDbPool'] = gtfsDbPool;
-    res.locals['alertsDbPool'] = alertsDbPool;
+app.use((req, res: express.Response<any, DbLocals>, next) => {
+    res.locals.gtfsDbPool = gtfsDbPool;
+    res.locals.alertsDbPool = alertsDbPool;
     next();
 });
 
-// TODO actually implement the server lol
-app.get("/api/hello", (req, res) => {
-    res.send("hello, world!");
-});
+app.use("/api", apiRouter);
+
+const errHandler: express.ErrorRequestHandler = (err, req, res, next) => {
+    winston.error(err);
+
+    if (err.constructor === pg.DatabaseError) {
+        // try to print some details about database errors, because their default toString doesnt lol
+        winston.error(`More DatabaseError data:\n${JSON.stringify(err, void 0, 4)}`);
+    }
+
+    if (IS_PRODUCTION) {
+        res.status(500).send('Something broke!');
+    } else {
+        res.status(500).send(err?.toString() + '\n');
+    }
+}
+app.use(errHandler);
 
 app.listen(port, () => {
     winston.info(`Server up and listening on port ${port}`);
