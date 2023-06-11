@@ -15,3 +15,4 @@ test_env
 config.ini
 dist
 dist_node
+test_screenshots/
