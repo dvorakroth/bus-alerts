@@ -213,6 +213,25 @@ export class GtfsDbApi {
             {}
         );
     }
+
+    async getAllStopCoordsByRouteIds(routeIds: string[]) {
+        if (!routeIds.length) {
+            return [];
+        }
+
+        const res = await this.gtfsDbPool.query<{y: number, x: number}, [string[]]>(
+            `
+                SELECT DISTINCT stop_lat AS y, stop_lon AS x
+                FROM stops
+                INNER JOIN stoptimes ON stops.stop_id = stoptimes.stop_id
+                INNER JOIN trips ON stoptimes.trip_id = trips.trip_id
+                WHERE trips.route_id = ANY($1::varchar[]);
+            `,
+            [routeIds]
+        );
+
+        return res.rows;
+    }
 }
 
 type Agency = {

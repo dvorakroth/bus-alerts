@@ -89,18 +89,7 @@ export type BaseAlert = {
 };
 
 type BaseAlertInDb = BaseAlert & {
-    // id: string,
-    // first_start_time: DateTime,
-    // last_end_time: DateTime,
-
-    // use_case: AlertUseCase,
-    // header: TranslationObject,
-    // description: TranslationObject,
-    // active_periods: {
-    //     raw: [number|null, number|null][],
-    //     consolidated: PrettyActivePeriod[]
-    // },
-    // is_national: boolean,
+    original_selector: OriginalSelector,
 
     relevant_agencies: string[],
     relevant_route_ids: string[],
@@ -121,7 +110,6 @@ type BaseAlertInDb = BaseAlert & {
 export type AlertInDb = BaseAlertInDb & {
     raw_data: Uint8Array,
 
-    original_selector: OriginalSelector,
     cause: string,
     effect: string,
     url: TranslationObject,

@@ -5,7 +5,7 @@ import winston from "winston";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
 import { AlertForApi } from "./apiTypes.js";
-import { calculateDistanceToAlert, enrichAlerts } from "./webstuff/alerts.js";
+import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 
 export const apiRouter = express.Router();
 
@@ -106,6 +106,8 @@ async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
             };
         }
     }
+
+    sortAlerts(result.alerts);
 
     allAlertsCache.set(cacheKey, result);
 
