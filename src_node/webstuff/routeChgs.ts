@@ -38,7 +38,7 @@ export async function getRouteChanges(
 
     for (const route_id of alertRaw.relevant_route_ids) {
         // 2. actually apply the changes in the alert to this route
-        const updates = await applyAlertToRoute(
+        const updates: ApplyAlertState|null = await applyAlertToRoute(
             gtfsDbApi,
             alertRaw,
             route_id,
@@ -73,7 +73,7 @@ export async function getRouteChanges(
         // 4. decide what to call each route???? as in from/to????? aaaaa israel
         //    (and get route_short_name and agency_id)
 
-        const routeMetadata = (await gtfsDbApi.getRouteMetadata([route_id]))[0];
+        const routeMetadata = (await gtfsDbApi.getRouteMetadata([route_id]))[route_id];
 
         if (!routeMetadata) {
             throw new Error("Couldn't find details for route with id " + route_id);
@@ -162,6 +162,14 @@ function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
     );
 }
 
+type ApplyAlertState = {
+    representativeDate: DateTime|null,
+    representativeTripId: string|null,
+    rawStopSeq: string[]|null,
+    updatedStopSeq: [string, boolean][],
+    deletedStopIds: Set<string>
+};
+
 async function applyAlertToRoute(
     gtfsDbApi: GtfsDbApi,
     alertRaw: AlertWithRelatedInDb,
@@ -172,7 +180,7 @@ async function applyAlertToRoute(
     rawStopSeq: string[]|null = null,
     updatedStopSeq: [string, boolean][]|null = null,
     deletedStopIds: Set<string>|null = null
-) {
+): Promise<ApplyAlertState|null> {
     // TODO: it looks like i never took care of the REGION use case lmaoooooo
     //       i'd feel much more comfortable implementing it if they,, uh,,,,,, ever used it :|
     //       but sure; i can try to do it al iver just in case
