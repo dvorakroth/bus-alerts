@@ -306,7 +306,7 @@ export function findRepresentativeDateForRouteChangesInAlert(alert: AlertWithRel
     return representativeDate ?? todayInJerusalem;
 }
 
-async function getHeadsign(tripId: string, rawStopSeq: string[]|null = null, gtfsDbApi: GtfsDbApi) {
+export async function getHeadsign(tripId: string, rawStopSeq: string[]|null = null, gtfsDbApi: GtfsDbApi) {
     const headsign = await gtfsDbApi.getTripHeadsign(tripId);
 
     if (headsign) {

@@ -232,6 +232,30 @@ export class GtfsDbApi {
 
         return res.rows;
     }
+
+    async getShapePoints(tripId: string) {
+        /**
+         * Finds a trip's shape, and returns an array [[lon, lat], [lon, lat], ...]
+         */
+
+        const res = await this.gtfsDbPool.query<{shape_pt_lon: number, shape_pt_lat: number}, [string]>(
+            `
+                SELECT
+                    shape_pt_lon,
+                    shape_pt_lat
+                FROM shapes
+                WHERE shapes.shape_id=(SELECT trips.shape_id FROM trips WHERE trip_id=$1)
+                ORDER BY shape_pt_sequence ASC;
+            `,
+            [tripId]
+        );
+
+        if (!res.rows.length) return null;
+
+        return res.rows.map<[number, number]>(
+            ({shape_pt_lon, shape_pt_lat}) => [shape_pt_lon, shape_pt_lat]
+        );
+    }
 }
 
 type Agency = {

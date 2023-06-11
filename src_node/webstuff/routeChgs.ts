@@ -2,8 +2,10 @@ import { DateTime } from "luxon";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
-import { findRepresentativeDateForRouteChangesInAlert } from "./alerts.js";
+import { findRepresentativeDateForRouteChangesInAlert, getHeadsign } from "./alerts.js";
 import winston from "winston";
+import { RouteChangeForApi } from "../apiTypes.js";
+import { compareNple, inPlaceSortAndUnique, zip } from "../generalJunkyard.js";
 
 export async function getRouteChanges(
     alertId: string,
@@ -23,7 +25,7 @@ export async function getRouteChanges(
         return null;
     }
 
-    const changes_by_agency_and_line: Record<string, Record<string, any>> = {}; // TODO type?
+    const changes_by_agency_and_line: Record<string, Record<string, RouteChangeForApi[]>> = {};
 
     const allStopIds = new Set([
         ...alertRaw.added_stop_ids,
@@ -49,8 +51,8 @@ export async function getRouteChanges(
         }
 
         const stopSeq = updates.updatedStopSeq;
-        const representativeTripId = updates.representativeTripId;
-        const rawStopSeq = updates.rawStopSeq ?? []; // this "shouldn't" be null in this case lol
+        const representativeTripId = updates.representativeTripId ?? ""; // this "shouldn't" be null in this case lol
+        const rawStopSeq = updates.rawStopSeq ?? []; // this "shouldn't" either haha
         const deletedStopIds = updates.deletedStopIds;
         representativeDate = updates.representativeDate;
 
@@ -77,11 +79,65 @@ export async function getRouteChanges(
             throw new Error("Couldn't find details for route with id " + route_id);
         }
 
-        const additionalRouteMetadata = {
-            to_text: null // TODO
+        const to_text = await getHeadsign(representativeTripId, rawStopSeq, gtfsDbApi);
+
+        // 5. get shape
+
+        const shape = await gtfsDbApi.getShapePoints(representativeTripId)
+            ?? await getFallbackShape(rawStopSeq, gtfsDbApi); // straight lines if we couldn't find a shape
+        
+        const routeChangeData = {
+            ...routeMetadata,
+            to_text,
+            shape,
+            deleted_stop_ids: [...deletedStopIds],
+            updated_stop_sequence: stopSeq
         };
-        // TODO
+
+        // add to the result struct
+        const agencyLines = changes_by_agency_and_line[routeChangeData.agency_id]
+            ?? (changes_by_agency_and_line[routeChangeData.agency_id] = {});
+        
+        const lineChanges = agencyLines[routeChangeData.line_number]
+            ?? (agencyLines[routeChangeData.line_number] = []);
+        
+        lineChanges.push(routeChangeData);
+
+        winston.debug("done processing route_id " + route_id);
     }
+
+    // --> bonus step cause i'm thorough, and motivated by hatred and spite:
+    //     sort out any duplicate to_text
+    for (const agencyLines of Object.values(changes_by_agency_and_line)) {
+        for (const lineChanges of Object.values(agencyLines)) {
+            labelLineChangesHeadsignsForDirectionAndAlternative(lineChanges);
+        }
+    }
+
+    // 6. get all stops' metadata
+    const stops_for_map = await gtfsDbApi.getStopsForMap([...allStopIds]);
+
+    // 7. sort each line's changes by.... uhhhh..... good question le'ts
+    //    decide on this issue randomly lmao
+    for (const agencyLines of Object.values(changes_by_agency_and_line)) {
+        for (const lineChanges of Object.values(agencyLines)) {
+            lineChanges.sort(
+                (a, b) => compareNple(
+                    [a.to_text, a.dir_name ?? "", a.alt_name ?? ""],
+                    [b.to_text, b.dir_name ?? "", b.alt_name ?? ""]
+                )
+                // other candidates:
+                //  - always north->south/west->east before opposite?
+                //  - always big place to small place before opposite?
+                //  - by gtfs direction_id???
+                //  - by mot route license id thing (route_desc)
+                //  - random order for maximum fun! party horn emoji!
+            );
+        }
+    }
+
+    // 8. bounding box for the map widget
+    // TODO
 }
 
 function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
@@ -238,4 +294,144 @@ function removeStopFromUpdatedStopSeq(
     }
 
     return didRemove;
+}
+
+async function getFallbackShape(rawStopSeq: string[], gtfsDbApi: GtfsDbApi) {
+    const stopData = await gtfsDbApi.getStopsForMap(rawStopSeq);
+
+    const result: [number, number][] = [];
+    for (const stopId of rawStopSeq) {
+        const stop = stopData[stopId];
+        if (!stop) continue;
+
+        result.push([stop.stop_lon, stop.stop_lat]);
+    }
+    return result;
+}
+
+const ROUTE_DESC_DIR_ALT_REGEX = /^[^-]+-([^-]+)-([^-]+)$/g;
+
+function labelLineChangesHeadsignsForDirectionAndAlternative(
+    mut_lineChanges: RouteChangeForApi[]
+) {
+    const headsignToDirAltPairs: Record<string, [string, string][]> = {};
+
+    const headsignDirAlt_perChange: [string, [string, string]][] = [];
+
+    for (const chg of mut_lineChanges) {
+        const dirAltPairs = headsignToDirAltPairs[chg.to_text]
+            ?? (headsignToDirAltPairs[chg.to_text] = []);
+        
+        // using matchAll here because i want to avoid Weird JS Regex Behavior(tm)
+        const regexMatch = [...chg.route_desc.matchAll(ROUTE_DESC_DIR_ALT_REGEX)][0];
+        const pair: [string, string] = [regexMatch?.[0] ?? "", regexMatch?.[0] ?? ""];
+
+        dirAltPairs.push(pair);
+        headsignDirAlt_perChange.push([chg.to_text, pair]);
+    }
+
+    const dirAltNames_perChange = labelHeadsignsForDirectionAndAlternative(
+        headsignToDirAltPairs,
+        headsignToDirAltPairs,
+        headsignDirAlt_perChange
+    );
+
+    for (const [chg, [dirName, altName]] of zip(mut_lineChanges, dirAltNames_perChange)) {
+        if (dirName) chg.dir_name = dirName;
+        if (altName) chg.alt_name = altName;
+    }
+}
+
+function *labelHeadsignsForDirectionAndAlternative(
+    byAlt_headsignToDirAltPairs: Record<string, [string, string][]>,
+    byDir_headsignToDirAltPairs: Record<string, [string, string][]>,
+    headsignDirAlt_list: [string, [string, string]][],
+    labelDirsPerAlt = false
+): IterableIterator<[string|null, string|null]> {
+    for (const [headsign, dirAltPair] of headsignDirAlt_list) {
+        const dupsByAlt = byAlt_headsignToDirAltPairs[headsign] ?? [];
+        const dupsByDir = byDir_headsignToDirAltPairs[headsign] ?? [];
+
+        let dirName: string|null = null;
+        let altName: string|null = null;
+
+        if (dupsByAlt.length <= 1 && dupsByDir.length <= 1) {
+            // no duplicates for this headsign! yay upside down smiley
+            yield [dirName, altName];
+            continue;
+        }
+
+        const [dirId, altId] = dirAltPair;
+
+        if (dupsByDir.some(([dir, alt]) => dir !== dirId && (!labelDirsPerAlt || alt === altId))) {
+            // if there's any dups with a different direction id
+
+            // in some distant nebulous future, i could try giving actual names
+            // to the directions and alternatives; but not today, not quite yet
+            // bukra fil mishmish
+            dirName = "" + getNumberForDirection(labelDirsPerAlt, dirId, altId, dupsByDir);
+        }
+
+        if (altId !== "#" && altId !== "0" && dupsByAlt.some(([_, alt]) => alt !== altId)) {
+            // if there's any dups with a different alternative id
+            // (and also this isn't the main alternative)
+
+            // remember what i said about actual names for directions?
+            // well, same for the alternatives
+            // i mean, like, how the heck does one even approach this problem???
+            // we're given basically zero computer readable information that
+            // summarizes the differences between directions/alternatives!
+            // i guess if someone was eager enough, they COULD go through the
+            // stop_seq of a representative trip, but then, how do you turn that
+            // into not only user-readable info, but user-useful info, that isn't
+            // too long to fit in the ui?????? can't just dump stop names/city names,
+            // and detecting street names would be absolutely hellish
+
+            // so uhm,, yeah
+            // numbers it is for now
+
+            // again possibly the slowest most inefficient blah blah blah
+            // note: a !== "#" && a !== "0"] cause we don't care about the main
+            // alternative here
+
+            // i want to display: Towards A, Towards A (Alt 1), Towards A (Alt 2)
+            // and not quite:     Towards A, Towards A (Alt 2), Towards A (Alt 3)
+
+            const alternatives = dupsByAlt
+                .filter(([_, a]) => a !== "#" && a !== "0")
+                .map(([_, a]) => a);
+            inPlaceSortAndUnique(alternatives);
+
+            if (alternatives.length === 1) {
+                // but also we want to display: Towards A, Towards A (Alt)
+                // and not quite:               Towards A, Towards A (Alt 1)
+                // because "1" doesn't make sense when there's just the one
+                altName = "#"
+            } else {
+                altName = "" + (alternatives.indexOf(altId) + 1);
+            }
+        }
+
+        yield [dirName, altName];
+    }
+}
+
+function getNumberForDirection(
+    labelDirsPerAlt: boolean,
+    dirId: string,
+    altId: string,
+    dupsByDir: [string, string][]
+) {
+    // possible the slowest most inefficient way to do this but as
+    // stated earlier, yours truly is truly bad at algo
+
+    const filteredPairs =
+        labelDirsPerAlt
+            ? dupsByDir.filter(([_, a]) => a === altId)
+            : dupsByDir;
+    
+    const justDirections = filteredPairs.map(([d, _]) => d);
+    inPlaceSortAndUnique(justDirections);
+
+    return justDirections.indexOf(dirId) + 1;
 }

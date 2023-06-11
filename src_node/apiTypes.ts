@@ -34,8 +34,17 @@ export type AlertForApi = BaseAlert & AlertAdditionalData & {
     distance?: number
 };
 
+export type RouteChangeForApi = RouteMetadata & {
+    to_text: string,
+    dir_name?: string,
+    alt_name?: string,
+    shape: [number, number][], // [[lon, lat], [lon, lat], ...]
+    deleted_stop_ids: string[],
+    updated_stop_sequence: [string, boolean][] // [[stop_id, is_added], [stop_id, is_added], ...]
+}
+
 export type RouteChangesResponse = {
-    route_changes: {}, // TODO
+    route_changes: Record<string, Record<string, RouteChangeForApi[]>>, // agency_id -> line_number -> changes[]
     stop_for_map: {}, // TODO
     map_bounding_box: {} // TODO
 };

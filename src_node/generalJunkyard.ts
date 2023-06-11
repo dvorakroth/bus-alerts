@@ -115,3 +115,19 @@ export function extractCityFromStopDesc(stopDesc: string) {
         return firstMatch[1] as string;
     }
 }
+
+export function *zip<S, T>(a: Iterable<S>, b: Iterable<T>): IterableIterator<[S, T]> {
+    const aIterator = a[Symbol.iterator]();
+    const bIterator = b[Symbol.iterator]();
+
+    do {
+        const aNext = aIterator.next();
+        const bNext = bIterator.next();
+
+        if (aNext.done || bNext.done) {
+            return;
+        }
+
+        yield [aNext.value, bNext.value];
+    } while(true);
+}
