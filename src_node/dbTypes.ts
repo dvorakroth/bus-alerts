@@ -100,7 +100,7 @@ type BaseAlertInDb = BaseAlert & {
         use_case: AlertUseCase.ScheduleChanges,
         schedule_changes: DepartureChanges
     } | {
-        use_case: AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple,
+        use_case: AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple|AlertUseCase.StopsCancelled,
         schedule_changes: RouteChanges
     } | {
         schedule_changes: null

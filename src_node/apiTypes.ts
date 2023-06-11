@@ -33,3 +33,9 @@ export type AlertForApi = BaseAlert & AlertAdditionalData & {
 
     distance?: number
 };
+
+export type RouteChangesResponse = {
+    route_changes: {}, // TODO
+    stop_for_map: {}, // TODO
+    map_bounding_box: {} // TODO
+};

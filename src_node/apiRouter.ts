@@ -6,21 +6,9 @@ import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
 import { AlertForApi } from "./apiTypes.js";
 import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
+import { StatusCodes } from "http-status-codes";
 
 export const apiRouter = express.Router();
-
-// TODO actually implement the server lol
-apiRouter.get("/hello", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
-    let alertCount = allAlertsCache.get<number>("/hello");
-
-    if (alertCount === undefined) {
-        winston.debug("/hello cache miss");
-        alertCount = (await res.locals.alertsDbApi.getAlerts()).length;
-        allAlertsCache.set("/hello", alertCount);
-    }
-
-    res.send(`hello, world! there are currently ${alertCount} alerts in the database\n`);
-}));
 
 apiRouter.get("/all_alerts", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
     const coord = tryParsingQueryCoordinate(req.query["current_location"] as string);
@@ -39,6 +27,17 @@ apiRouter.get("/all_alerts", asyncHandler(async (req, res: express.Response<any,
             )).alerts
         });
     }
+}));
+
+apiRouter.get("/get_route_changes", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
+    const alertId = req.query["id"] as string;
+
+    if (!alertId) {
+        res.sendStatus(StatusCodes.BAD_REQUEST);
+        return;
+    }
+
+    res.json(await getRouteChangesCached(alertId, res.locals));
 }));
 
 type AllAlertsResult = {
@@ -139,6 +138,23 @@ async function distanceToAlertCached(
     );
 
     distancesCache.set(cacheKey, result);
+
+    return result;
+}
+
+const routeChgsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+
+async function getRouteChangesCached(
+    alertId: string,
+    db: DbLocals
+) {
+    const cacheKey = `routeChanges_${alert.id}`;
+
+    let result = routeChgsCache.get<RouteChangesResponse|null>(cacheKey);
+    if (result !== undefined) return result;
+
+    result = await getRouteChanges(alertId, null, db.alertsDbApi, db.gtfsDbApi);
+    routeChgsCache.set(cacheKey, result);
 
     return result;
 }
