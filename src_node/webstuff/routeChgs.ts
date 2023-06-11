@@ -335,6 +335,8 @@ const ROUTE_DESC_DIR_ALT_REGEX = /^[^-]+-([^-]+)-([^-]+)$/g;
 function labelLineChangesHeadsignsForDirectionAndAlternative(
     mut_lineChanges: RouteChangeForApi[]
 ) {
+    // TODO i may have screwed up the logic here? (or in the helper function) ; check this
+
     const headsignToDirAltPairs: Record<string, [string, string][]> = {};
 
     const headsignDirAlt_perChange: [string, [string, string]][] = [];

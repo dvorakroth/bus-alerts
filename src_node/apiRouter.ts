@@ -40,6 +40,12 @@ apiRouter.get("/get_route_changes", asyncHandler(async (req, res: express.Respon
     res.json(await getRouteChangesCached(alertId, res.locals));
 }));
 
+// TODO implement the single alert api
+
+// TODO implement the list o' lines api
+
+// TODO implement the changes-per-line api
+
 type AllAlertsResult = {
     rawAlertsById: Record<string, AlertWithRelatedInDb>,
     alerts: AlertForApi[],
