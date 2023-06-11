@@ -131,3 +131,11 @@ export function *zip<S, T>(a: Iterable<S>, b: Iterable<T>): IterableIterator<[S,
         yield [aNext.value, bNext.value];
     } while(true);
 }
+
+export function *chainIterables<S>(...iterables: Iterable<S>[]) {
+    for (const iterable of iterables) {
+        for (const item of iterable) {
+            yield item;
+        }
+    }
+}

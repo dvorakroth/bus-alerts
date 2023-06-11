@@ -4,8 +4,8 @@ import { AlertsDbApi } from "./alertsDbApi.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
 import { findRepresentativeDateForRouteChangesInAlert, getHeadsign } from "./alerts.js";
 import winston from "winston";
-import { RouteChangeForApi } from "../apiTypes.js";
-import { compareNple, inPlaceSortAndUnique, zip } from "../generalJunkyard.js";
+import { MapBoundingBox, RouteChangeForApi, StopForMap } from "../apiTypes.js";
+import { chainIterables, compareNple, inPlaceSortAndUnique, zip } from "../generalJunkyard.js";
 
 export async function getRouteChanges(
     alertId: string,
@@ -137,7 +137,20 @@ export async function getRouteChanges(
     }
 
     // 8. bounding box for the map widget
-    // TODO
+    const map_bounding_box = boundingBoxForStops(
+        chainIterables(
+            alertRaw.added_stop_ids,
+            alertRaw.removed_stop_ids,
+            nearStopIds
+        ),
+        stops_for_map
+    );
+
+    return {
+        route_changes: changes_by_agency_and_line,
+        stops_for_map,
+        map_bounding_box
+    };
 }
 
 function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
@@ -434,4 +447,43 @@ function getNumberForDirection(
     inPlaceSortAndUnique(justDirections);
 
     return justDirections.indexOf(dirId) + 1;
+}
+
+function boundingBoxForStops(
+    stopIds: Iterable<string>,
+    stops_for_map: Record<string, StopForMap>
+): MapBoundingBox {
+    /**
+     * get bounding box of affected stops, for setting the maps' bounding box
+     */
+
+    let min_lon = Infinity;
+    let min_lat = Infinity;
+    let max_lon = -Infinity;
+    let max_lat = -Infinity;
+
+    for (const stopId of stopIds) {
+        const stop = stops_for_map[stopId];
+        if (!stop) continue;
+
+        if (min_lon > stop.stop_lon) {
+            min_lon = stop.stop_lon;
+        }
+        if (min_lat > stop.stop_lat) {
+            min_lat = stop.stop_lat;
+        }
+        if (max_lon < stop.stop_lon) {
+            max_lon = stop.stop_lon;
+        }
+        if (max_lat < stop.stop_lat) {
+            max_lat = stop.stop_lat;
+        }
+    }
+
+    return {
+        min_lon,
+        min_lat,
+        max_lon,
+        max_lat
+    };
 }

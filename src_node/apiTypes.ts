@@ -41,10 +41,23 @@ export type RouteChangeForApi = RouteMetadata & {
     shape: [number, number][], // [[lon, lat], [lon, lat], ...]
     deleted_stop_ids: string[],
     updated_stop_sequence: [string, boolean][] // [[stop_id, is_added], [stop_id, is_added], ...]
-}
+};
+
+export type StopForMap = {
+    stop_id: string,
+    stop_lon: number,
+    stop_lat: number
+};
+
+export type MapBoundingBox = {
+    min_lon: number,
+    min_lat: number,
+    max_lon: number,
+    max_lat: number
+};
 
 export type RouteChangesResponse = {
     route_changes: Record<string, Record<string, RouteChangeForApi[]>>, // agency_id -> line_number -> changes[]
-    stop_for_map: {}, // TODO
-    map_bounding_box: {} // TODO
+    stops_for_map: Record<string, StopForMap>,
+    map_bounding_box: MapBoundingBox
 };

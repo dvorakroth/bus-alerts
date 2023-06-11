@@ -2,7 +2,7 @@ import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { GTFS_CALENDAR_DOW, copySortAndUnique } from "../generalJunkyard.js";
 import { DateTime } from "luxon";
-import { RouteMetadata } from "../apiTypes.js";
+import { RouteMetadata, StopForMap } from "../apiTypes.js";
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
@@ -275,12 +275,6 @@ type Stop = {
     stop_lat: number,
     stop_name: string,
     stop_code: string
-};
-
-type StopForMap = {
-    stop_id: string,
-    stop_lon: number,
-    stop_lat: number
 };
 
 export type AlertSupplementalMetadata = {

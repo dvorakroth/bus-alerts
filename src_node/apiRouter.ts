@@ -1,12 +1,12 @@
 import express from "express";
 import { DbLocals, asyncHandler, tryParsingQueryCoordinate } from "./webstuff/webJunkyard.js";
 import NodeCache from "node-cache";
-import winston from "winston";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
-import { AlertForApi } from "./apiTypes.js";
+import { AlertForApi, RouteChangesResponse } from "./apiTypes.js";
 import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
+import { getRouteChanges } from "./webstuff/routeChgs.js";
 
 export const apiRouter = express.Router();
 
@@ -148,7 +148,7 @@ async function getRouteChangesCached(
     alertId: string,
     db: DbLocals
 ) {
-    const cacheKey = `routeChanges_${alert.id}`;
+    const cacheKey = `routeChanges_${alertId}`;
 
     let result = routeChgsCache.get<RouteChangesResponse|null>(cacheKey);
     if (result !== undefined) return result;
