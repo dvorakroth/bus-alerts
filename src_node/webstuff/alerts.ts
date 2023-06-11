@@ -247,7 +247,7 @@ async function getDepartureChanges(alert: AlertWithRelatedInDb, gtfsDbApi: GtfsD
     return result;
 }
 
-function findRepresentativeDateForRouteChangesInAlert(alert: AlertWithRelatedInDb) {
+export function findRepresentativeDateForRouteChangesInAlert(alert: AlertWithRelatedInDb) {
     const activePeriodsParsed = alert.active_periods.raw.map(
         ([start, end]) => [parseUnixtimeIntoJerusalemTz(start), parseUnixtimeIntoJerusalemTz(end)]
     );
