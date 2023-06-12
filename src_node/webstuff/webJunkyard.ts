@@ -23,7 +23,7 @@ export function asyncHandler<
     }
 }
 
-const COORD_REGEX = /^(?<x>\d+(\.\d+)?)_(?<y>\d+(\.\d+)?)$/g;
+const COORD_REGEX = /^(?<lat>\d+(\.\d+)?)_(?<lon>\d+(\.\d+)?)$/g;
 export function tryParsingQueryCoordinate(coordinate: string|undefined): null|[number, number] {
     if (!coordinate) return null;
 
@@ -31,7 +31,7 @@ export function tryParsingQueryCoordinate(coordinate: string|undefined): null|[n
     if (!match) return null;
 
     return [
-        Math.round(parseFloat(match.groups["x"]) * 1_000_000) / 1_000_000,
-        Math.round(parseFloat(match.groups["y"]) * 1_000_000) / 1_000_000
+        Math.round(parseFloat(match.groups["lat"]) * 1_000_000) / 1_000_000,
+        Math.round(parseFloat(match.groups["lon"]) * 1_000_000) / 1_000_000
     ];
 }
