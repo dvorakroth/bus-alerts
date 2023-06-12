@@ -6,9 +6,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite serve src_client",
-    "build": "vite build src_client --outDir ../dist --emptyOutDir",
     "preview": "vite preview src_client",
-    "server": "ts-node src_node/webServer.ts"
+    "server": "ts-node src_node/webServer.ts",
+
+    "build:client": "vite build src_client --outDir ../dist --emptyOutDir",
+    "build:server": "tsc --sourceMap --project src_node",
+    "build": "npm run build:client && npm run build:server"
   },
   "author": "ish@ish.works",
   "license": "WTFPL",
