@@ -335,8 +335,6 @@ const ROUTE_DESC_DIR_ALT_REGEX = /^[^-]+-([^-]+)-([^-]+)$/g;
 function labelLineChangesHeadsignsForDirectionAndAlternative(
     mut_lineChanges: RouteChangeForApi[]
 ) {
-    // TODO i may have screwed up the logic here? (or in the helper function) ; check this
-
     const headsignToDirAltPairs: Record<string, [string, string][]> = {};
 
     const headsignDirAlt_perChange: [string, [string, string]][] = [];
@@ -347,7 +345,10 @@ function labelLineChangesHeadsignsForDirectionAndAlternative(
         
         // using matchAll here because i want to avoid Weird JS Regex Behavior(tm)
         const regexMatch = [...chg.route_desc.matchAll(ROUTE_DESC_DIR_ALT_REGEX)][0];
-        const pair: [string, string] = [regexMatch?.[0] ?? "", regexMatch?.[0] ?? ""];
+        const pair: [string, string] = [
+            regexMatch?.[1] ?? "",
+            regexMatch?.[2] ?? ""
+        ];
 
         dirAltPairs.push(pair);
         headsignDirAlt_perChange.push([chg.to_text, pair]);
