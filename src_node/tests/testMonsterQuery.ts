@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
-import { JERUSALEM_TZ } from "../loaderUtils/loaderJunkyard.js";
 import { generateQuery__fetchAllRouteIdsAtStopsInDateranges } from "../loaderUtils/loadServiceAlertsImpl.js";
+import { JERUSALEM_TZ } from "../generalJunkyard.js";
 
 const activePeriodsISO = [
     // [null, "2020-01-01T00:00:00"],

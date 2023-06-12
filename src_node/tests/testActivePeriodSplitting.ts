@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
-import { JERUSALEM_TZ } from "../loaderUtils/loaderJunkyard.js";
 import { splitActivePeriodToSubperiods } from "../loaderUtils/activePeriodUtils.js";
+import { JERUSALEM_TZ } from "../generalJunkyard.js";
 
 const testDataISO = [
     ["2020-01-01T04:20:00", "2020-01-01T13:37:00"],
