@@ -12,6 +12,7 @@ import { DbLocals } from "./webstuff/webJunkyard.js";
 import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
 import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
+import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
 
 const doc = `Service Alerts App Web Server.
 
@@ -145,6 +146,35 @@ const errHandler: express.ErrorRequestHandler = (err, req, res, next) => {
 app.use(errHandler); // errHandler is a const because typescript yells at me if i inline it
 
 // actually start up the server
-app.listen(port, () => {
+const server = app.listen(port, () => {
     winston.info(`Server up and listening on port ${port}`);
 });
+
+const shutdownManager = new GracefulShutdownManager(server);
+
+process.on('SIGINT', shutDownGracefully);
+process.on('SIGTERM', shutDownGracefully);
+
+async function shutDownGracefully() {
+    winston.info("Trying to shut server down gracefully...");
+    
+    try {
+        await new Promise<void>(resolve => shutdownManager.terminate(resolve));
+    } catch (err) {
+        winston.error(err);
+    }
+
+    try {
+        await gtfsDbPool.end();
+    } catch (err) {
+        winston.error(err);
+    }
+
+    try {
+        await alertsDbPool.end();
+    } catch (err) {
+        winston.error(err);
+    }
+
+    process.exit(0);
+}

@@ -66,7 +66,7 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
             alerts: alertsAndMetadata.alerts
         });
     }
-}))
+}));
 
 // TODO implement the list o' lines api
 

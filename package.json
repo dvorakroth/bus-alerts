@@ -8,7 +8,6 @@
     "dev": "vite serve src_client",
     "preview": "vite preview src_client",
     "server": "ts-node src_node/webServer.ts",
-
     "build:client": "vite build src_client --outDir ../dist --emptyOutDir",
     "build:server": "tsc --sourceMap --project src_node",
     "build": "npm run build:client && npm run build:server"
@@ -33,6 +32,7 @@
     "vite": "^2.7.6"
   },
   "dependencies": {
+    "@moebius/http-graceful-shutdown": "^1.1.0",
     "@types/luxon": "^2.0.8",
     "@types/mapbox-gl": "^2.6.0",
     "docopt": "^0.6.2",
