@@ -7,6 +7,7 @@ import { AlertForApi, RouteChangesResponse } from "./apiTypes.js";
 import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
+import winston from "winston";
 
 export const apiRouter = express.Router();
 
@@ -52,7 +53,7 @@ type AllAlertsResult = {
     metadata: AlertSupplementalMetadata
 };
 
-const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
 async function getAllAlerts(db: DbLocals) {
     const cacheKey = "/allAlerts";
@@ -119,7 +120,7 @@ async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
     return result;
 }
 
-const distancesCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+const distancesCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
 async function distanceToAlertCached(
     alert: AlertForApi,
@@ -148,7 +149,7 @@ async function distanceToAlertCached(
     return result;
 }
 
-const routeChgsCache = new NodeCache({ stdTTL: 600, checkperiod: 620 });
+const routeChgsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
 async function getRouteChangesCached(
     alertId: string,
@@ -160,6 +161,7 @@ async function getRouteChangesCached(
     if (result !== undefined) return result;
 
     result = await getRouteChanges(alertId, null, db.alertsDbApi, db.gtfsDbApi);
+    winston.debug(`Done computing changes for alert ${alertId}`);
     routeChgsCache.set(cacheKey, result);
 
     return result;
