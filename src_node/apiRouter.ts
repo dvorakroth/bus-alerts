@@ -1,13 +1,14 @@
 import express from "express";
-import { DbLocals, asyncHandler, tryParsingQueryCoordinate } from "./webstuff/webJunkyard.js";
+import { DbLocals, LinesLocals, asyncHandler, tryParsingQueryCoordinate } from "./webstuff/webJunkyard.js";
 import NodeCache from "node-cache";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
-import { AlertForApi, RouteChangesResponse } from "./apiTypes.js";
+import { AlertForApi, AllLinesResponse, RouteChangesResponse } from "./apiTypes.js";
 import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
 import winston from "winston";
+import { getAllLines } from "./webstuff/allLines.js";
 
 export const apiRouter = express.Router();
 
@@ -68,7 +69,14 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
     }
 }));
 
-// TODO implement the list o' lines api
+apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>) => {
+    // const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+
+    // TODO location?
+    const allLines = await getAllLinesCached(res.locals);
+
+    res.json(allLines);
+}))
 
 // TODO implement the changes-per-line api
 
@@ -229,6 +237,20 @@ async function getRouteChangesCached(
     result = await getRouteChanges(alertId, null, db.alertsDbApi, db.gtfsDbApi);
     winston.debug(`Done computing changes for alert ${alertId}`);
     routeChgsCache.set(cacheKey, result);
+
+    return result;
+}
+
+const linesCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
+
+async function getAllLinesCached(dbAndLines: DbLocals&LinesLocals) {
+    const cacheKey = "/all_lines";
+
+    let result = linesCache.get<AllLinesResponse>(cacheKey);
+    if (result) return result;
+
+    result = await getAllLines(dbAndLines.alertsDbApi, dbAndLines.groupedRoutes);
+    linesCache.set(cacheKey, result);
 
     return result;
 }

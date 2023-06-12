@@ -125,7 +125,7 @@ function alertSortingNple(alert: AlertForApi) {
     ] as const;
 }
 
-function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime, null|DateTime] {
+export function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime, null|DateTime] {
     if (alert.is_deleted || alert.is_expired) return [null, null];
 
     const todayInJerusalem = DateTime.now().setZone(JERUSALEM_TZ).set({

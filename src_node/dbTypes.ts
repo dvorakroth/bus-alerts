@@ -121,3 +121,35 @@ export type AlertWithRelatedInDb = BaseAlertInDb & {
     is_deleted: boolean,
     is_expired: boolean
 };
+
+export type tmp__actual_lines_Row = {
+    // the rows of the table called tmp__actual_lines
+    
+    mot_license_id: string;
+    route_short_name: string;
+    agency_id: string;
+    headsign_1: string|null;
+    headsign_2: string|null;
+    is_night_line: boolean;
+    all_directions_grouped: LineAlt[];
+    all_stopids_distinct: string[];
+};
+
+export type ActualLine = tmp__actual_lines_Row & {
+    pk: string;
+    main_cities: string[];
+    secondary_cities: string[];
+};
+
+export type LineAlt = {
+    alt_id: string;
+    directions: LineDir[];
+};
+
+export type LineDir = {
+    dir_id: string;
+    route_id: string;
+    headsign: string|null;
+    city_list: string[];
+    is_circular: boolean;
+}

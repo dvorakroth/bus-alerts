@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { BaseAlert } from "./dbTypes.js";
+import { ActualLine, BaseAlert } from "./dbTypes.js";
 
 export type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
@@ -65,4 +65,20 @@ export type RouteChangesResponse = {
 export type Agency = {
     agency_id: string,
     agency_name: string
+};
+
+export type ActualLineWithAlertCount = 
+    Omit<ActualLine, "all_directions_grouped">
+    & {
+        num_alerts: number;
+        first_relevant_date: DateTime|null;
+        num_relevant_today: number|null;
+        num_removed_stops: number|null;
+    };
+
+export type AllLinesResponse = {
+    lines_with_alert: ActualLineWithAlertCount[];
+    all_lines: ActualLineWithAlertCount[];
+    all_agencies: Record<string, Agency>;
+    uses_location: boolean;
 };

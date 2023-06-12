@@ -1,7 +1,8 @@
 import fs from "fs";
 import pg from "pg";
-import { Agency } from "./apiTypes.js";
-import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
+import { Agency } from "../apiTypes.js";
+import { GtfsDbApi } from "./gtfsDbApi.js";
+import { ActualLine, tmp__actual_lines_Row } from "../dbTypes.js";
 
 export type GroupedRoutes = {
     allAgencies: Record<string, Agency>;
@@ -9,36 +10,6 @@ export type GroupedRoutes = {
     actualLinesDict: Record<string, ActualLine>;
     actualLinesByRouteId: Record<string, string>;
 };
-
-type tmp__actual_lines_Row = {
-    mot_license_id: string;
-    route_short_name: string;
-    agency_id: string;
-    headsign_1: string|null;
-    headsign_2: string|null;
-    is_night_line: boolean;
-    all_directions_grouped: LineAlt[];
-    all_stopids_distinct: string[];
-};
-
-export type ActualLine = tmp__actual_lines_Row & {
-    pk: string;
-    main_cities: string[];
-    secondary_cities: string[];
-};
-
-export type LineAlt = {
-    alt_id: string;
-    directions: LineDir[];
-};
-
-export type LineDir = {
-    dir_id: string;
-    route_id: string;
-    headsign: string|null;
-    city_list: string[];
-    is_circular: boolean;
-}
 
 export async function groupRoutes(
     routeGroupingScriptPath: string,

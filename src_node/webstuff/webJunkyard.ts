@@ -2,7 +2,7 @@ import express from "express";
 import core from "express-serve-static-core";
 import { AlertsDbApi } from "./alertsDbApi.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
-import { GroupedRoutes } from "../routeGrouping.js";
+import { GroupedRoutes } from "./routeGrouping.js";
 
 export type DbLocals = {
     alertsDbApi: AlertsDbApi

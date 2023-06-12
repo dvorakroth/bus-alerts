@@ -13,7 +13,7 @@ import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
 import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
 import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
-import { groupRoutes } from "./routeGrouping.js";
+import { groupRoutes } from "./webstuff/routeGrouping.js";
 
 const doc = `Service Alerts App Web Server.
 

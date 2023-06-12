@@ -139,3 +139,15 @@ export function *chainIterables<S>(...iterables: Iterable<S>[]) {
         }
     }
 }
+
+export function minimumDate(dateList: Iterable<DateTime>) {
+    let minimum: DateTime|null = null;
+
+    for (const d of dateList) {
+        if (minimum === null || minimum.toSeconds() > d.toSeconds()) {
+            minimum = d;
+        }
+    }
+
+    return minimum;
+}
