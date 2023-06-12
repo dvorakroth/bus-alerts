@@ -17,11 +17,7 @@ export async function getRouteChanges(
 
     alertRaw = alertRaw ?? await alertsDbApi.getSingleAlert(alertId);
 
-    if (!alertRaw) {
-        throw new Error(`Could not computer RouteChanges: alert with id ${alertId} not found`);
-    }
-
-    if (!doesAlertHaveRouteChanges(alertRaw)) {
+    if (!alertRaw || !doesAlertHaveRouteChanges(alertRaw)) {
         return null;
     }
 

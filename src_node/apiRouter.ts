@@ -12,22 +12,15 @@ import winston from "winston";
 export const apiRouter = express.Router();
 
 apiRouter.get("/all_alerts", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
-    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string);
+    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
 
-    if (coord) {
-        res.json({
-            alerts: (await getAllAlertsWithLocation(
-                res.locals,
-                coord
-            )).alerts
-        });
-    } else {
-        res.json({
-            alerts: (await getAllAlerts(
-                res.locals
-            )).alerts
-        });
-    }
+    const alertsAndMetadata = coord
+        ? await getAllAlertsWithLocation(coord, res.locals)
+        : await getAllAlerts(res.locals);
+
+    res.json({
+        alerts: alertsAndMetadata.alerts
+    });
 }));
 
 apiRouter.get("/get_route_changes", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
@@ -41,7 +34,39 @@ apiRouter.get("/get_route_changes", asyncHandler(async (req, res: express.Respon
     res.json(await getRouteChangesCached(alertId, res.locals));
 }));
 
-// TODO implement the single alert api
+apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
+    const id = req.query["id"] as string|undefined;
+    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+
+    if (!id) {
+        res.sendStatus(StatusCodes.BAD_REQUEST);
+        return;
+    }
+
+    const alertsAndMetadata = coord
+        ? await getSingleAlertWithLocation(id, coord, res.locals)
+        : await getSingleAlert(id, res.locals);
+    
+    if (!alertsAndMetadata.alerts.length) {
+        res.json({alerts: []});
+        return;
+    }
+
+    if ("route_changes" in alertsAndMetadata) {
+        // the reason i don't just yolo and send over the entire struct, is that i don't want
+        // to include the metadata and the raw alerts
+        res.json({
+            alerts: alertsAndMetadata.alerts,
+            route_changes: alertsAndMetadata.route_changes,
+            stops_for_map: alertsAndMetadata.stops_for_map,
+            map_bounding_box: alertsAndMetadata.map_bounding_box
+        });
+    } else {
+        res.json({
+            alerts: alertsAndMetadata.alerts
+        });
+    }
+}))
 
 // TODO implement the list o' lines api
 
@@ -53,12 +78,14 @@ type AllAlertsResult = {
     metadata: AlertSupplementalMetadata
 };
 
-const allAlertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
+type SingleAlertResult = AllAlertsResult | (AllAlertsResult & RouteChangesResponse);
+
+const alertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
 async function getAllAlerts(db: DbLocals) {
     const cacheKey = "/allAlerts";
 
-    let result = allAlertsCache.get<AllAlertsResult>(cacheKey);
+    let result = alertsCache.get<AllAlertsResult>(cacheKey);
     if (result) return result;
 
     const alertsRaw = await db.alertsDbApi.getAlerts();
@@ -72,21 +99,66 @@ async function getAllAlerts(db: DbLocals) {
             {}
         )
     };
-    allAlertsCache.set(cacheKey, result);
+    alertsCache.set(cacheKey, result);
 
     return result;
 }
 
-async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
+async function getSingleAlert(id: string, db: DbLocals) {
+    const cacheKey = "/single_alert/" + id;
+
+    let result = alertsCache.get<SingleAlertResult>(cacheKey);
+    if (result) return result;
+
+    const alertObjRaw = await db.alertsDbApi.getSingleAlert(id);
+    const alertsRaw = alertObjRaw ? [alertObjRaw] : [];
+    result = {
+        ...await enrichAlerts(alertsRaw, db.gtfsDbApi),
+        rawAlertsById: alertObjRaw ? {[id]: alertObjRaw} : {}
+    };
+
+    const routeChanges = await getRouteChangesCached(id, db);
+    if (routeChanges) result = {...result, ...routeChanges};
+
+    alertsCache.set(cacheKey, result);
+
+    return result;
+}
+
+async function getAllAlertsWithLocation(coord: [number, number], db: DbLocals) {
     const cacheKey = "/allAlerts___" + JSON.stringify(coord);
 
-    let result = allAlertsCache.get<AllAlertsResult>(cacheKey);
+    let result = alertsCache.get<AllAlertsResult>(cacheKey);
     if (result) return result;
 
     result = {
         ...await getAllAlerts(db)
     };
 
+    await addDistanceToAlerts(result, coord, db);
+    sortAlerts(result.alerts);
+    alertsCache.set(cacheKey, result);
+
+    return result;
+}
+
+async function getSingleAlertWithLocation(id: string, coord: [number, number], db: DbLocals) {
+    const cacheKey = JSON.stringify(coord) + "___/single_alert/" + id;
+
+    let result = alertsCache.get<SingleAlertResult>(cacheKey);
+    if (result) return result;
+
+    result = {
+        ...await getSingleAlert(id, db)
+    };
+
+    await addDistanceToAlerts(result, coord, db);
+    alertsCache.set(cacheKey, result);
+
+    return result;
+}
+
+async function addDistanceToAlerts(result: AllAlertsResult, coord: [number, number], db: DbLocals) {
     // copy the array of alerts, and copy each alert in the array
     // so that we don't set any distances on the original objects!
     result.alerts = [...result.alerts];
@@ -112,12 +184,6 @@ async function getAllAlertsWithLocation(db: DbLocals, coord: [number, number]) {
             };
         }
     }
-
-    sortAlerts(result.alerts);
-
-    allAlertsCache.set(cacheKey, result);
-
-    return result;
 }
 
 const distancesCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
