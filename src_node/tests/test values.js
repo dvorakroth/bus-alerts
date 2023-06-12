@@ -31,4 +31,5 @@ let ranges3_ISO = [
   [ '2000-05-01T08:00:00', null ]
 ];
 
-let ranges3 = ranges3_ISO.map(r => r.map(s => s ? DateTime.fromISO(s).toSeconds() : 0))
+//@ts-ignore
+let ranges3 = ranges3_ISO.map(r => r.map(s => s ? DateTime.fromISO(s).toSeconds() : 0));
