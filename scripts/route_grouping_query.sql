@@ -1,7 +1,3 @@
--- this is in the src_server directory and not scripts, because this is inten-
--- ded to be run by the web_server.py on startup
-
-
 -- introduction
 -- ------------
 --
@@ -280,7 +276,7 @@ UPDATE tmp__actual_lines
 SET headsign_2 = (
         CASE
             WHEN (all_directions_grouped #>> '{0, directions, 0, is_circular}')::BOOLEAN THEN
-                NULL -- keep the headsign_2 as null, this trip's first and last stops and less than a half mile (800 m) apart
+                NULL -- keep the headsign_2 as null, this trip's first and last stops are less than a half mile (800 m) apart
             WHEN (all_directions_grouped #>> '{1, directions, 0, headsign}') = headsign_1 THEN
                 NULL -- TODO: maybe use first stop's name? idk that'd involve switching headsign 1 and 2
             ELSE (all_directions_grouped #>> '{1, directions, 0, headsign}')

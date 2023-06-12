@@ -8,11 +8,12 @@ import pg from "pg";
 import express from "express";
 import morgan from "morgan";
 import { apiRouter } from "./apiRouter.js";
-import { DbLocals } from "./webstuff/webJunkyard.js";
+import { DbLocals, LinesLocals } from "./webstuff/webJunkyard.js";
 import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
 import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
 import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
+import { groupRoutes } from "./routeGrouping.js";
 
 const doc = `Service Alerts App Web Server.
 
@@ -56,12 +57,7 @@ winston.configure({
  // read config.ini and stuff //
 ///////////////////////////////
 
-// need to ts-ignore the __url line because i don't want to set my
-// whole entire project as a node(-only?) project in case it messes
-// up the client code lol
-// @ts-ignore
-const __url = import.meta.url;
-const __dirname = path.dirname(url.fileURLToPath(__url));
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 const commandlineOptions = docopt(doc);
 
@@ -97,7 +93,16 @@ pg.types.setTypeParser(
     (isoStr) => DateTime.fromISO(isoStr)
 );
 
-// TODO create the "actual lines list"
+
+  ////////////////////////////////////
+ // create the "actual lines" list //
+////////////////////////////////////
+winston.info("Grouping routes into Actual Lines");
+const groupedRoutes = await groupRoutes(
+    path.join(__dirname, "../scripts/route_grouping_query.sql"),
+    gtfsDbPool
+);
+winston.info("Done grouping routes");
 
 
   ////////////////////////////////////
@@ -118,9 +123,10 @@ const morganMiddleware = morgan(
 app.use(morganMiddleware);
 
 // give all requests access to the db apis
-app.use((req, res: express.Response<any, DbLocals>, next) => {
+app.use((req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
     res.locals.alertsDbApi = new AlertsDbApi(alertsDbPool);
     res.locals.gtfsDbApi = new GtfsDbApi(gtfsDbPool);
+    res.locals.groupedRoutes = groupedRoutes;
 
     next();
 });
@@ -157,7 +163,7 @@ process.on('SIGTERM', shutDownGracefully);
 
 async function shutDownGracefully() {
     winston.info("Trying to shut server down gracefully...");
-    
+
     try {
         await new Promise<void>(resolve => shutdownManager.terminate(resolve));
     } catch (err) {

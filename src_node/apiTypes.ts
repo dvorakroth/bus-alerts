@@ -5,7 +5,7 @@ export type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
     removed_stops: [string, string][]; // ditto
     relevant_lines: Record<string, string[]>; // agency_id -> [route_short_name, route_short_name, ...]
-    relevant_agencies: {agency_id: string, agency_name: string}[];
+    relevant_agencies: Agency[];
 
     first_relevant_date: null|DateTime;
     current_active_period_start: null|DateTime;
@@ -60,4 +60,9 @@ export type RouteChangesResponse = {
     route_changes: Record<string, Record<string, RouteChangeForApi[]>>, // agency_id -> line_number -> changes[]
     stops_for_map: Record<string, StopForMap>,
     map_bounding_box: MapBoundingBox
+};
+
+export type Agency = {
+    agency_id: string,
+    agency_name: string
 };

@@ -2,7 +2,7 @@ import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { GTFS_CALENDAR_DOW, copySortAndUnique } from "../generalJunkyard.js";
 import { DateTime } from "luxon";
-import { RouteMetadata, StopForMap } from "../apiTypes.js";
+import { Agency, RouteMetadata, StopForMap } from "../apiTypes.js";
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
@@ -256,12 +256,21 @@ export class GtfsDbApi {
             ({shape_pt_lon, shape_pt_lat}) => [shape_pt_lon, shape_pt_lat]
         );
     }
-}
 
-type Agency = {
-    agency_id: string,
-    agency_name: string
-};
+    async getAllAgencies() {
+        const res = await this.gtfsDbPool.query<Agency>(
+            "SELECT agency_id, agency_name FROM agency;"
+        );
+
+        return res.rows.reduce<Record<string, Agency>>(
+            (r, agency) => {
+                r[agency.agency_id] = agency;
+                return r;
+            },
+            {}
+        );
+    }
+}
 
 type Route = {
     route_id: string,

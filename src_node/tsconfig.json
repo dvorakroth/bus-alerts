@@ -4,8 +4,8 @@
   "compilerOptions": {
     "outDir": "../dist_node/",
     "noImplicitAny": true,
-    "module": "es6",
-    "target": "es6",
+    "module": "node16",
+    "target": "es2017",
     "allowJs": true,
     "moduleResolution": "node16",
     "importsNotUsedAsValues": "remove",
