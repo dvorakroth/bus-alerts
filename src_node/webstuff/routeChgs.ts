@@ -149,7 +149,7 @@ export async function getRouteChanges(
     };
 }
 
-function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
+export function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
     return (
         alertRaw.use_case === AlertUseCase.StopsCancelled
         || alertRaw.use_case === AlertUseCase.RouteChangesFlex
@@ -158,7 +158,7 @@ function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
     );
 }
 
-type ApplyAlertState = {
+export type ApplyAlertState = {
     representativeDate: DateTime|null,
     representativeTripId: string|null,
     rawStopSeq: string[]|null,
@@ -166,7 +166,7 @@ type ApplyAlertState = {
     deletedStopIds: Set<string>
 };
 
-async function applyAlertToRoute(
+export async function applyAlertToRoute(
     gtfsDbApi: GtfsDbApi,
     alertRaw: AlertWithRelatedInDb,
     route_id: string,
@@ -456,7 +456,7 @@ function getNumberForDirection(
     return justDirections.indexOf(dirId) + 1;
 }
 
-function boundingBoxForStops(
+export function boundingBoxForStops(
     stopIds: Iterable<string>,
     stops_for_map: Record<string, StopForMap>
 ): MapBoundingBox {

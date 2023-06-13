@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { ActualLine, BaseAlert } from "./dbTypes.js";
+import { ActualLine, BaseAlert, LineDir, PrettyActivePeriod, TranslationObject } from "./dbTypes.js";
 
 export type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
@@ -83,3 +83,62 @@ export type AllLinesResponse = {
     all_agencies: Record<string, Agency>;
     uses_location: boolean;
 };
+
+export type StopMetadata = {
+    stop_id: string;
+    stop_lon: number;
+    stop_lat: number;
+    stop_name: string;
+    stop_code: string;
+};
+
+export type AlertMinimal = {
+    header: TranslationObject;
+    description: TranslationObject;
+    active_periods: {
+        raw: [number|null, number|null][];
+        consolidated: PrettyActivePeriod[];
+    };
+    is_deleted: boolean;
+    departure_change: DepartureChangeDetail|undefined;
+};
+
+export type AlertPeriod = {
+    start: number,
+    end: number,
+    bitmask: number
+};
+
+export type AlertPeriodWithRouteChanges = AlertPeriod & {
+    updated_stop_sequence: [string, boolean][];
+    deleted_stop_ids: string[];
+    raw_stop_seq: string[];
+    shape: null|([number, number][]);
+};
+
+export type FlattnedLineDir = LineDir & {
+    alt_id: string;
+    stop_seq: string[];
+    shape: null|([number, number][]); // [[lon, lat], [lon, lat], ...]
+    other_alerts: AlertMinimal[];
+    alert_periods: AlertPeriodWithRouteChanges[];
+
+    dir_name: string;
+    alt_name: string;
+}
+
+export type LineDetails = {
+    pk: string;
+    route_short_name: string;
+    agency: Agency;
+    headsign_1: string;
+    headsign_2: string;
+    is_night_line: boolean;
+    dirs_flattened: FlattnedLineDir[];
+};
+
+export type SingleLineChanges = {
+    line_details: LineDetails;
+    all_stops: Record<string, StopMetadata>;
+    map_bounding_box: MapBoundingBox;
+}

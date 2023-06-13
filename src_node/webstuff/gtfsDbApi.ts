@@ -2,7 +2,7 @@ import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { GTFS_CALENDAR_DOW, arrayToDict, arrayToDictDifferent, copySortAndUnique } from "../generalJunkyard.js";
 import { DateTime } from "luxon";
-import { Agency, RouteMetadata, StopForMap } from "../apiTypes.js";
+import { Agency, RouteMetadata, StopForMap, StopMetadata } from "../apiTypes.js";
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
@@ -199,6 +199,28 @@ export class GtfsDbApi {
                     stop_lat
                 FROM stops
                 WHERE stop_id = ANY($1::varchar[]);
+            `,
+            [stopIds]
+        );
+
+        return arrayToDict(res.rows, r => r.stop_id);
+    }
+
+    async getStopMetadata(stopIds: string[]) {
+        if (!stopIds.length) {
+            return {};
+        }
+
+        const res = await this.gtfsDbPool.query<StopMetadata, [string[]]>(
+            `
+            SELECT
+                stop_id,
+                stop_lon,
+                stop_lat,
+                stop_name,
+                stop_code
+            FROM stops
+            WHERE stop_id = ANY($1::varchar[]);
             `,
             [stopIds]
         );

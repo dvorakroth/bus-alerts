@@ -3,12 +3,12 @@ import { DbLocals, LinesLocals, asyncHandler, tryParsingQueryCoordinate } from "
 import NodeCache from "node-cache";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
-import { AlertForApi, AllLinesResponse, RouteChangesResponse } from "./apiTypes.js";
+import { AlertForApi, AllLinesResponse, RouteChangesResponse, SingleLineChanges } from "./apiTypes.js";
 import { AllAlertsResult, calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
 import winston from "winston";
-import { getAllLines } from "./webstuff/alertsByLine.js";
+import { getAllLines, getSingleLine } from "./webstuff/alertsByLine.js";
 
 export const apiRouter = express.Router();
 
@@ -78,8 +78,18 @@ apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, 
     res.json(allLines);
 }))
 
-// TODO implement the changes-per-line api
+apiRouter.get("/single_line", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>) => {
+    const id = req.query["id"] as string|undefined;
 
+    if (!id) {
+        res.sendStatus(StatusCodes.BAD_REQUEST);
+        return;
+    }
+
+    const lineChanges = await getSingleLineCached(id, res.locals);
+
+    res.json(lineChanges);
+}));
 
 type SingleAlertResult = AllAlertsResult | (AllAlertsResult & RouteChangesResponse);
 
@@ -233,6 +243,23 @@ async function getAllLinesCached(dbAndLines: DbLocals&LinesLocals) {
     if (result) return result;
 
     result = await getAllLines(dbAndLines.alertsDbApi, dbAndLines.groupedRoutes);
+    linesCache.set(cacheKey, result);
+
+    return result;
+}
+
+async function getSingleLineCached(id: string, dbAndLines: DbLocals&LinesLocals) {
+    const cacheKey = "/single_line_" + id;
+
+    let result = linesCache.get<SingleLineChanges|null>(cacheKey);
+    if (result !== undefined) return result;
+
+    result = await getSingleLine(
+        id,
+        await getAllAlerts(dbAndLines),
+        dbAndLines.groupedRoutes,
+        dbAndLines.gtfsDbApi
+    );
     linesCache.set(cacheKey, result);
 
     return result;
