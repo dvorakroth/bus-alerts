@@ -1,5 +1,11 @@
 import { DateTime } from "luxon";
-import { ActualLine, BaseAlert, LineDir, PrettyActivePeriod, TranslationObject } from "./dbTypes.js";
+import { ActualLine, BaseAlert, ConsolidatedActivePeriod, LineDir, PrettyActivePeriod, SimpleActivePeriod, TranslationObject } from "./dbTypes.js";
+
+export type {
+    PrettyActivePeriod,
+    SimpleActivePeriod,
+    ConsolidatedActivePeriod
+};
 
 export type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
@@ -37,11 +43,12 @@ export type AlertForApi = BaseAlert & AlertAdditionalData & {
 export type RouteChangeForApi = RouteMetadata & {
     to_text: string,
     dir_name?: string,
-    alt_name?: string,
-    shape: [number, number][], // [[lon, lat], [lon, lat], ...]
-    deleted_stop_ids: string[],
-    updated_stop_sequence: [string, boolean][] // [[stop_id, is_added], [stop_id, is_added], ...]
-};
+    alt_name?: string
+} & RouteChangeMapData;
+//     shape: [number, number][], // [[lon, lat], [lon, lat], ...]
+//     deleted_stop_ids: string[],
+//     updated_stop_sequence: [string, boolean][] // [[stop_id, is_added], [stop_id, is_added], ...]
+// };
 
 export type StopForMap = {
     stop_id: string,
@@ -109,12 +116,16 @@ export type AlertPeriod = {
     bitmask: number
 };
 
-export type AlertPeriodWithRouteChanges = AlertPeriod & {
+export type RouteChangeMapData = {
     updated_stop_sequence: [string, boolean][];
     deleted_stop_ids: string[];
-    raw_stop_seq: string[];
+    raw_stop_seq?: string[];
     shape: null|([number, number][]);
-};
+
+    map_bounding_box?: MapBoundingBox; // TODO actually use this lol
+}
+
+export type AlertPeriodWithRouteChanges = AlertPeriod & RouteChangeMapData;
 
 export type FlattnedLineDir = LineDir & {
     alt_id: string;

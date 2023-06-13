@@ -1,7 +1,7 @@
 // did you know? firefox doesn't support es6 modules in web workers as of 2022-01-16 -_-
 
 // import { FuriousIndex } from "../FuriousSearch/furiousindex";
-// import { ServiceAlert } from "./data";
+// import { ServiceAlert } from "./protocol";
 // import { isDoSearch, isNewData, SearchWorkerRequest, SEARCH_KEYS, SEARCH_THRESHOLD, SORT_COMPARE_FUNC } from "./search_worker_data"
 
 // let searchIndex: FuriousIndex<ServiceAlert> = null;

@@ -436,5 +436,7 @@ function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
         }
     }
 
+    // TODO: maybe add edge periods starting at 1970 and ending at 2500 with bitmask 0 to help the ui along?
+
     return allPeriods;
 }

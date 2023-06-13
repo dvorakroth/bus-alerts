@@ -1,5 +1,5 @@
 import { FuriousKeyDefinition, FuriousSortFunc } from "../FuriousSearch/furiousindex";
-import { ActualLine, ServiceAlert } from "./data";
+import { ActualLine, ServiceAlert } from "./protocol";
 
 // export type SearchWorkerMessageNewData = {
 //     msg: "newdata",
@@ -54,11 +54,11 @@ export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
         weight: 1
     },
     {
-        get: a => a.headsign_1,
+        get: a => a.headsign_1 ?? "",
         weight: 0.1
     },
     {
-        get: a => a.headsign_2,
+        get: a => a.headsign_2 ?? "",
         weight: 0.1
     },
     {
@@ -74,12 +74,12 @@ export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
 export const ALERT_SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
     {
         // "name": "header.he",
-        "get": (a) => a.header.he,
+        "get": (a) => a.header.he ?? "",
         "weight": 1
     },
     {
         // "name": "description.he",
-        "get": (a) => a.description.he,
+        "get": (a) => a.description.he ?? "",
         "weight": 0.3
     },
     {

@@ -7,7 +7,12 @@ const DIRECTION_NAME_LABEL = "כוון";
 const ALTERNATIVE_NAME_LABEL = "חלופה";
 const CIRCULAR_LABEL = "מעגלי";
 
-function direction_text(direction: string, is_circular?: boolean, alt_name?: string, dir_name?: string) {
+function direction_text(
+    direction: string,
+    is_circular: boolean|null|undefined,
+    alt_name: string|null|undefined,
+    dir_name: string|null|undefined
+) {
     let result = TOWARDS_LABEL + direction;
 
     if (dir_name || alt_name || is_circular) {
@@ -52,13 +57,13 @@ function direction_text(direction: string, is_circular?: boolean, alt_name?: str
 }
 interface DirectionChooserDirectionProps {
     direction: string;
-    is_circular?: boolean;
-    alt_name?: string;
-    dir_name?: string;
+    is_circular?: boolean|null;
+    alt_name?: string|null;
+    dir_name?: string|null;
     has_alerts?: boolean;
     isSelected: boolean;
     index: number;
-    onDirectionClick: (index: number, event: React.MouseEvent) => void;
+    onDirectionClick: null|((index: number, event: React.MouseEvent) => void);
 }
 const DirectionChooserDirection = React.memo(
     (
@@ -70,18 +75,18 @@ const DirectionChooserDirection = React.memo(
         return <li role="radio"
             aria-selected={isSelected}
             onClick={onClick}
-            className={isSelected ? "is-selected" : null}>
+            className={isSelected ? "is-selected" : ""}>
             {!has_alerts ? null : <img src={hazardSvg} alt="יש התראות" height="15" />}
             {direction_text(direction, is_circular, alt_name, dir_name)}
         </li>;
     }
 );
 type DirectionItem =
-    ({ to_text: string; } | { headsign: string; }) 
+    ({ to_text: string|null; } | { headsign: string|null; }) 
     & {
-        is_circular?: boolean,
-        alt_name?: string,
-        dir_name?: string,
+        is_circular?: boolean|null,
+        alt_name?: string|null,
+        dir_name?: string|null,
         has_alerts?: boolean
     };
 
@@ -104,7 +109,7 @@ export default function DirectionChooser({ changes_for_line, onNewSelection, sel
     );
 
     return <div className="direction-chooser-wrapper" role="radiogroup" aria-labelledby="choose-direction-label">
-        <h2 id="choose-direction-label" style={hideCaption ? {display: 'none'} : null}>{CHOOSE_DIRECTION_LABEL}</h2>
+        <h2 id="choose-direction-label" style={hideCaption ? {display: 'none'} : {}}>{CHOOSE_DIRECTION_LABEL}</h2>
         <ul className="direction-chooser">
             {changes_for_line?.map?.((change, idx) => <DirectionChooserDirection key={idx}
                 direction={extractToTextOrHeadsign(change)}

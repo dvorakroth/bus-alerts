@@ -1,5 +1,3 @@
-import { JsDict } from "./data";
-
 import agencyUrl_2 from './assets/agency_logos/agency-2.svg';
 import agencyUrl_3 from './assets/agency_logos/agency-3.svg';
 import agencyUrl_4 from './assets/agency_logos/agency-4.svg';
@@ -32,7 +30,7 @@ import agencyUrl_45 from './assets/agency_logos/agency-45.png';
 import agencyUrl_50 from './assets/agency_logos/agency-50.png';
 import agencyUrl_91 from './assets/agency_logos/agency-91.png';
 
-const AGENCY_LOGOS: JsDict<string> = {
+const AGENCY_LOGOS: Record<string, string> = {
     2: agencyUrl_2,
     3: agencyUrl_3,
     4: agencyUrl_4,
@@ -82,7 +80,7 @@ export function imageNameForAgencyId(agency_id: string) {
 if (!(window as any).AGENCY_LOGOS_PRELOADED) {
     // (window as any).AGENCY_LOGOS_PRELOADED = true;
 
-    const alreadyFound: JsDict<HTMLImageElement> = (window as any).AGENCY_LOGOS_PRELOADED = {};
+    const alreadyFound: Record<string, HTMLImageElement> = (window as any).AGENCY_LOGOS_PRELOADED = {};
 
     for (const k of Object.keys(AGENCY_LOGOS)) {
         const imgPath = AGENCY_LOGOS[k];

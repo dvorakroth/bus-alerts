@@ -3,7 +3,7 @@ import * as ReactRouter from "react-router-dom";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
 import { areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
-import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, JsDict, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../data";
+import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
 import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
 import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
@@ -192,9 +192,9 @@ const LineChooserLineNumber = React.memo(
 );
 
 interface LineChooserProps {
-    relevant_lines: JsDict<string[]>;
+    relevant_lines: Record<string, string[]>;
     relevant_agencies: Agency[];
-    onNewSelection: (agency_id: string, line_number: string, event: React.MouseEvent) => void;
+    onNewSelection: null|((agency_id: string, line_number: string, event: React.MouseEvent) => void);
     agencyNameMatches?: FuriousSearchMatch[];
     lineNumberMatches?: FuriousSearchMatch[];
     title?: string;
@@ -231,7 +231,7 @@ function LineChooser(
 
     const onLineClick = React.useCallback(
         (agency_id: string, line_number: string, event: React.MouseEvent) => {
-            onNewSelection(agency_id, line_number, event);
+            if (onNewSelection) onNewSelection(agency_id, line_number, event);
             setSelection([agency_id, line_number]);
         },
         [onNewSelection]
@@ -264,8 +264,8 @@ function LineChooser(
 }
 
 interface LineChooserAndMapProps extends RelevantLinesListProps {
-    route_changes: JsDict<JsDict<RouteChange[]>>;
-    stops_for_map: JsDict<StopForMap>;
+    route_changes: Record<string, Record<string, RouteChange[]>>;
+    stops_for_map: Record<string, StopForMap>;
     map_bounding_box: BoundingBox;
 }
 
@@ -309,7 +309,7 @@ function LineChooserAndMap(
 }
 
 interface LineChooserAndDepChgsProps extends RelevantLinesListProps {
-    departure_changes: JsDict<JsDict<DepartureChange[]>>;
+    departure_changes: Record<string, Record<string, DepartureChange[]>>;
 }
 
 function LineChooserAndDepChgs(
@@ -403,35 +403,37 @@ function LineAndDirectionChooser(
 function groupDepartureTimesByHour(times: string[]): JSX.Element {
     const result: JSX.Element[] = [];
 
-    let currentHour: string = null;
+    let currentHour: string|null = null;
     let currentHourEls: JSX.Element[] = [];
 
-    for (let i = 0; i < times.length + 1; i++) { // <-- cursed lol
+    function addToResult(hourToAdd: string, elsToAdd: JSX.Element[]) {
+        const hourNumber = parseInt(hourToAdd);
+        const isTomorrow = hourNumber >= 24;
+
+        result.push(
+            <li key={hourToAdd}>
+                <ul className="departure-times">
+                    {isTomorrow ? <li>(למחרת)</li> : null}
+                    {elsToAdd}
+                </ul>
+            </li>
+        );
+    }
+
+    for (let i = 0; i < times.length; i++) {
         let t = times[i];
-        const firstColon = t ? t.indexOf(':') : null;
-        const hour = t?.substring?.(0, firstColon >= 0 ? firstColon : t.length);
+        if (!t) continue;
+
+        const firstColon = t.indexOf(':');
+        const hour = t.substring(0, firstColon >= 0 ? firstColon : t.length);;
 
         if (hour !== currentHour) {
-            if (currentHourEls.length) {
-                const currentHourNumber = parseInt(currentHour);
-                const isTomorrow = currentHourNumber >= 24;
-        
-                result.push(
-                    <li key={currentHour}>
-                        <ul className="departure-times">
-                            {isTomorrow ? <li>(למחרת)</li> : null}
-                            {currentHourEls}
-                        </ul>
-                    </li>
-                );
+            if (currentHour !== null && currentHourEls.length) {
+                addToResult(currentHour, currentHourEls);
             }
 
             currentHour = hour;
             currentHourEls = [];
-        }
-
-        if (!t) {
-            break;
         }
 
         const currentHourNumber = parseInt(currentHour);
@@ -445,6 +447,11 @@ function groupDepartureTimesByHour(times: string[]): JSX.Element {
         currentHourEls.push(
             <li key={t}>{t}</li>
         );
+    }
+
+    if (currentHour !== null && currentHourEls.length) {
+        // add any leftovers
+        addToResult(currentHour, currentHourEls);
     }
 
     return <>{result}</>;
@@ -471,7 +478,7 @@ function DepartureChangesView({departure_change: {added_hours, removed_hours}}: 
 }
 
 interface SingleAlertViewProps {
-    data?: AlertsResponse;
+    data: AlertsResponse|null;
     isLoading: boolean;
     isModal: boolean;
     showDistance: boolean;
@@ -511,27 +518,27 @@ function SingleAlertView(
 
     const alert = data?.alerts?.[0];
 
-    const {
-        first_start_time,
-        first_relevant_date,
-        active_periods,
-        header,
-        description,
+    // const {
+    //     first_start_time,
+    //     first_relevant_date,
+    //     active_periods,
+    //     header,
+    //     description,
 
-        is_deleted,
-        is_expired,
+    //     is_deleted,
+    //     is_expired,
 
-        relevant_agencies,
-        relevant_lines,
-        added_stops,
-        removed_stops,
+    //     relevant_agencies,
+    //     relevant_lines,
+    //     added_stops,
+    //     removed_stops,
 
-        distance,
-        departure_changes
-    } = alert || {};
+    //     distance,
+    //     departure_changes
+    // } = alert || {};
 
-    const should_show_map = shouldShowMapForAlert(alert);
-    const should_show_departure_chgs = shouldShowDepartureChangesForAlert(alert);
+    const should_show_map = alert ? shouldShowMapForAlert(alert): false;
+    const should_show_departure_chgs = alert ? shouldShowDepartureChangesForAlert(alert) : false;
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -555,18 +562,18 @@ function SingleAlertView(
                     </>
                     : null
             }
-            {!data?.alerts?.length ? null :
+            {!alert ? null :
                 <div className="single-alert-content line-number-big">
-                        <RelevanceTag is_deleted={is_deleted} is_expired={is_expired} first_start_time={first_start_time} first_relevant_date={first_relevant_date} />
-                        {showDistance
-                            ? <DistanceTag distance={distance}/>
+                        <RelevanceTag is_deleted={alert.is_deleted} is_expired={alert.is_expired} first_start_time={alert.first_start_time} first_relevant_date={alert.first_relevant_date} />
+                        {showDistance && alert.distance !== undefined
+                            ? <DistanceTag distance={alert.distance}/>
                             : null}
-                        <h1><MatchedString s={header.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
-                        <ActivePeriodsView active_periods={active_periods.consolidated}/>
+                        <h1><MatchedString s={alert.header.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
+                        <ActivePeriodsView active_periods={alert.active_periods.consolidated}/>
                         {
-                            should_show_map
-                                ? <LineChooserAndMap relevant_agencies={relevant_agencies}
-                                                     relevant_lines={relevant_lines}
+                            should_show_map && data.route_changes && data.stops_for_map && data.map_bounding_box
+                                ? <LineChooserAndMap relevant_agencies={alert.relevant_agencies}
+                                                     relevant_lines={alert.relevant_lines}
                                                      route_changes={data.route_changes}
                                                      stops_for_map={data.stops_for_map}
                                                      map_bounding_box={data.map_bounding_box}
@@ -574,28 +581,28 @@ function SingleAlertView(
                                                      lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]} />
                                 : 
                                     should_show_departure_chgs
-                                        ? <LineChooserAndDepChgs relevant_agencies={relevant_agencies}
-                                                                 relevant_lines={relevant_lines}
+                                        ? <LineChooserAndDepChgs relevant_agencies={alert.relevant_agencies}
+                                                                 relevant_lines={alert.relevant_lines}
                                                                  agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
                                                                  lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]}
-                                                                 departure_changes={departure_changes} />
-                                        : <RelevantLinesOrAgencies relevant_agencies={relevant_agencies}
-                                                                   relevant_lines={relevant_lines}
+                                                                 departure_changes={alert.departure_changes} />
+                                        : <RelevantLinesOrAgencies relevant_agencies={alert.relevant_agencies}
+                                                                   relevant_lines={alert.relevant_lines}
                                                                    agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
                                                                    lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]} />
                         }
                         
-                        <RelevantStopsList relevant_stops={removed_stops}
+                        <RelevantStopsList relevant_stops={alert.removed_stops}
                                            isRemoved={true}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
                                            stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
-                        <RelevantStopsList relevant_stops={added_stops}
+                        <RelevantStopsList relevant_stops={alert.added_stops}
                                            isRemoved={false}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
                                            stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
 
                         <h2>{DISCLAIMER_MOT_DESC}</h2>
-                        <pre><MatchedString s={description.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
+                        <pre><MatchedString s={alert.description.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
                 </div>
             }
             <LoadingOverlay shown={isLoading} />
@@ -605,12 +612,12 @@ function SingleAlertView(
 
 export function FullPageSingleAlert() {
     const params = ReactRouter.useParams<"id">();
-    const [data, setData] = React.useState<AlertsResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse|null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
         if (!data) {
-            fetch("/api/single_alert?id=" + encodeURIComponent(params.id))
+            fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
                 .then((response) => response.json())
                 .then((data: AlertsResponse) => {
                     setData(data);
@@ -643,7 +650,7 @@ export function ModalSingleAlert() {
         || alert.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
 
     const [isLoading, setIsLoading] = React.useState<boolean>(hasRouteChanges);
-    const [data, setData] = React.useState<AlertsResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse|null>(null);
 
     React.useEffect(() => {
         if (hasRouteChanges && !data) {
@@ -659,6 +666,6 @@ export function ModalSingleAlert() {
     return <SingleAlertView data={{alerts: [locationState.alert], ...(data || {})}}
                             isLoading={isLoading}
                             isModal={true}
-                            showDistance={locationState?.showDistance}
+                            showDistance={locationState?.showDistance ?? false}
                             matches={locationState?.matches} />;
 }

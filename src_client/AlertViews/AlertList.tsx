@@ -2,7 +2,7 @@ import * as React from "react";
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
 import { FuriousSearchResult } from "../../FuriousSearch/furiousindex";
 import { AlertSummary } from "./AlertSummary";
-import { ServiceAlert } from "../data";
+import { ServiceAlert } from "../protocol";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
@@ -41,8 +41,8 @@ export default function AlertList({alerts, showDistance, noAlertsToday}: AlertLi
         [alerts, noAlertsToday, showDistance]
     );
 
-    const virtuoso = React.useRef<VirtuosoHandle>(null);
-    const scrollerRef = React.useRef<HTMLElement>(null);
+    const virtuoso = React.useRef<VirtuosoHandle|null>(null);
+    const scrollerRef = React.useRef<HTMLElement|null>(null);
     const [isAtTop, setIsAtTop] = React.useState<boolean>(true);
     const atTopStateChange = React.useCallback(
         (atTop) => {

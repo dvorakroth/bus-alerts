@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 
-export function isoToLocal(dateString: string) {
+export function isoToLocal(dateString: string|null) {
     if (!dateString) {
         return null;
     } else {
@@ -19,7 +19,9 @@ export const DOW_SHORT = [
     'א׳'
 ];
 
-export function short_date_hebrew(date: DateTime) {
+export function short_date_hebrew(date: DateTime|null) {
+    if (!date) return null;
+    
     // ד׳ 22.12
     // שבת 3.7
     // etc
@@ -42,7 +44,9 @@ export function short_time_hebrew(date: DateTime) {
         + ":" 
         + make_sure_two_digits(date.minute);
 }
-export function short_datetime_hebrew(date: DateTime) {
+export function short_datetime_hebrew(date: DateTime|null) {
+    if (!date) return null;
+
     // 0שבת 3.7, בשעה 5:07
 
     return short_date_hebrew(date)

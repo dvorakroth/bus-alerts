@@ -1,6 +1,6 @@
 import * as React from "react";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
-import { Agency } from "../data";
+import { Agency } from "../protocol";
 import { imageNameForAgencyId } from "../agency_images";
 import { MatchedString, areMatchesEqual } from "../AlertViews/AlertSummary";
 import nightLinesPng from "../assets/agency_logos/night_lines.png";

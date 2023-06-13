@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
-import { Agency, JsDict, ServiceAlert } from "../data";
+import { Agency, ServiceAlert } from "../protocol";
 import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
@@ -22,18 +22,25 @@ const RELEVANCE_TEXT = {
     [RELEVANCE_LEVELS.EXPIRED]: 'פגת תוקף',
     [RELEVANCE_LEVELS.DELETED]: 'נמחקה',
 }
+
 function get_relevance_string(
     relevance_level: string,
-    relevant_date: DateTime,
-    first_start_time: DateTime
+    relevant_date: DateTime|null,
+    first_start_time: DateTime|null
 ) {
+    if (
+        relevance_level === RELEVANCE_LEVELS.DELETED
+        || relevance_level === RELEVANCE_LEVELS.EXPIRED
+        || !relevant_date
+        || !first_start_time
+    ) {
+        return RELEVANCE_TEXT[relevance_level];
+    }
+
     switch(relevance_level) {
         case RELEVANCE_LEVELS.TODAY:
         case RELEVANCE_LEVELS.TOMORROW:
             return RELEVANCE_TEXT[relevance_level] + " (יום " + DOW_SHORT[relevant_date.weekday] + ")";
-        case RELEVANCE_LEVELS.DELETED:
-        case RELEVANCE_LEVELS.EXPIRED:
-            return RELEVANCE_TEXT[relevance_level];
         case RELEVANCE_LEVELS.FUTURE:
             return RELEVANCE_TEXT[relevance_level] +
                 short_date_hebrew(relevant_date || first_start_time)
@@ -43,8 +50,8 @@ function get_relevance_string(
 export interface RelevanceTagProps {
     is_deleted: boolean;
     is_expired: boolean;
-    first_relevant_date: string;
-    first_start_time: string;
+    first_relevant_date: string|null;
+    first_start_time: string|null;
 }
 
 export const RelevanceTag = React.memo(
@@ -72,9 +79,9 @@ export const RelevanceTag = React.memo(
                 millisecond: 0
             });
 
-            if (_first_relevant_date.toMillis() === today_in_jerus.toMillis()) {
+            if (_first_relevant_date?.toMillis() === today_in_jerus.toMillis()) {
                 relevance_level = RELEVANCE_LEVELS.TODAY;
-            } else if (_first_relevant_date.toMillis() === today_in_jerus.plus({days: 1}).toMillis()) {
+            } else if (_first_relevant_date?.toMillis() === today_in_jerus.plus({days: 1}).toMillis()) {
                 relevance_level = RELEVANCE_LEVELS.TOMORROW;
             }
         }
@@ -200,7 +207,7 @@ function RelevantAgenciesList({relevant_agencies, agencyNameMatches}: RelevantAg
 }
 
 export interface RelevantLinesListProps {
-    relevant_lines: JsDict<string[]>;
+    relevant_lines: Record<string, string[]>;
     relevant_agencies: Agency[];
     agencyNameMatches?: FuriousSearchMatch[];
     lineNumberMatches?: FuriousSearchMatch[];
@@ -304,13 +311,17 @@ export const RelevantLinesOrAgencies = React.memo(
     }
 );
 
-function areMatchListsEqual(a: FuriousSearchMatch[], b: FuriousSearchMatch[]) {
+function areMatchListsEqual(a: FuriousSearchMatch[]|undefined, b: FuriousSearchMatch[]|undefined) {
     if (a === b || (!a && !b)) {
         return true;
     }
 
-    if (!a !== !b) {
-        return false;
+    if (!a) {
+        return !b?.length;
+    }
+    
+    if (!b) {
+        return !a?.length;
     }
 
     if (a.length !== b.length) {
@@ -326,13 +337,17 @@ function areMatchListsEqual(a: FuriousSearchMatch[], b: FuriousSearchMatch[]) {
     return true;
 }
 
-export function areMatchesEqual(a: FuriousSearchMatch, b: FuriousSearchMatch) {
+export function areMatchesEqual(a: FuriousSearchMatch|undefined, b: FuriousSearchMatch|undefined) {
     if (a === b || (!a && !b)) {
         return true;
     }
 
-    if (!a !== !b) {
-        return false;
+    if (!a) {
+        return !b?.length;
+    }
+
+    if (!b) {
+        return !a?.length;
     }
 
     if (a.length !== b.length) {
@@ -491,7 +506,7 @@ export function AlertSummary({
         {/* <p>{"use case: " + USE_CASES_REVERSE[alert.use_case]}</p> */}
         {/* {fuseResult ? <div>search score: {fuseResult.score}</div> : null} */}
         <RelevanceTag is_deleted={is_deleted} is_expired={is_expired} first_start_time={first_start_time} first_relevant_date={first_relevant_date} />
-        {showDistance
+        {showDistance && distance !== undefined
             ? <DistanceTag distance={distance}/>
             : null}
         {_last_end_time
@@ -499,7 +514,7 @@ export function AlertSummary({
                 {RELEVANT_UNTIL + " " + short_datetime_hebrew(_last_end_time)}
             </span>
             : null}
-        <h1><MatchedString s={header.he} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
+        <h1><MatchedString s={header?.he ??""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
         <RelevantLinesOrAgencies relevant_agencies={relevant_agencies}
                                  relevant_lines={relevant_lines}
                                  agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}

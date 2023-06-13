@@ -65,12 +65,13 @@ export type TranslationObject = {
     oar?: string;
 };
 
-export type PrettyActivePeriod = 
-    {simple: [string|null, string|null]} // just ISO date strings
-    | {
-        dates: (string|[string, string])[], // each element: either "yyyy-MM-dd" OR a range ["yyyy-MM-dd", "yyyy-MM-dd"]
-        times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
-    };
+export type SimpleActivePeriod = {simple: [string|null, string|null]}; // just ISO date strings
+export type ConsolidatedActivePeriod = {
+    dates: (string|[string, string])[], // each element: either "yyyy-MM-dd" OR a range ["yyyy-MM-dd", "yyyy-MM-dd"]
+    times: [string, string, boolean][]  // each element: ["HH:mm", "HH:mm", doesEndNextDay]
+};
+
+export type PrettyActivePeriod = SimpleActivePeriod|ConsolidatedActivePeriod;
 
 export type BaseAlert = {
     // in both db and api

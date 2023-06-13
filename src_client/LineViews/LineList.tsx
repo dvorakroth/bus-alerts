@@ -4,7 +4,7 @@ import * as ReactRouterDOM from "react-router-dom";
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
 import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../../FuriousSearch/furiousindex";
 // import { AlertSummary } from "./AlertSummary";
-import { ActualLine } from "../data";
+import { ActualLine } from "../protocol";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
@@ -16,7 +16,7 @@ import cancelledstop from '../assets/cancelledstop.svg'
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
-export function breakoutSearchableListItem<T>(l: T | FuriousSearchResult<T>): [T, FuriousSearchResult<T>?] {
+export function breakoutSearchableListItem<T>(l: T | FuriousSearchResult<T>): [T, FuriousSearchResult<T>|null] {
     return isFuriousSearchResult<T>(l)
         ? [l.obj, l]
         : [l, null];
@@ -35,7 +35,7 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
                 const [line, searchResult] = breakoutSearchableListItem(lines[index]);
                 
                 return <LineSummary line={line}
-                                    matches={searchResult?.matches}
+                                    matches={searchResult?.matches ?? []}
                                     showDistance={showDistance} />
             } else if (noAlertsToday && index == 0) {
                 return <div className="no-alerts-today">
@@ -51,8 +51,8 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
         [lines, noAlertsToday, showDistance]
     );
 
-    const virtuoso = React.useRef<VirtuosoHandle>(null);
-    const scrollerRef = React.useRef<HTMLElement>(null);
+    const virtuoso = React.useRef<VirtuosoHandle|null>(null);
+    const scrollerRef = React.useRef<HTMLElement|null>(null);
     const [isAtTop, setIsAtTop] = React.useState<boolean>(true);
     const atTopStateChange = React.useCallback(
         (atTop) => {
@@ -118,6 +118,8 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
 
     const location = ReactRouterDOM.useLocation();
 
+    if (!serverResponse) return <></>; // ??
+
     return <div className="alert-summary-wrapper"><div className="line-summary">
         {!line.num_relevant_today ? null
             : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
@@ -129,7 +131,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                 <MatchedString s={line.route_short_name}
                             matches={matches?.[0]?.[0]} />
             </div>
-            <h1><MatchedString s={line.headsign_1} matches={matches?.[1]?.[0]} /></h1>
+            <h1><MatchedString s={line.headsign_1 ?? ""} matches={matches?.[1]?.[0]} /></h1>
             {
                 !line.headsign_2 ? null : <>
                     <span className="direction-separator">⬍</span>

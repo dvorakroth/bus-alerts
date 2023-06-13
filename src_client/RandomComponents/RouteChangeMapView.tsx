@@ -1,11 +1,11 @@
 import * as mapboxgl from 'mapbox-gl';
 import * as React from "react";
-import { BoundingBox, JsDict, RouteChangeForMap, StopForMap } from '../data';
+import { BoundingBox, RouteChangeForMap, StopForMap } from '../protocol';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRxMnBkdTBjIn0.IDeZtjeHSZmEXyD3o7p6ww';
 
-function newShapesForChange(change: RouteChangeForMap, stops: JsDict<StopForMap>) {
+function newShapesForChange(change: RouteChangeForMap, stops: Record<string, StopForMap>) {
     const newStopidLists = [];
 
     let currentNewStopidList = [];
@@ -66,8 +66,8 @@ const IMAGE_ICON_X = 'map-x';
 function convertSingleChangeToMapData(
     selector: string,
     change: RouteChangeForMap,
-    stops: JsDict<StopForMap>
-): JsDict<any[]> {
+    stops: Record<string, StopForMap>
+): Record<string, any[]> {
     const newShapes = newShapesForChange(change, stops);
 
     return {
@@ -128,12 +128,12 @@ function stringForSelection(agency_id: string, line_number: string, i: number) {
 
 function convertChangesToMapData(
     initialSelection: [string, string, number],
-    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
+    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
     map: mapboxgl.Map,
-    stops: JsDict<StopForMap>,
+    stops: Record<string, StopForMap>,
     xImage: HTMLImageElement | ImageBitmap
 ) {
-    const mapData: JsDict<any> = {
+    const mapData: Record<string, any> = {
         [SOURCE_TRIP_SHAPE]: [],
         [SOURCE_NON_REMOVED_STOPS]: [],
         [SOURCE_REMOVED_STOPS]: [],
@@ -271,8 +271,8 @@ function setLayerFilters(
 }
 
 export interface RouteChangesMapViewProps {
-    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
-    stops: JsDict<StopForMap>,
+    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
+    stops: Record<string, StopForMap>,
     selection: [string, string, number];
     map_bounding_box: BoundingBox;
     onSelectionMoveToBBox?: boolean;
@@ -289,7 +289,7 @@ const FIT_BOUNDS_OPTIONS = {
 };
 
 function traverseRouteChanges(
-    route_changes: JsDict<JsDict<RouteChangeForMap[]>>,
+    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
     selection: [string, string, number]
 ): RouteChangeForMap {
     let current: any = route_changes;
@@ -301,14 +301,14 @@ function traverseRouteChanges(
 
 export const RouteChangesMapView = ({route_changes, stops, selection, map_bounding_box, onSelectionMoveToBBox}: RouteChangesMapViewProps) => {
     const mapContainer = React.useRef<HTMLDivElement>(null);
-    const map = React.useRef<mapboxgl.Map>(null);
+    const map = React.useRef<mapboxgl.Map|null>(null);
     const previousSelection = React.useRef<[string, string, number]>(selection);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(!!route_changes);
     const [isLookingAtBbox, setIsLookingAtBbox] = React.useState<boolean>(true);
 
-    const bboxRaw = React.useRef<BoundingBox>(null);
-    const bbox = React.useRef<[[number, number], [number, number]]>(null);
+    const bboxRaw = React.useRef<BoundingBox|null>(null);
+    const bbox = React.useRef<[[number, number], [number, number]]|null>(null);
 
     React.useEffect(() => {
         // set bbox.current to either the current selected change's bbox, or the global bbox
@@ -331,7 +331,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
     }, [...selection, map_bounding_box, route_changes]);
 
     React.useEffect(() => {
-        if (!route_changes || !stops) {
+        if (!route_changes || !stops || !mapContainer.current) {
             if (!isLoading) {
                 setIsLoading(true);
             }
@@ -350,12 +350,13 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             accessToken: MAPBOX_ACCESS_TOKEN,
             container: mapContainer.current,
             style: 'https://api.maptiler.com/maps/893ed6e5-f439-431b-a9a6-885c01fa3e48/style.json?key=XQ643Hu2aW2ClNCu8gL4',
-            bounds: bbox.current,
+            bounds: bbox.current ?? undefined,
             fitBoundsOptions: FIT_BOUNDS_OPTIONS
         });
 
         map.current.on('move', () => {
-            const bounds = map.current.getBounds();
+            const bounds = map.current?.getBounds();
+            if (!bounds || !bbox.current) return;
 
             setIsLookingAtBbox(
                 bounds.contains(bbox.current[0]) && bounds.contains(bbox.current[1])
@@ -375,6 +376,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
             const mapXBlobUrl = URL.createObjectURL(mapXBlob);
             const mapXImage = new Image(20, 20);
             mapXImage.onload = () => {
+                if (!map.current) return;
                 URL.revokeObjectURL(mapXBlobUrl);
 
                 convertChangesToMapData(
@@ -392,6 +394,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
 
         return () => { // <-- this pattern is so cursed wow
                        //     (tho tbf the entire react hooks pattern kinda is?)
+            if (!map.current) return;
             map.current.remove();
             map.current = null;
         };
@@ -430,7 +433,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
 
     // and this is for when the user clicks the "go back to where the changes are" button
     const goBackToChanges = React.useCallback(() => {
-        if(map.current) {
+        if(map.current && bbox.current) {
             const reduceMotion = window?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
             
             map.current.fitBounds(

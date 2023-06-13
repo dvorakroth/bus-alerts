@@ -10,6 +10,6 @@
       "moduleResolution": "node",
       "importsNotUsedAsValues": "remove",
       "noUnusedParameters": false,
-      "strictNullChecks": false
+      "strictNullChecks": true
     }
   }

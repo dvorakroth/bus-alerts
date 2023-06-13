@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { JsDict, RouteChange, RouteChangeForMap, SingleLineResponse, TranslatedString } from '../data';
+import { RouteChangeForMap, SingleLineResponse } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -11,7 +11,7 @@ const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
 
 interface ImplSingleLineViewProps {
-    data: SingleLineResponse;
+    data: SingleLineResponse|null;
     isLoading: boolean;
     isModal: boolean;
     showDistance: boolean;
@@ -20,7 +20,7 @@ interface ImplSingleLineViewProps {
 function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingleLineViewProps) {
     const navigate = ReactRouter.useNavigate();
 
-    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(null);
+    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number|null>(null);
     const [selectedRouteChangeIdx, setSelectedRouteChangeIdx] = React.useState<number>(0);
 
     const onDismissModal = React.useCallback(
@@ -52,12 +52,12 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const [route_changes_struct, firstDirectionIdxWithChanges] = React.useMemo(
         () => {
-            if (!line) return [null, null];
+            if (!line) return [{}, null];
 
-            let firstIdxWithChanges: number = null;
+            let firstIdxWithChanges: number|null = null;
 
             return [{
-                changes: line.dirs_flattened.reduce<JsDict<RouteChangeForMap[]>>(
+                changes: line.dirs_flattened.reduce<Record<string, RouteChangeForMap[]>>(
                     (o, d, idx) => {
                         const periods = d.alert_periods;
 
@@ -133,7 +133,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 {line.route_short_name}
                             </div>
                         </div>
-                        <DirectionChooser changes_for_line={directions_for_chooser}
+                        <DirectionChooser changes_for_line={directions_for_chooser ?? []}
                                           selectedIndex={actualSelectedDirectionIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
@@ -174,12 +174,12 @@ interface Props {
 
 export default function FullPageSingleLineView({isModal}: Props) {
     const params = ReactRouter.useParams<"id">();
-    const [data, setData] = React.useState<SingleLineResponse>(null);
+    const [data, setData] = React.useState<SingleLineResponse|null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
         if (!data) {
-            fetch("/api/single_line?id=" + encodeURIComponent(params.id))
+            fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""))
                 .then(
                     (response) => response.json().then(
                         (data: SingleLineResponse) => {

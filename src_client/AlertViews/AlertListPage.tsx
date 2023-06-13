@@ -2,7 +2,7 @@
 import * as React from "react";
 import { FuriousIndex } from "../../FuriousSearch/furiousindex";
 import AlertList, { ServiceAlertOrSearchResult } from "./AlertList";
-import { AlertsResponse, ServiceAlert } from "../data";
+import { AlertsResponse, ServiceAlert } from "../protocol";
 import GeolocationButton from "../RandomComponents/GeolocationButton";
 import { ALERT_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC } from "../search_worker_data";
 
@@ -12,15 +12,15 @@ interface ServiceAlertsMainScreenProps {
 
 export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) {
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
-    const [data, setData] = React.useState<AlertsResponse>(null);
+    const [data, setData] = React.useState<AlertsResponse|null>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
-    const [currentLocation, setCurrentLocation] = React.useState<[number, number]>(null);
-    const [searchString, setSearchString] = React.useState<string>(null);
+    const [currentLocation, setCurrentLocation] = React.useState<[number, number]|null>(null);
+    const [searchString, setSearchString] = React.useState<string|null>(null);
     const [currentlyDisplayedData, setCurrentlyDisplayedData] = React.useState<ServiceAlertOrSearchResult[]>([]);
 
     // const searchWorker = React.useRef<Worker>(null);
-    const searchIndex = React.useRef<FuriousIndex<ServiceAlert>>(null);
-    const searchInput = React.useRef<HTMLInputElement>(null);
+    const searchIndex = React.useRef<FuriousIndex<ServiceAlert>|null>(null);
+    const searchInput = React.useRef<HTMLInputElement|null>(null);
     const currentRefresh = React.useRef<number>(0); // to make sure we only display the freshest data
     const currentSearch  = React.useRef<number>(0); // ...and searches!
 
@@ -69,7 +69,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                 //     msg: "newdata",
                 //     alerts: data?.alerts
                 // });
-                searchIndex.current = new FuriousIndex<ServiceAlert>(data.alerts, ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
+                searchIndex.current = new FuriousIndex<ServiceAlert>(data.alerts ?? [], ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
                 setData(data);
                 setIsLoading(false);
                 setShowDistance(!!currentLocationStr);
@@ -82,7 +82,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
         (newLocation: GeolocationPosition) => {
             console.log("new location received: ", newLocation);
 
-            let _newLocation: [number, number] = null;
+            let _newLocation: [number, number]|null = null;
 
             if (newLocation) {
                 _newLocation = [newLocation.coords.latitude, newLocation.coords.longitude];
@@ -95,7 +95,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
 
     const onSearchInputChanged = React.useCallback(
         () => {
-            setSearchString(searchInput.current.value);
+            setSearchString(searchInput.current?.value ?? null);
         },
         []
     );
@@ -145,7 +145,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
     )
 
     const showFilterNotice = currentlyDisplayedData !== data?.alerts && searchString;
-    const noAlertsToday = !data?.alerts.length && !isLoading;
+    const noAlertsToday = !data?.alerts?.length && !isLoading;
 
     return <>
         <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
@@ -171,7 +171,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
             </div>
         </div>
         <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
-            <span>מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.alerts.length}</span>
+            <span>מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.alerts?.length ?? 0}</span>
         </div>
         <hr className={(hasModal ? "hidden" : "")} />
         <div className={"alerts-list-container" + (hasModal ? " hidden" : "")}>

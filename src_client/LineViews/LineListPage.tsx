@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { FuriousIndex } from '../../FuriousSearch/furiousindex';
-import { ActualLine, LinesListResponse } from '../data';
+import { ActualLine, LinesListResponse } from '../protocol';
 import LineList, { breakoutSearchableListItem, LineListItem } from './LineList';
 import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, DEFAULT_SORT_COMPARE_FUNC } from '../search_worker_data';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 import GeolocationButton from '../RandomComponents/GeolocationButton';
 
-export const LineListResponseContext = React.createContext<LinesListResponse>(null);
+export const LineListResponseContext = React.createContext<LinesListResponse|null>(null);
 
 interface Props {
     hasModal: boolean;
@@ -14,14 +14,14 @@ interface Props {
 
 export default function LineListPage({hasModal}: Props) {
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
-    const [data, setData] = React.useState<LinesListResponse>(null);
+    const [data, setData] = React.useState<LinesListResponse|null>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
-    const [currentLocation, setCurrentLocation] = React.useState<[number, number]>(null);
-    const [searchString, setSearchString] = React.useState<string>(null);
+    const [currentLocation, setCurrentLocation] = React.useState<[number, number]|null>(null);
+    const [searchString, setSearchString] = React.useState<string|null>(null);
     const [currentlyDisplayedData, setCurrentlyDisplayedData] = React.useState<LineListItem[]>([]);
 
-    const searchIndex = React.useRef<FuriousIndex<ActualLine>>(null);
-    const searchInput = React.useRef(null);
+    const searchIndex = React.useRef<FuriousIndex<ActualLine>|null>(null);
+    const searchInput = React.useRef<HTMLInputElement|null>(null);
     const currentRefresh = React.useRef<number>(0); // to make sure we only display the freshest data
     const currentSearch  = React.useRef<number>(0); // ...and searches!
 
@@ -107,7 +107,7 @@ export default function LineListPage({hasModal}: Props) {
 
     const onSearchInputChanged = React.useCallback(
         () => {
-            setSearchString(searchInput.current.value);
+            setSearchString(searchInput.current?.value ?? null);
         },
         []
     );
@@ -127,7 +127,7 @@ export default function LineListPage({hasModal}: Props) {
         (newLocation: GeolocationPosition) => {
             console.log("new location received: ", newLocation);
 
-            let _newLocation: [number, number] = null;
+            let _newLocation: [number, number]|null = null;
 
             if (newLocation) {
                 _newLocation = [newLocation.coords.latitude, newLocation.coords.longitude];
