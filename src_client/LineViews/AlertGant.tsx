@@ -11,6 +11,7 @@ interface AlertGantProps {
 }
 
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
+    // TODO viewport size by screen width? (or rather by gant element width)
     const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ);
     const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 }) // + 24h, not +1d, in case there's DST weirdness lol
 
