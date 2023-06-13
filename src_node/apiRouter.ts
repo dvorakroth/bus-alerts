@@ -8,7 +8,7 @@ import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/a
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
 import winston from "winston";
-import { getAllLines } from "./webstuff/allLines.js";
+import { getAllLines } from "./webstuff/alertsByLine.js";
 
 export const apiRouter = express.Router();
 

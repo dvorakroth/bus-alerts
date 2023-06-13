@@ -74,6 +74,7 @@ export type ActualLineWithAlertCount =
         first_relevant_date: DateTime|null;
         num_relevant_today: number|null;
         num_removed_stops: number|null;
+        all_directions_grouped: undefined;
     };
 
 export type AllLinesResponse = {
