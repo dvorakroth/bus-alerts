@@ -87,6 +87,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
     );
 
     return <div className="alert-gant">
+        {/* TODO actual images for the buttons */}
         <button className="move-viewport" onClick={moveBack}>&lt;</button>
         <div className="gant-area">
             <ul className="alert-gant-rows">
@@ -103,6 +104,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                 )}
             </ul>
             <div className="alert-gant-hourlines">
+                {/* TODO make the lines start at specific hours, not just viewportStart */}
                 {[...dateRange(viewportStart, viewportEnd, {hours: 6})].map(
                     date =>
                         <div 
@@ -112,6 +114,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                             }}
                         >
                             <span className="datelabel">
+                                {/* TODO actual text */}
                                 יום ז'
                                 <br/>
                                 17:00
@@ -119,6 +122,10 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         </div>
                 )}
             </div>
+            {/* TODO clickable gant areas? */}
+            {/* TODO links to the alerts' pages? */}
+            {/* TODO jump to next alert? */}
+            {/* TODO indicators telling you if there's more alerts in some direction? */}
         </div>
         <button className="move-viewport" onClick={moveForward}>&gt;</button>
     </div>
