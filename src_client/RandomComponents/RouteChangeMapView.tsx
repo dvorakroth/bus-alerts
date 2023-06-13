@@ -1,6 +1,6 @@
 import * as mapboxgl from 'mapbox-gl';
 import * as React from "react";
-import { BoundingBox, RouteChangeForMap, StopForMap } from '../protocol';
+import { MapBoundingBox, RouteChangeForMap, StopForMap } from '../protocol';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRxMnBkdTBjIn0.IDeZtjeHSZmEXyD3o7p6ww';
@@ -274,7 +274,7 @@ export interface RouteChangesMapViewProps {
     route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
     stops: Record<string, StopForMap>,
     selection: [string, string, number];
-    map_bounding_box: BoundingBox;
+    map_bounding_box: MapBoundingBox;
     onSelectionMoveToBBox?: boolean;
 }
 
@@ -307,7 +307,7 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
     const [isLoading, setIsLoading] = React.useState<boolean>(!!route_changes);
     const [isLookingAtBbox, setIsLookingAtBbox] = React.useState<boolean>(true);
 
-    const bboxRaw = React.useRef<BoundingBox|null>(null);
+    const bboxRaw = React.useRef<MapBoundingBox|null>(null);
     const bbox = React.useRef<[[number, number], [number, number]]|null>(null);
 
     React.useEffect(() => {

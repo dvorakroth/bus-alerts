@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { RouteChangeForMap, SingleLineResponse } from '../protocol';
+import { RouteChangeForMap, SingleLineChanges } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -11,7 +11,7 @@ const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
 
 interface ImplSingleLineViewProps {
-    data: SingleLineResponse|null;
+    data: SingleLineChanges|null;
     isLoading: boolean;
     isModal: boolean;
     showDistance: boolean;
@@ -174,7 +174,7 @@ interface Props {
 
 export default function FullPageSingleLineView({isModal}: Props) {
     const params = ReactRouter.useParams<"id">();
-    const [data, setData] = React.useState<SingleLineResponse|null>(null);
+    const [data, setData] = React.useState<SingleLineChanges|null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
@@ -182,7 +182,7 @@ export default function FullPageSingleLineView({isModal}: Props) {
             fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""))
                 .then(
                     (response) => response.json().then(
-                        (data: SingleLineResponse) => {
+                        (data: SingleLineChanges) => {
                             setData(data);
                             setIsLoading(false);
                         },

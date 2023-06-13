@@ -3,7 +3,7 @@ import * as ReactRouter from "react-router-dom";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
 import { areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
-import { ActivePeriod, ActiveTime, Agency, BoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChange, RouteChange, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
+import { PrettyActivePeriod, ActiveTime, Agency, MapBoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChangeDetail, RouteChangeForApi, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
 import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
 import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
@@ -131,7 +131,7 @@ function ConsolidatedActivePeriodView({period}: ConsolidatedActivePeriodViewProp
 }
 
 interface ActivePeriodsViewProps {
-    active_periods: ActivePeriod[];
+    active_periods: PrettyActivePeriod[];
 }
 
 function ActivePeriodsView({active_periods}: ActivePeriodsViewProps) {
@@ -264,9 +264,9 @@ function LineChooser(
 }
 
 interface LineChooserAndMapProps extends RelevantLinesListProps {
-    route_changes: Record<string, Record<string, RouteChange[]>>;
+    route_changes: Record<string, Record<string, RouteChangeForApi[]>>;
     stops_for_map: Record<string, StopForMap>;
-    map_bounding_box: BoundingBox;
+    map_bounding_box: MapBoundingBox;
 }
 
 function LineChooserAndMap(
@@ -309,7 +309,7 @@ function LineChooserAndMap(
 }
 
 interface LineChooserAndDepChgsProps extends RelevantLinesListProps {
-    departure_changes: Record<string, Record<string, DepartureChange[]>>;
+    departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>;
 }
 
 function LineChooserAndDepChgs(
@@ -458,7 +458,7 @@ function groupDepartureTimesByHour(times: string[]): JSX.Element {
 }
 
 interface DepartureChangesViewProps {
-    departure_change: DepartureChange;
+    departure_change: DepartureChangeDetail;
 }
 
 function DepartureChangesView({departure_change: {added_hours, removed_hours}}: DepartureChangesViewProps) {

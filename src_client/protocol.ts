@@ -21,16 +21,16 @@ export type {
     Agency,
     SimpleActivePeriod,
     ConsolidatedActivePeriod,
-    StopForMap
+    StopForMap,
+    SingleLineChanges,
+    MapBoundingBox,
+    PrettyActivePeriod,
+    RouteChangeForApi,
+    DepartureChangeDetail
 };
-export type ActivePeriod = PrettyActivePeriod;
 export type ActiveTime = [string, string, boolean];
 export type DateOrDateRange = string | [string, string];
-export type BoundingBox = MapBoundingBox;
-export type DepartureChange = DepartureChangeDetail;
-export type RouteChange = RouteChangeForApi;
 export type RouteChangeForMap = RouteChangeMapData & {has_no_changes?: boolean};
-export type SingleLineResponse = SingleLineChanges;
 
 export const USE_CASES = {
     "NATIONAL": 1,
