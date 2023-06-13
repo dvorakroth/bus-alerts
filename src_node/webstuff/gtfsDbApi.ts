@@ -204,7 +204,6 @@ export class GtfsDbApi {
         );
 
         return arrayToDict(res.rows, r => r.stop_id);
-        );
     }
 
     async getAllStopCoordsByRouteIds(routeIds: string[]) {
