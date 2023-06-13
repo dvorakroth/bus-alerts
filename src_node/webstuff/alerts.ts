@@ -6,7 +6,16 @@ import { AlertSupplementalMetadata, GtfsDbApi } from "./gtfsDbApi.js";
 import { AlertForApi, DepartureChangeDetail } from "../apiTypes.js";
 import { parseOldAramaicRegion } from "../loaderUtils/oldAramaic.js";
 
-export async function enrichAlerts(alertsRaw: AlertWithRelatedInDb[], gtfsDbApi: GtfsDbApi) {
+export type AllAlertsResult = {
+    rawAlertsById: Record<string, AlertWithRelatedInDb>,
+    alerts: AlertForApi[],
+    metadata: AlertSupplementalMetadata
+};
+
+export async function enrichAlerts(
+    alertsRaw: AlertWithRelatedInDb[],
+    gtfsDbApi: GtfsDbApi
+): Promise<AllAlertsResult> {
     // chew up and regurgitate the data a bit for the client
     // like a wolf mother for her tiny adorable wolf pups
 
@@ -107,7 +116,14 @@ export async function enrichAlerts(alertsRaw: AlertWithRelatedInDb[], gtfsDbApi:
 
     return {
         alerts: result,
-        metadata
+        metadata,
+        rawAlertsById: alertsRaw.reduce<Record<string, AlertWithRelatedInDb>>(
+            (r, alert) => {
+                r[alert.id] = alert;
+                return r;
+            },
+            {}
+        )
     };
 }
 

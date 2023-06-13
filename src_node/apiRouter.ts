@@ -4,7 +4,7 @@ import NodeCache from "node-cache";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
 import { AlertForApi, AllLinesResponse, RouteChangesResponse } from "./apiTypes.js";
-import { calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
+import { AllAlertsResult, calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
 import winston from "winston";
@@ -80,11 +80,6 @@ apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, 
 
 // TODO implement the changes-per-line api
 
-type AllAlertsResult = {
-    rawAlertsById: Record<string, AlertWithRelatedInDb>,
-    alerts: AlertForApi[],
-    metadata: AlertSupplementalMetadata
-};
 
 type SingleAlertResult = AllAlertsResult | (AllAlertsResult & RouteChangesResponse);
 
@@ -97,16 +92,7 @@ async function getAllAlerts(db: DbLocals) {
     if (result) return result;
 
     const alertsRaw = await db.alertsDbApi.getAlerts();
-    result = {
-        ...await enrichAlerts(alertsRaw, db.gtfsDbApi),
-        rawAlertsById: alertsRaw.reduce<Record<string, AlertWithRelatedInDb>>(
-            (r, alert) => {
-                r[alert.id] = alert;
-                return r;
-            },
-            {}
-        )
-    };
+    result = await enrichAlerts(alertsRaw, db.gtfsDbApi);
     alertsCache.set(cacheKey, result);
 
     return result;
@@ -120,10 +106,7 @@ async function getSingleAlert(id: string, db: DbLocals) {
 
     const alertObjRaw = await db.alertsDbApi.getSingleAlert(id);
     const alertsRaw = alertObjRaw ? [alertObjRaw] : [];
-    result = {
-        ...await enrichAlerts(alertsRaw, db.gtfsDbApi),
-        rawAlertsById: alertObjRaw ? {[id]: alertObjRaw} : {}
-    };
+    result = await enrichAlerts(alertsRaw, db.gtfsDbApi);
 
     const routeChanges = await getRouteChangesCached(id, db);
     if (routeChanges) result = {...result, ...routeChanges};
