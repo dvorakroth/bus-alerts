@@ -104,8 +104,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         <nav>
             <div className="nav-content">
                 {isModal
-                    ? <a className="back-to-list" href="/" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
-                    : <ReactRouter.Link className="back-to-list" to={'/'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
+                    ? <a className="back-to-list" href="/lines" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
+                    : <ReactRouter.Link className="back-to-list" to={'/lines'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
             </div>
         </nav>
         <div className={"single-alert-content-container" /* i'll... explain later */}
