@@ -1075,7 +1075,26 @@ body.disable-momentum * {
 
     background: #fff9e8;
 
-    & > .alert-gant-row {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+
+    & > .gant-area {
+        flex-grow: 1;
+    }
+
+    & > button.move-viewport {
+        width: 20px;
+    }
+}
+
+ul.alert-gant-rows {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+
+    & > li {
+        display: block;
         height: 20px;
         position: relative;
 

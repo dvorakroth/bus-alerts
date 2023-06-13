@@ -45,18 +45,38 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
         [periodsInViewport, alertMetadata]
     );
 
+    const moveBack = React.useCallback(
+        () => {
+            setViewportStart(viewportStart.minus({ hours: 6 }))
+            setViewportEnd(viewportEnd.minus({ hours: 6 }))
+        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
+    );
+
+    const moveForward = React.useCallback(
+        () => {
+            setViewportStart(viewportStart.plus({ hours: 6 }))
+            setViewportEnd(viewportEnd.plus({ hours: 6 }))
+        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
+    );
+
     return <div className="alert-gant">
-        {orderOfAppearance.map(
-            ({alertIdx, alert}) =>
-                <AlertGantRow
-                    key={alert.id}
-                    alertIdx={alertIdx}
-                    alert={alert}
-                    periodsInViewport={periodsInViewport}
-                    viewportStart={viewportStartUnixtime}
-                    viewportEnd={viewportEndUnixtime}
-                />
-        )}
+        <button className="move-viewport" onClick={moveBack}>&lt;</button>
+        <div className="gant-area">
+            <ul className="alert-gant-rows">
+                {orderOfAppearance.map(
+                    ({alertIdx, alert}) =>
+                        <AlertGantRow
+                            key={alert.id}
+                            alertIdx={alertIdx}
+                            alert={alert}
+                            periodsInViewport={periodsInViewport}
+                            viewportStart={viewportStartUnixtime}
+                            viewportEnd={viewportEndUnixtime}
+                        />
+                )}
+            </ul>
+        </div>
+        <button className="move-viewport" onClick={moveForward}>&gt;</button>
     </div>
 }
 
@@ -80,7 +100,7 @@ function AlertGantRow({
         [alertIdx, periodsInViewport]
     );
 
-    return <div className="alert-gant-row">
+    return <li>
         {activePeriods.map(
             ({start, end}, idx) => 
                 <div
@@ -97,7 +117,7 @@ function AlertGantRow({
                     {alert.header.he ?? ""}
                 </div>
         )}
-    </div>;
+    </li>;
 }
 
 function constructVisibleActivePeriods(
