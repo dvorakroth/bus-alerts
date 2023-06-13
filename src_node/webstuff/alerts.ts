@@ -1,7 +1,7 @@
 import proj4 from "proj4";
 import { DateTime } from "luxon";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
-import { JERUSALEM_TZ, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUnique, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
+import { JERUSALEM_TZ, arrayToDict, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUnique, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
 import { AlertSupplementalMetadata, GtfsDbApi } from "./gtfsDbApi.js";
 import { AlertForApi, DepartureChangeDetail } from "../apiTypes.js";
 import { parseOldAramaicRegion } from "../loaderUtils/oldAramaic.js";
@@ -117,13 +117,7 @@ export async function enrichAlerts(
     return {
         alerts: result,
         metadata,
-        rawAlertsById: alertsRaw.reduce<Record<string, AlertWithRelatedInDb>>(
-            (r, alert) => {
-                r[alert.id] = alert;
-                return r;
-            },
-            {}
-        )
+        rawAlertsById: arrayToDict(alertsRaw, a => a.id)
     };
 }
 

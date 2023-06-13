@@ -1,6 +1,6 @@
 import pg from "pg";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
-import { GTFS_CALENDAR_DOW, copySortAndUnique } from "../generalJunkyard.js";
+import { GTFS_CALENDAR_DOW, arrayToDict, arrayToDictDifferent, copySortAndUnique } from "../generalJunkyard.js";
 import { DateTime } from "luxon";
 import { Agency, RouteMetadata, StopForMap } from "../apiTypes.js";
 
@@ -179,12 +179,10 @@ export class GtfsDbApi {
             [stopIds]
         );
 
-        return res.rows.reduce<Record<string, string>>(
-            (r, {stop_id, stop_desc}) => {
-                r[stop_id] = stop_desc;
-                return r;
-            },
-            {}
+        return arrayToDictDifferent(
+            res.rows,
+            r => r.stop_id,
+            r => r.stop_desc
         );
     }
 
@@ -205,12 +203,7 @@ export class GtfsDbApi {
             [stopIds]
         );
 
-        return res.rows.reduce<Record<string, StopForMap>>(
-            (r, stop) => {
-                r[stop.stop_id] = stop;
-                return r;
-            },
-            {}
+        return arrayToDict(res.rows, r => r.stop_id);
         );
     }
 
@@ -262,13 +255,7 @@ export class GtfsDbApi {
             "SELECT agency_id, agency_name FROM agency;"
         );
 
-        return res.rows.reduce<Record<string, Agency>>(
-            (r, agency) => {
-                r[agency.agency_id] = agency;
-                return r;
-            },
-            {}
-        );
+        return arrayToDict(res.rows, r => r.agency_id);
     }
 }
 

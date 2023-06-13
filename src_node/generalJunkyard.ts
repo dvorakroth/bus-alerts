@@ -151,3 +151,30 @@ export function minimumDate(dateList: Iterable<DateTime>) {
 
     return minimum;
 }
+
+export function arrayToDict<T>(
+    arr: T[],
+    keyCallback: (t: T) => string
+) {
+    return arr.reduce<Record<string, T>>(
+        (r, item) => {
+            r[keyCallback(item)] = item;
+            return r;
+        },
+        {}
+    );
+}
+
+export function arrayToDictDifferent<T, V>(
+    arr: T[],
+    keyCallback: (t: T) => string,
+    valueCallback: (t: T) => V
+) {
+    return arr.reduce<Record<string, V>>(
+        (r, item) => {
+            r[keyCallback(item)] = valueCallback(item);
+            return r;
+        },
+        {}
+    );
+}

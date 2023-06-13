@@ -5,7 +5,7 @@ import { consolidateActivePeriods, splitActivePeriodToSubperiods } from "./activ
 import { AlertInDb, AlertUseCase, DepartureChanges, OriginalSelector, RouteChanges, TripSelector } from "../dbTypes.js";
 import winston from "winston";
 import gtfsRealtimeBindings from "gtfs-realtime-bindings";
-import { GTFS_CALENDAR_DOW, JERUSALEM_TZ, copySortAndUnique, inPlaceSortAndUnique } from "../generalJunkyard.js";
+import { GTFS_CALENDAR_DOW, JERUSALEM_TZ, arrayToDictDifferent, copySortAndUnique, inPlaceSortAndUnique } from "../generalJunkyard.js";
 import { OAR_PREFIX_REGION, parseOldAramaicRegion, parseOldAramaicRoutechgs } from "./oldAramaic.js";
 
 const {transit_realtime} = gtfsRealtimeBindings;
@@ -555,12 +555,10 @@ async function fetchDeparturesForFakeTripIds(
         [fakeTripIds]
     );
 
-    return res.rows.reduce<{[fakeTripId: string]: string}>(
-        (obj, {TripId, DepartureTime}) => {
-            obj[TripId] = DepartureTime;
-            return obj;
-        },
-        {}
+    return arrayToDictDifferent(
+        res.rows,
+        r => r.TripId,
+        r => r.DepartureTime
     );
 }
 
