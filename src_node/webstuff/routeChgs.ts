@@ -362,7 +362,7 @@ function labelLineChangesHeadsignsForDirectionAndAlternative(
     }
 }
 
-function *labelHeadsignsForDirectionAndAlternative(
+export function *labelHeadsignsForDirectionAndAlternative(
     byAlt_headsignToDirAltPairs: Record<string, [string, string][]>,
     byDir_headsignToDirAltPairs: Record<string, [string, string][]>,
     headsignDirAlt_list: [string, [string, string]][],

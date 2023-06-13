@@ -123,8 +123,8 @@ export type FlattnedLineDir = LineDir & {
     other_alerts: AlertMinimal[];
     alert_periods: AlertPeriodWithRouteChanges[];
 
-    dir_name: string;
-    alt_name: string;
+    dir_name: string|null;
+    alt_name: string|null;
 }
 
 export type LineDetails = {

@@ -1,13 +1,13 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, Agency, AlertForApi, AlertPeriod, AllLinesResponse, FlattnedLineDir, LineDetails, SingleLineChanges } from "../apiTypes.js";
+import { ActualLineWithAlertCount, Agency, AlertForApi, AlertPeriod, AllLinesResponse, LineDetails, SingleLineChanges } from "../apiTypes.js";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { AllAlertsResult, alertFindNextRelevantDate } from "./alerts.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
 import { GroupedRoutes } from "./routeGrouping.js";
 import winston from "winston";
-import { JERUSALEM_TZ, compareNple, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
+import { JERUSALEM_TZ, arrayToDictDifferent, compareNple, compareTuple, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
-import { ApplyAlertState, applyAlertToRoute, boundingBoxForStops, doesAlertHaveRouteChanges } from "./routeChgs.js";
+import { ApplyAlertState, applyAlertToRoute, boundingBoxForStops, doesAlertHaveRouteChanges, labelHeadsignsForDirectionAndAlternative } from "./routeChgs.js";
 
 export async function getAllLines(
     alertsDbApi: AlertsDbApi,
@@ -136,7 +136,7 @@ export async function getSingleLine(
         dirs_flattened: []
     };
 
-    const all_stop_ids = new Set(actualLine.all_stopids_distinct);
+    const allStopIds = new Set(actualLine.all_stopids_distinct);
 
     // the thought behind flattening the directions is that i want just one
     // consolidated list shown to the user and sorted by the server, because
@@ -154,6 +154,7 @@ export async function getSingleLine(
         millisecond: 0
     });
 
+    // the actual flattening:
     for (const alt of actualLine.all_directions_grouped) {
         for (const dir of alt.directions) {
             const representativeTripId = await gtfsDbApi.getRepresentativeTripId(
@@ -168,8 +169,8 @@ export async function getSingleLine(
                 shape: representativeTripId ? await gtfsDbApi.getShapePoints(representativeTripId) : [],
                 other_alerts: [],
                 alert_periods: [],
-                dir_name: "",
-                alt_name: ""
+                dir_name: null,
+                alt_name: null
             };
             line_details.dirs_flattened.push(flatDir);
 
@@ -201,10 +202,10 @@ export async function getSingleLine(
         alerts_grouped.push(alertsForThisDirection);
     }
 
-    // at first, just get every alert's route_changes (but limited to each route_id) on its own
     for (const [flatDir, alertPairs] of zip(line_details.dirs_flattened, alerts_grouped)) {
         const routeChangeAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
 
+        // at first, just get every alert's route_changes (but limited to each route_id) on its own
         for (const [alert, alertRaw] of alertPairs) {
             if (doesAlertHaveRouteChanges(alertRaw)) {
                 routeChangeAlerts.push([alert, alertRaw]);
@@ -255,20 +256,22 @@ export async function getSingleLine(
                     gtfsDbApi,
                     alertRaw,
                     flatDir.route_id,
-                    all_stop_ids,
+                    allStopIds,
                     state?.representativeDate ?? startDate,
                     state?.representativeTripId ?? null,
                     state?.rawStopSeq ?? null,
                     state?.updatedStopSeq ?? null,
                     state?.deletedStopIds ?? null
-                );
+                ) as ApplyAlertState|null;
+                // for some inscrutable reason, if i don't include the
+                // "as ApplyAlertState|null" here, tsc yells at me??????
+                // idk, whatever
             }
 
             const representativeTripId = state?.representativeTripId
                 ? state.representativeTripId
                 : await gtfsDbApi.getRepresentativeTripId(flatDir.route_id, startDate);
 
-            // TODO bbox
             if (state?.updatedStopSeq) {
                 flatDir.alert_periods.push({
                     ...period,
@@ -297,7 +300,7 @@ export async function getSingleLine(
         }
     }
 
-    const all_stops = await gtfsDbApi.getStopMetadata([...all_stop_ids]);
+    const all_stops = await gtfsDbApi.getStopMetadata([...allStopIds]);
     const map_bounding_box = boundingBoxForStops(
         Object.keys(all_stops),
         all_stops
@@ -321,9 +324,41 @@ export async function getSingleLine(
                 period.shape = [...dir.shape];
             }
         }
+
+        // TODO better map bbox?
     }
 
-    // TODO final step with the dir_alt_names and the sorting and the return valueing
+    const dirAltNames = labelHeadsignsForDirectionAndAlternative(
+        // man i have NO IDEA what the FUCK i was doing here lol
+        // but that's what this code looked like in the old server
+        // so you bet your ass i'm just keeping it as it is! enjoy:
+        arrayToDictDifferent(
+            [...headsignsCollected],
+            h => h,
+            _ => dirAltPairsCollected
+        ),
+        headsignToDirAltPairs,
+        line_details.dirs_flattened.map(d => [d.headsign ?? "??", [d.dir_id, d.alt_id]]),
+        true
+    );
+
+    for (const [dir, [dir_name, alt_name]] of zip(line_details.dirs_flattened, dirAltNames)) {
+        dir.dir_name = dir_name;
+        dir.alt_name = alt_name;
+    }
+
+    line_details.dirs_flattened.sort(
+        (a, b) => compareTuple(
+            [a.dir_name ?? "", a.alt_name ?? ""],
+            [b.dir_name ?? "", b.alt_name ?? ""]
+        )
+    );
+
+    return {
+        all_stops,
+        line_details,
+        map_bounding_box
+    };
 }
 
 const NEBULOUS_DISTANT_FUTURE = DateTime.fromISO("2200-01-01T00:00:00.000Z").toSeconds();
@@ -384,6 +419,7 @@ function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
                 end: NEBULOUS_DISTANT_FUTURE,
                 bitmask: currentPeriod.bitmask
             };
+            allPeriods.push(currentPeriod);
         }
 
         const idxBitmask = 1 << alertIdx;
