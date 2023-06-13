@@ -74,15 +74,15 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
 
     const moveBack = React.useCallback(
         () => {
-            setViewportStart(viewportStart.minus({ hours: 6 }))
-            setViewportEnd(viewportEnd.minus({ hours: 6 }))
+            setViewportStart(viewportStart.minus({ hours: 3 }))
+            setViewportEnd(viewportEnd.minus({ hours: 3 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
     const moveForward = React.useCallback(
         () => {
-            setViewportStart(viewportStart.plus({ hours: 6 }))
-            setViewportEnd(viewportEnd.plus({ hours: 6 }))
+            setViewportStart(viewportStart.plus({ hours: 3 }))
+            setViewportEnd(viewportEnd.plus({ hours: 3 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
@@ -102,6 +102,23 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         />
                 )}
             </ul>
+            <div className="alert-gant-hourlines">
+                {[...dateRange(viewportStart, viewportEnd, {hours: 6})].map(
+                    date =>
+                        <div 
+                            className="hourline"
+                            style={{
+                                right: (100 * (Math.max(date.toSeconds(), viewportStartUnixtime) - viewportStartUnixtime) / (viewportEndUnixtime - viewportStartUnixtime)) + "%",
+                            }}
+                        >
+                            <span className="datelabel">
+                                יום ז'
+                                <br/>
+                                17:00
+                            </span>
+                        </div>
+                )}
+            </div>
         </div>
         <button className="move-viewport" onClick={moveForward}>&gt;</button>
     </div>
