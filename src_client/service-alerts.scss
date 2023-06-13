@@ -1084,7 +1084,13 @@ body.disable-momentum * {
     }
 
     & > button.move-viewport {
-        width: 20px;
+        width: 30px;
+        background: none;
+        border: none;
+
+        font-size: 30px;
+
+        cursor: pointer;
     }
 }
 

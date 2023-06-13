@@ -11,38 +11,65 @@ interface AlertGantProps {
 }
 
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
-    const [viewportStart, setViewportStart] = React.useState<DateTime>(DateTime.now().setZone(JERUSALEM_TZ));
-    const [viewportEnd, setViewportEnd] = React.useState<DateTime>(viewportStart.plus({hours: 24 * 2})); // + 24h, not +1d, in case there's DST weirdness lol
+    const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ);
+    const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 }) // + 24h, not +1d, in case there's DST weirdness lol
+
+    const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
+    const [viewportEnd, setViewportEnd] = React.useState<DateTime>(defaultViewEnd);
 
     const viewportStartUnixtime = viewportStart.toSeconds();
     const viewportEndUnixtime = viewportEnd.toSeconds();
 
     const periodsInViewport = React.useMemo(
-        () => periods.filter(
-            ({start, end}) =>
-                (viewportStartUnixtime <= start && start < viewportEndUnixtime)
-                || (viewportStartUnixtime < end && end <= viewportEndUnixtime)
-        ),
+        () => [...filterPeriodsForViewport(periods, viewportStartUnixtime, viewportEndUnixtime)],
         [viewportStart.toSeconds(), viewportEnd.toSeconds(), periods]
     );
 
     const orderOfAppearance = React.useMemo(
-        () => alertMetadata
-            .map(
-                (alert, alertIdx) => ({
-                    alertIdx,
-                    alert,
-                    firstAppearance: periodsInViewport.findIndex(
-                        ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
-                    )
+        () => {
+            const periodsInDefaultViewport = [...filterPeriodsForViewport(
+                periods,
+                defaultViewStart.toSeconds(),
+                defaultViewEnd.toSeconds()
+            )];
+            return alertMetadata
+                .map(
+                    (alert, alertIdx) => ({
+                        alertIdx,
+                        alert,
+                        firstAppearance: periodsInDefaultViewport.findIndex(
+                            ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
+                        ),
+                        alertLength: countIndices(
+                            periodsInDefaultViewport,
+                            ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
+                        )
+                    })
+                )
+                .map((e) => ({
+                    ...e,
+                    // alertLength: (e.lastAppearance >= 0 && e.firstAppearance >= 0)
+                    //     ? e.lastAppearance - e.firstAppearance
+                    //     : -1,
+                    firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance,
+                }))
+                .sort((a, b) => {
+                    if (a.alertLength !== b.alertLength) {
+                        return b.alertLength - a.alertLength;
+                    }
+                    
+                    if (a.firstAppearance !== b.firstAppearance) {
+                        return a.firstAppearance - b.firstAppearance;                        
+                    }
+
+                    return a.alertIdx < b.alertIdx
+                        ? -1
+                        : a.alertIdx > b.alertIdx
+                        ? 1
+                        : 0;
                 })
-            )
-            .map((e) => ({
-                ...e,
-                firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance
-            }))
-            .sort((a, b) => a.firstAppearance - b.firstAppearance),
-        [periodsInViewport, alertMetadata]
+            },
+        [periods, defaultViewStart, defaultViewEnd, alertMetadata]
     );
 
     const moveBack = React.useCallback(
@@ -147,6 +174,36 @@ function constructVisibleActivePeriods(
     }
 
     return result;
+}
+
+function *filterPeriodsForViewport(
+    periods: AlertPeriodWithRouteChanges[],
+    viewportStart: number,
+    viewportEnd: number
+) {
+    for (const period of periods) {
+        if (
+            (viewportStart <= period.start && period.start < viewportEnd)
+            || (viewportStart < period.end && period.end <= viewportEnd)
+        ) {
+            yield period;
+        }
+    }
+}
+
+function countIndices<T>(
+    arr: T[],
+    predicate: (t: T) => boolean
+) {
+    let sum = 0;
+
+    for (let i = 0; i < arr.length; i++) {
+        if (predicate(arr[i] as T)) {
+            sum++;
+        }
+    }
+
+    return sum;
 }
 
 function *range(
