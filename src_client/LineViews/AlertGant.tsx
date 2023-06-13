@@ -20,18 +20,37 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
     const periodsInViewport = React.useMemo(
         () => periods.filter(
             ({start, end}) =>
-                (viewportStartUnixtime <= start && start <= viewportEndUnixtime)
-                || (viewportStartUnixtime <= end && end <= viewportEndUnixtime)
+                (viewportStartUnixtime <= start && start < viewportEndUnixtime)
+                || (viewportStartUnixtime < end && end <= viewportEndUnixtime)
         ),
         [viewportStart.toSeconds(), viewportEnd.toSeconds(), periods]
     );
 
+    const orderOfAppearance = React.useMemo(
+        () => alertMetadata
+            .map(
+                (alert, alertIdx) => ({
+                    alertIdx,
+                    alert,
+                    firstAppearance: periodsInViewport.findIndex(
+                        ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
+                    )
+                })
+            )
+            .map((e) => ({
+                ...e,
+                firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance
+            }))
+            .sort((a, b) => a.firstAppearance - b.firstAppearance),
+        [periodsInViewport, alertMetadata]
+    );
+
     return <div className="alert-gant">
-        {alertMetadata.map(
-            (alert, idx) =>
+        {orderOfAppearance.map(
+            ({alertIdx, alert}) =>
                 <AlertGantRow
                     key={alert.id}
-                    alertIdx={idx}
+                    alertIdx={alertIdx}
                     alert={alert}
                     periodsInViewport={periodsInViewport}
                     viewportStart={viewportStartUnixtime}
@@ -108,6 +127,16 @@ function constructVisibleActivePeriods(
     }
 
     return result;
+}
+
+function *range(
+    start: number,
+    endExclusive: number,
+    increment: number = 1
+) {
+    for (let i = start; i < endExclusive; i++) {
+        yield i;
+    }
 }
 
 function *dateRange(
