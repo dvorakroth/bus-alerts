@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, AlertForApi, AllLinesResponse, RouteChangesResponse, Agency, PrettyActivePeriod, MapBoundingBox, SimpleActivePeriod, ConsolidatedActivePeriod, DepartureChangeDetail, RouteChangeForApi, StopForMap, RouteChangeMapData, SingleLineChanges } from "../src_node/apiTypes";
+import { ActualLineWithAlertCount, AlertForApi, AllLinesResponse, RouteChangesResponse, Agency, PrettyActivePeriod, MapBoundingBox, SimpleActivePeriod, ConsolidatedActivePeriod, DepartureChangeDetail, RouteChangeForApi, StopForMap, RouteChangeMapData, SingleLineChanges, AlertPeriodWithRouteChanges, TranslationObject } from "../src_node/apiTypes";
 
 type StripDates<T> = T extends DateTime
     ? string
@@ -26,7 +26,9 @@ export type {
     MapBoundingBox,
     PrettyActivePeriod,
     RouteChangeForApi,
-    DepartureChangeDetail
+    DepartureChangeDetail,
+    AlertPeriodWithRouteChanges,
+    TranslationObject
 };
 export type ActiveTime = [string, string, boolean];
 export type DateOrDateRange = string | [string, string];

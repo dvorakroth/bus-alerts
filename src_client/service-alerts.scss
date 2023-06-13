@@ -1069,3 +1069,51 @@ a.more-details:active {
 body.disable-momentum * {
     -webkit-overflow-scrolling: auto;
 }
+
+.alert-gant {
+    width: 100%;
+
+    background: #fff9e8;
+
+    & > .alert-gant-row {
+        height: 20px;
+        position: relative;
+
+        border-top: 1px dashed #aaa;
+
+        &:last-child {
+            border-bottom: 1px dashed #aaa;
+        }
+
+        & > .alert-gant-item {
+            font-size: 14px;
+            line-height: 18px;
+
+            position: absolute;
+            height: 18px;
+            top: 1px;
+
+            background: rgb(238, 139, 139);
+            border: 1px solid black;
+            border-radius: 4px;
+            box-sizing: border-box;
+            padding: 0 2px;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            &:not(.start-visible) {
+                border-right: none;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+
+            &:not(.end-visible) {
+                border-left: none;
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
+        }
+    }
+}

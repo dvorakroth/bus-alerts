@@ -226,6 +226,15 @@ export async function getSingleLine(
             }
         }
 
+        if(!routeChangeAlerts.length) {
+            continue;
+        }
+
+        flatDir.route_change_alerts = {
+            periods: [],
+            alertMetadata: alertPairs.map(([{id, header}, _]) => ({id, header}))
+        };
+
         // now after we got all those alerts we can actually do the ~*~*MAGIC*~*~
 
         // divide the routeChangeAlerts active_periods.raw into a sequence of nicer periods
@@ -273,7 +282,7 @@ export async function getSingleLine(
                 : await gtfsDbApi.getRepresentativeTripId(flatDir.route_id, startDate);
 
             if (state?.updatedStopSeq) {
-                flatDir.alert_periods.push({
+                flatDir.route_change_alerts.periods.push({
                     ...period,
                     updated_stop_sequence: state.updatedStopSeq,
                     deleted_stop_ids: [...state.deletedStopIds],
@@ -287,7 +296,7 @@ export async function getSingleLine(
                     ? await gtfsDbApi.getStopSeq(representativeTripId)
                     : [];
 
-                flatDir.alert_periods.push({
+                flatDir.route_change_alerts.periods.push({
                     ...period,
                     updated_stop_sequence: stopSeq.map(s => [s, false]),
                     deleted_stop_ids: [],
@@ -319,7 +328,7 @@ export async function getSingleLine(
             }
         }
 
-        for (const period of dir.alert_periods) {
+        for (const period of dir.route_change_alerts?.periods ?? []) {
             if (!period.shape?.length) {
                 period.shape = [...dir.shape];
             }

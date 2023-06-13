@@ -4,7 +4,8 @@ import { ActualLine, BaseAlert, ConsolidatedActivePeriod, LineDir, PrettyActiveP
 export type {
     PrettyActivePeriod,
     SimpleActivePeriod,
-    ConsolidatedActivePeriod
+    ConsolidatedActivePeriod,
+    TranslationObject
 };
 
 export type AlertAdditionalData = {
@@ -132,7 +133,13 @@ export type FlattnedLineDir = LineDir & {
     stop_seq: string[];
     shape: null|([number, number][]); // [[lon, lat], [lon, lat], ...]
     other_alerts: AlertMinimal[];
-    alert_periods: AlertPeriodWithRouteChanges[];
+    route_change_alerts?: {
+        periods: AlertPeriodWithRouteChanges[];
+        alertMetadata: {
+            id: string;
+            header: TranslationObject;
+        }[]
+    };
 
     dir_name: string|null;
     alt_name: string|null;

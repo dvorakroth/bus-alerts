@@ -6,6 +6,7 @@ import { RouteChangeForMap, SingleLineChanges } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
+import { AlertGant } from './AlertGant';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -21,7 +22,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const navigate = ReactRouter.useNavigate();
 
     const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number|null>(null);
-    const [selectedRouteChangeIdx, setSelectedRouteChangeIdx] = React.useState<number>(0);
+    const [selectedChangePeriodIdx, setSelectedChangePeriodIdx] = React.useState<number>(0);
 
     const onDismissModal = React.useCallback(
         (event: React.MouseEvent) => {
@@ -36,16 +37,16 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const onNewDirectionSelected = React.useCallback(
         (index) => {
             setSelectedDirectionIdx(index);
-            setSelectedRouteChangeIdx(0);
+            setSelectedChangePeriodIdx(0);
         },
-        [setSelectedDirectionIdx, setSelectedRouteChangeIdx]
+        [setSelectedDirectionIdx, setSelectedChangePeriodIdx]
     );
 
     const onNewRouteChangeSelected = React.useCallback(
         (index) => {
-            setSelectedRouteChangeIdx(index);
+            setSelectedChangePeriodIdx(index);
         },
-        [setSelectedRouteChangeIdx]
+        [setSelectedChangePeriodIdx]
     );
 
     const line = data?.line_details;
@@ -59,7 +60,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
             return [{
                 changes: line.dirs_flattened.reduce<Record<string, RouteChangeForMap[]>>(
                     (o, d, idx) => {
-                        const periods = d.alert_periods;
+                        const periods = d?.route_change_alerts?.periods;
 
                         if (periods?.length) {
                             o[idx] = periods;
@@ -88,7 +89,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         () => line?.dirs_flattened?.map?.(
             (dir) => ({
                 ...dir,
-                has_alerts: !!(dir.alert_periods?.length || dir.other_alerts?.length)
+                has_alerts: !!(dir.route_change_alerts?.periods?.length || dir.other_alerts?.length)
             })
         ),
         [line]
@@ -97,7 +98,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
     
     // const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
-    const alert_periods = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.alert_periods;
+    const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_change_alerts;
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -139,16 +140,22 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                           hideCaption={true} />
                     </div>
                     { /* TODO: alert period selector, in the future */}
-                    {
-                        !alert_periods?.length ? null
-                            : <AlertPeriodChooser alert_periods={alert_periods}
-                                        selectedIdx={selectedRouteChangeIdx}
+                    {/* {
+                        !route_changes ? null
+                            : <AlertPeriodChooser alert_periods={route_changes.periods}
+                                        selectedIdx={selectedChangePeriodIdx}
                                         onNewSelection={onNewRouteChangeSelected} />
+                    } */}
+                    {
+                        !route_changes ? null
+                            : <AlertGant periods={route_changes.periods}
+                                alertMetadata={route_changes.alertMetadata}
+                                selectedChangePeriodIdx={selectedChangePeriodIdx} />
                     }
-                    {/* TODO: "no changes to route" overlay for map? or maybe hide map for alerts with no route changes? */}
+                    {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
-                                            selection={["changes", ""+actualSelectedDirectionIdx, selectedRouteChangeIdx]}
+                                            selection={["changes", ""+actualSelectedDirectionIdx, selectedChangePeriodIdx]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                     
