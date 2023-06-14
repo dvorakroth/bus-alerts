@@ -1,7 +1,7 @@
 import proj4 from "proj4";
 import { DateTime } from "luxon";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
-import { JERUSALEM_TZ, arrayToDict, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUnique, inPlaceSortAndUniqueCustom, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
+import { JERUSALEM_TZ, arrayToDict, compareNple, compareTuple, extractCityFromStopDesc, inPlaceSortAndUnique, lineNumberForSorting, parseUnixtimeIntoJerusalemTz } from "../generalJunkyard.js";
 import { AlertSupplementalMetadata, GtfsDbApi } from "./gtfsDbApi.js";
 import { AlertForApi, DepartureChangeDetail } from "../apiTypes.js";
 import { parseOldAramaicRegion } from "../loaderUtils/oldAramaic.js";
@@ -25,21 +25,25 @@ export async function enrichAlerts(
     const result: AlertForApi[] = [];
 
     for (const alert of alertsRaw) {
-        const added_stops: [string, string][] = [];
-        const removed_stops: [string, string][] = [];
+        const added_stops = await gtfsDbApi.getStopsSortedByPopularity(
+            alert.added_stop_ids
+        );
+        const removed_stops = await gtfsDbApi.getStopsSortedByPopularity(
+            alert.removed_stop_ids
+        );
         const relevant_lines_sets: Record<string, Set<string>> = {};
 
-        for (const stopId of alert.added_stop_ids) {
-            const stop = metadata.stops[stopId];
-            if (stop)
-                added_stops.push([stop.stop_code, stop.stop_name]);
-        }
+        // for (const stopId of await gtfsDbApi.sortStopIdsByPopularity(alert.added_stop_ids)) {
+        //     const stop = metadata.stops[stopId];
+        //     if (stop)
+        //         added_stops.push([stop.stop_code, stop.stop_name]);
+        // }
 
-        for (const stopId of alert.removed_stop_ids) {
-            const stop = metadata.stops[stopId];
-            if (stop)
-                removed_stops.push([stop.stop_code, stop.stop_name]);
-        }
+        // for (const stopId of await gtfsDbApi.sortStopIdsByPopularity(alert.removed_stop_ids)) {
+        //     const stop = metadata.stops[stopId];
+        //     if (stop)
+        //         removed_stops.push([stop.stop_code, stop.stop_name]);
+        // }
 
         for (const routeId of alert.relevant_route_ids) {
             const route = metadata.routes[routeId];
@@ -55,22 +59,22 @@ export async function enrichAlerts(
         // we're no longer using python huh
         // though honestly all of python (and most of js) is inefficient as it is
         // and the requests are all gonna be cached anyway so meh whatever
-        inPlaceSortAndUniqueCustom(
-            added_stops,
-            ([aStopCode], [bStopCode]) => compareTuple(
-                lineNumberForSorting(aStopCode),
-                lineNumberForSorting(bStopCode)
-            ),
-            ([a, aa], [b, bb]) => a === b && aa === bb
-        );
-        inPlaceSortAndUniqueCustom(
-            removed_stops,
-            ([aStopCode], [bStopCode]) => compareTuple(
-                lineNumberForSorting(aStopCode),
-                lineNumberForSorting(bStopCode)
-            ),
-            ([a, aa], [b, bb]) => a === b && aa === bb
-        );
+        // inPlaceSortAndUniqueCustom(
+        //     added_stops,
+        //     ([aStopCode], [bStopCode]) => compareTuple(
+        //         lineNumberForSorting(aStopCode),
+        //         lineNumberForSorting(bStopCode)
+        //     ),
+        //     ([a, aa], [b, bb]) => a === b && aa === bb
+        // );
+        // inPlaceSortAndUniqueCustom(
+        //     removed_stops,
+        //     ([aStopCode], [bStopCode]) => compareTuple(
+        //         lineNumberForSorting(aStopCode),
+        //         lineNumberForSorting(bStopCode)
+        //     ),
+        //     ([a, aa], [b, bb]) => a === b && aa === bb
+        // );
 
         const relevant_lines: Record<string, string[]> = {};
         for (const [agency_id, lineSet] of Object.entries(relevant_lines_sets)) {
@@ -99,9 +103,6 @@ export async function enrichAlerts(
         const [first_relevant_date, current_active_period_start] = alertFindNextRelevantDate(alert);
 
         const departure_changes = await getDepartureChanges(alert, gtfsDbApi);
-
-        // TODO sort added/removed stops by "popularity" (number of trips that have a stoptime there?)
-        // then TODO in the client: hide some of them when the list is excessively long
 
         result.push({
             ...alert,

@@ -278,6 +278,27 @@ export class GtfsDbApi {
 
         return arrayToDict(res.rows, r => r.agency_id);
     }
+
+    async getStopsSortedByPopularity(stopIds: string[]) {
+        const res = await this.gtfsDbPool.query<{stop_code: string, stop_name: string}, [string[]]>(
+            `
+                SELECT
+                    stop_code,
+                    (ARRAY_AGG(stop_name))[1] AS stop_name
+                FROM stops
+                LEFT OUTER JOIN stoptimes
+                ON stoptimes.stop_id = stops.stop_id
+                WHERE stops.stop_id = ANY($1::varchar[])
+                GROUP BY stop_code
+                ORDER BY COUNT(DISTINCT trip_id) DESC;
+            `,
+            [stopIds]
+        );
+
+        return res.rows.map<[string, string]>(
+            ({stop_code, stop_name}) => [stop_code, stop_name]
+        );
+    }
 }
 
 type Route = {
