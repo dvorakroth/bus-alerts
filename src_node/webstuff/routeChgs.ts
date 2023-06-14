@@ -263,9 +263,9 @@ export async function applyAlertToRoute(
                     // (here, again, the old python server used to warn if we
                     // couldn't find the stop we're supposed to insert something
                     // relative to; but since our mot is run by toddlers who
-                    // care more about highways to illegal settlements in
-                    // occupied palestine than providing functioning public transit,
-                    // this is such a common occurrence that even debug logging it
+                    // care more about highways to illegal settlements in occupied
+                    // palestine than providing functioning public transit, this
+                    // is such a common occurrence that even debug logging it
                     // feels utterly useless)
                     winston.debug(`tried adding stop relative to stop on on route; route_id=${route_id}, ${JSON.stringify(change)}, alert_id=${alertRaw.id}, trip_id=${representativeTripId}`);
 

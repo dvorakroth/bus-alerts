@@ -379,6 +379,10 @@ export const RelevantStopsList = React.memo(
             stopCodeMatches
         }: RelevantStopsListProps
     ) => {
+        // TODO: hide some of them when the list is excessively long
+        // also TODO: if there's search matches in the hiddens stop names,
+        //            maybe show them? or show them but smaller? or just
+        //            highlight the show more button?
         return (relevant_stops.length > 0)
             ? <>
                 <h2>{isRemoved ? REMOVED_STOPS_LABEL : ADDED_STOPS_LABEL}</h2>
