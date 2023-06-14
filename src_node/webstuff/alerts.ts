@@ -100,6 +100,9 @@ export async function enrichAlerts(
 
         const departure_changes = await getDepartureChanges(alert, gtfsDbApi);
 
+        // TODO sort added/removed stops by "popularity" (number of trips that have a stoptime there?)
+        // then TODO in the client: hide some of them when the list is excessively long
+
         result.push({
             ...alert,
             added_stops,
