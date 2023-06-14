@@ -445,7 +445,33 @@ function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
         }
     }
 
-    // TODO: maybe add edge periods starting at 1970 and ending at 2500 with bitmask 0 to help the ui along?
+    // add edge periods starting at 1970 and ending at 2200
+    // with bitmask 0 to help the ui along
+    const firstPeriod = allPeriods[0];
+    if (firstPeriod && firstPeriod.start > 0) {
+        if (firstPeriod.bitmask === 0) {
+            firstPeriod.start = 0;
+        } else {
+            allPeriods.splice(0, 0, {
+                start: 0,
+                end: firstPeriod.start,
+                bitmask: 0
+            });
+        }
+    }
+
+    const lastPeriod = allPeriods[allPeriods.length - 1];
+    if (lastPeriod && lastPeriod.end < NEBULOUS_DISTANT_FUTURE) {
+        if (lastPeriod.bitmask === 0) {
+            lastPeriod.end = NEBULOUS_DISTANT_FUTURE;
+        } else {
+            allPeriods.push({
+                start: lastPeriod.end,
+                end: NEBULOUS_DISTANT_FUTURE,
+                bitmask: 0
+            });
+        }
+    }
 
     return allPeriods;
 }
