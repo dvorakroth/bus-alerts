@@ -105,7 +105,6 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                 )}
             </ul>
             <div className="alert-gant-hourlines">
-                {/* TODO make the lines start at specific hours, not just viewportStart */}
                 {[...dateRange(findNextRoundHour(viewportStart, 6, 0), viewportEnd, {hours: 6})].map(
                     ({prevDate, date}) =>
                         <div 
