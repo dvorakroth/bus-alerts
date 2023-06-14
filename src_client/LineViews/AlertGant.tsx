@@ -12,6 +12,12 @@ interface AlertGantProps {
 
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
     // TODO viewport size by screen width? (or rather by gant element width)
+    // TODO always render everything that's potentially viewable
+    //      (and limit what's potentially viewable to like -2d, +1w)
+    //      and just have a sliding viewport window over it
+    // TODO maybe remove the text on the alert items themselves?
+    //      the text is so Bad that most of the time it just says
+    //      something useless like "Tel Av..." or "Kiryat Ono, ..."
     const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ).minus({ hours: 3 });
     const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 - 3 }) // + 24h, not +1d, in case there's DST weirdness lol
 
