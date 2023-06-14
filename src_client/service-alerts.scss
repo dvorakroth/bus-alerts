@@ -1119,6 +1119,8 @@ body.disable-momentum * {
             position: absolute;
             top: -2px;
             transform: translate(50%, -100%);
+            min-width: 45px;
+            text-align: center;
         }
     }
 }

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AlertPeriodWithRouteChanges, TranslationObject } from '../protocol';
 import { DateTime, DurationLike } from 'luxon';
-import { JERUSALEM_TZ } from '../junkyard/date_utils';
+import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 
 interface AlertGantProps {
@@ -75,15 +75,15 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
 
     const moveBack = React.useCallback(
         () => {
-            setViewportStart(viewportStart.minus({ hours: 3 }))
-            setViewportEnd(viewportEnd.minus({ hours: 3 }))
+            setViewportStart(viewportStart.minus({ hours: 4 }))
+            setViewportEnd(viewportEnd.minus({ hours: 4 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
     const moveForward = React.useCallback(
         () => {
-            setViewportStart(viewportStart.plus({ hours: 3 }))
-            setViewportEnd(viewportEnd.plus({ hours: 3 }))
+            setViewportStart(viewportStart.plus({ hours: 4 }))
+            setViewportEnd(viewportEnd.plus({ hours: 4 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
@@ -106,19 +106,23 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
             </ul>
             <div className="alert-gant-hourlines">
                 {/* TODO make the lines start at specific hours, not just viewportStart */}
-                {[...dateRange(viewportStart, viewportEnd, {hours: 6})].map(
-                    date =>
+                {[...dateRange(findNextRoundHour(viewportStart, 6, 0), viewportEnd, {hours: 6})].map(
+                    ({prevDate, date}) =>
                         <div 
                             className="hourline"
                             style={{
-                                right: (100 * (Math.max(date.toSeconds(), viewportStartUnixtime) - viewportStartUnixtime) / (viewportEndUnixtime - viewportStartUnixtime)) + "%",
+                                right: rightPercentageForUnixtime(date.toSeconds(), viewportStartUnixtime, viewportEndUnixtime)
                             }}
                         >
                             <span className="datelabel">
-                                {/* TODO actual text */}
-                                יום ז'
-                                <br/>
-                                17:00
+                                {
+                                    !prevDate || prevDate.weekday !== date.weekday
+                                        ? <>{short_date_hebrew(date)}<br/></>
+                                        : null
+                                }
+                                {
+                                    short_time_hebrew(date)
+                                }
                             </span>
                         </div>
                 )}
@@ -163,8 +167,8 @@ function AlertGantRow({
                         {"end-visible": end <= viewportEnd}
                     )}
                     style={{
-                        right: (100 * (Math.max(start, viewportStart) - viewportStart) / (viewportEnd - viewportStart)) + "%",
-                        width: (100 * (Math.min(end, viewportEnd) - Math.max(start, viewportStart)) / (viewportEnd - viewportStart)) + "%"
+                        right: rightPercentageForUnixtime(start, viewportStart, viewportEnd),
+                        width: widthPercentageForUnixtime(start, end, viewportStart, viewportEnd)
                     }}>
                     {alert.header.he ?? ""}
                 </div>
@@ -241,14 +245,69 @@ function *range(
     }
 }
 
+function rightPercentageForUnixtime(
+    unixtime: number,
+    viewportStart: number,
+    viewportEnd: number
+) { 
+    return (
+        100 * 
+            (Math.max(unixtime, viewportStart) - viewportStart)
+            /
+            (viewportEnd - viewportStart)
+    ) + "%";
+}
+
+function widthPercentageForUnixtime(
+    unixtimeStart: number,
+    unixtimeEnd: number,
+    viewportStart: number,
+    viewportEnd: number
+) {
+    return (
+        100 * 
+            (Math.min(unixtimeEnd, viewportEnd) - Math.max(unixtimeStart, viewportStart))
+            /
+            (viewportEnd - viewportStart)
+    ) + "%";
+}
+
+function findNextRoundHour(
+    start: DateTime,
+    modulo: number,
+    moduloEquals = 0
+) {
+    modulo = Math.max(1, Math.floor(modulo));
+    moduloEquals = Math.max(0, Math.min(modulo - 1, moduloEquals));
+
+    let d = start.set({
+        second: 0,
+        millisecond: 0
+    });
+
+    if (d.minute !== 0) {
+        d = d.plus({
+            minutes: 60 - d.minute
+        });
+    }
+
+    while (d.hour % modulo !== moduloEquals) {
+        d = d.plus({hours: 1});
+    }
+
+    return d;
+}
+
 function *dateRange(
     start: DateTime,
     endInclusive: DateTime,
     increment: DurationLike
 ) {
-    let d = start;
+    let prevDate = null;
+    let date = start;
     do {
-        yield d;
-        d = d.plus(increment);
-    } while(d.toSeconds() <= endInclusive.toSeconds());
+        yield {prevDate, date};
+        prevDate = date;
+        date = date.plus(increment);
+    } while(date.toSeconds() <= endInclusive.toSeconds());
 }
