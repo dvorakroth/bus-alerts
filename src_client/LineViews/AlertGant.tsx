@@ -196,6 +196,7 @@ function NowHourline({viewportStart, viewportEnd}: NowHourlineProps) {
         return () => {
             if (nowIntervalRef.current !== null) {
                 window.clearInterval(nowIntervalRef.current);
+                nowIntervalRef.current = null;
             }
         };
     });
