@@ -111,5 +111,5 @@ export default function search(
 export type SearchResult = {
   isMatch: boolean;
   score: number;
-  matchMask: (undefined | number)[];
+  matchMask: (undefined | number)[] | undefined;
 };

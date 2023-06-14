@@ -67,8 +67,8 @@ export default class BitapSearch {
             if (isMatch) {
                 hasMatches = true;
                 
-                for (let i = 0; i < Math.max(allMatchMasks.length, matchMask.length); i++) {
-                    allMatchMasks[i] = (allMatchMasks[i] || 0) | (matchMask[i] || 0);
+                for (let i = 0; i < Math.max(allMatchMasks.length, matchMask?.length ?? 0); i++) {
+                    allMatchMasks[i] = (allMatchMasks[i] || 0) | (matchMask?.[i] || 0);
                 }
             } else {
                 // because we're ANDing all of the patterns, then a single non-match 
