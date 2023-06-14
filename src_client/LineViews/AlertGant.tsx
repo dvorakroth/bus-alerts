@@ -12,8 +12,8 @@ interface AlertGantProps {
 
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
     // TODO viewport size by screen width? (or rather by gant element width)
-    const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ);
-    const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 }) // + 24h, not +1d, in case there's DST weirdness lol
+    const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ).minus({ hours: 3 });
+    const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 - 3 }) // + 24h, not +1d, in case there's DST weirdness lol
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime>(defaultViewEnd);
@@ -75,15 +75,15 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
 
     const moveBack = React.useCallback(
         () => {
-            setViewportStart(viewportStart.minus({ hours: 4 }))
-            setViewportEnd(viewportEnd.minus({ hours: 4 }))
+            setViewportStart(viewportStart.minus({ hours: 6 }))
+            setViewportEnd(viewportEnd.minus({ hours: 6 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
     const moveForward = React.useCallback(
         () => {
-            setViewportStart(viewportStart.plus({ hours: 4 }))
-            setViewportEnd(viewportEnd.plus({ hours: 4 }))
+            setViewportStart(viewportStart.plus({ hours: 6 }))
+            setViewportEnd(viewportEnd.plus({ hours: 6 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
@@ -127,6 +127,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         </div>
                 )}
             </div>
+            <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />
             {/* TODO clickable gant areas? */}
             {/* TODO links to the alerts' pages? */}
             {/* TODO jump to next alert? */}
@@ -174,6 +175,48 @@ function AlertGantRow({
                 </div>
         )}
     </li>;
+}
+
+interface NowHourlineProps {
+    viewportStart: number;
+    viewportEnd: number;
+}
+
+function NowHourline({viewportStart, viewportEnd}: NowHourlineProps) {
+    const [now, setNow] = React.useState<DateTime>(DateTime.now().setZone(JERUSALEM_TZ));
+    const nowIntervalRef = React.useRef<number|null>(null);
+
+    React.useEffect(() => {
+        if (nowIntervalRef.current === null) {
+            nowIntervalRef.current = window.setInterval(
+                () => { setNow(DateTime.now().setZone(JERUSALEM_TZ)); },
+                1000 * 60
+            );
+        }
+
+        return () => {
+            if (nowIntervalRef.current !== null) {
+                window.clearInterval(nowIntervalRef.current);
+            }
+        };
+    });
+
+    const unixtime = now.toSeconds();
+
+    if (unixtime < viewportStart || unixtime > viewportEnd) {
+        return <></>
+    }
+
+    return <div 
+        className="hourline hourline-now"
+        style={{
+            right: rightPercentageForUnixtime(unixtime, viewportStart, viewportEnd)
+        }}
+    >
+        <span className="datelabel">
+            עכשיו
+        </span>
+    </div>;
 }
 
 function constructVisibleActivePeriods(

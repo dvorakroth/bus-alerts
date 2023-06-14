@@ -1079,7 +1079,7 @@ body.disable-momentum * {
     align-items: stretch;
     justify-content: space-between;
 
-    margin-top: 38px;
+    margin-top: 53px;
 
     & > .gant-area {
         flex-grow: 1;
@@ -1103,31 +1103,43 @@ body.disable-momentum * {
     bottom: 0;
     left: 0;
     right: 0;
+}
 
-    & > .hourline {
+.alert-gant .hourline {
+    position: absolute;
+    // height: 100%;
+    width: 1px;
+    z-index: 2;
+    top: 0;
+    bottom: 0;
+    border-left: 1px dashed #bbb;
+    box-sizing: border-box;
+
+    & > .datelabel {
+        font-size: 12px;
         position: absolute;
-        height: 100%;
-        width: 1px;
-        z-index: 1;
-        top: 0;
+        top: -2px;
+        transform: translate(50%, -100%);
+        min-width: 45px;
+        text-align: center;
+        z-index: 3;
+    }
+
+    &.hourline-now {
+        top: -30px;
         bottom: 0;
-        border-left: 1px dashed #bbb;
-        box-sizing: border-box;
+        border-left: 1px solid red;
+        z-index: 4;
 
         & > .datelabel {
-            font-size: 12px;
-            position: absolute;
-            top: -2px;
-            transform: translate(50%, -100%);
-            min-width: 45px;
-            text-align: center;
+            color: red;
         }
     }
 }
 
 ul.alert-gant-rows {
     position: relative;
-    z-index: 2;
+    z-index: 3;
 
     list-style-type: none;
     margin: 0;
@@ -1151,6 +1163,7 @@ ul.alert-gant-rows {
             position: absolute;
             height: 18px;
             top: 1px;
+            // z-index: -1;
 
             background: rgb(238, 139, 139);
             border: 1px solid black;
