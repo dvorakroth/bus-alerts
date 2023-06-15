@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, Agency, AlertForApi, AlertPeriod, AllLinesResponse, LineDetails, SingleLineChanges } from "../apiTypes.js";
+import { ActualLineWithAlertCount, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
 import { AlertWithRelatedInDb } from "../dbTypes.js";
 import { AllAlertsResult, alertFindNextRelevantDate } from "./alerts.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
@@ -332,9 +332,9 @@ export async function getSingleLine(
             if (!period.shape?.length) {
                 period.shape = [...dir.shape];
             }
-        }
 
-        // TODO better map bbox?
+            period.map_bounding_box = calculateBoundingBoxForPeriod(period, all_stops);
+        }
     }
 
     const dirAltNames = labelHeadsignsForDirectionAndAlternative(
@@ -474,4 +474,40 @@ function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
     }
 
     return allPeriods;
+}
+
+function calculateBoundingBoxForPeriod(
+    period: AlertPeriodWithRouteChanges,
+    all_stops: Record<string, StopForMap>
+) {
+    if (period.bitmask === 0) {
+        return boundingBoxForStops(
+            period.raw_stop_seq ?? [],
+            all_stops
+        );
+    }
+
+    const relevantStopIds = new Set<string>(period.deleted_stop_ids);
+
+    let prevStopId: string|null = null;
+    let prevIsAdded: boolean|null = null;
+
+    for (const [stopId, isAdded] of period.updated_stop_sequence) {
+        if (isAdded) {
+            relevantStopIds.add(stopId);
+        }
+
+        if (prevStopId && prevIsAdded !== null) {
+            if (isAdded && !prevIsAdded) {
+                relevantStopIds.add(prevStopId);
+            } else if (!isAdded && prevIsAdded) {
+                relevantStopIds.add(stopId);
+            }
+        }
+
+        prevStopId = stopId;
+        prevIsAdded = isAdded;
+    }
+
+    return boundingBoxForStops(relevantStopIds, all_stops);
 }
