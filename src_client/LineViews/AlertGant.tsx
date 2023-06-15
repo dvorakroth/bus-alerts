@@ -16,6 +16,7 @@ interface AlertGantProps {
     periods: AlertPeriodWithRouteChanges[];
     alertMetadata: {id: string; header: TranslationObject}[];
     selectedChangePeriodIdx: number;
+    onNewChangePeriodSelected: (idx: number) => void;
 }
 
 const PIXELS_PER_HOUR = 8;

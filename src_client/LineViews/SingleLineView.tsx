@@ -46,7 +46,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         [setSelectedDirectionIdx, setSelectedChangePeriodIdx]
     );
 
-    const onNewRouteChangeSelected = React.useCallback(
+    const onNewChangePeriodSelected = React.useCallback(
         (index) => {
             setSelectedChangePeriodIdx(index);
         },
@@ -161,7 +161,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                         !route_changes ? null
                             : <AlertGant periods={route_changes.periods}
                                 alertMetadata={route_changes.alertMetadata}
-                                selectedChangePeriodIdx={selectedChangePeriodIdx} />
+                                selectedChangePeriodIdx={selectedChangePeriodIdx}
+                                onNewChangePeriodSelected={onNewChangePeriodSelected} />
                     }
                     <h2>
                         {/* TODO when the start and end is on the same day, don't print the date twice, just "on day DD.MM, between HH:MM and HH:MM"?? */}
