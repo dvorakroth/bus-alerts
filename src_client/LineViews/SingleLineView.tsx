@@ -194,16 +194,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                             selection={["changes", ""+selectedDirectionIdx, selectedChangePeriodIdx]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
-                    
-                    {/* <ul>
-                        {line.dirs_flattened[actualSelectedDirectionIdx].testing_alert_intersections_bitmasks.map(({start, end, bitmask}) => (
-                            end >= DateTime.now().toSeconds() ? <li>
-                                {DateTime.fromSeconds(start).toISO()}<br/>
-                                {DateTime.fromSeconds(end || 0).toISO()}<br/>
-                                {bitmask.toString(2)}<br/>
-                            </li> : null
-                        ))}
-                    </ul> */}
+                    {/* TODO list of alerts (both with and without route changes) in the selected period, with links */}
                 </div>
             }
             <LoadingOverlay shown={isLoading} />
