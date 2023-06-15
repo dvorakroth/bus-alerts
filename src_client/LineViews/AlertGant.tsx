@@ -3,6 +3,7 @@ import { AlertPeriodWithRouteChanges, TranslationObject } from '../protocol';
 import { DateTime, DurationLike } from 'luxon';
 import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
+import useResizeObserver from 'use-resize-observer';
 
 interface AlertGantProps {
     periods: AlertPeriodWithRouteChanges[];
@@ -10,30 +11,67 @@ interface AlertGantProps {
     selectedChangePeriodIdx: number;
 }
 
+const PIXELS_PER_HOUR = 8;
+const HOURLINE_INTERVAL = 6; // spacing between hourlines, in hours
+
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
     // TODO viewport size by screen width? (or rather by gant element width)
-    // TODO always render everything that's potentially viewable
-    //      (and limit what's potentially viewable to like -2d, +1w)
-    //      and just have a sliding viewport window over it
     // TODO maybe remove the text on the alert items themselves?
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
-    const defaultViewStart = DateTime.now().setZone(JERUSALEM_TZ).minus({ hours: 3 });
-    const defaultViewEnd = defaultViewStart.plus({ hours: 24 * 2 - 3 }) // + 24h, not +1d, in case there's DST weirdness lol
+    const {ref: gantAreaRef, width: gantWidthPx} = useResizeObserver();
+    const gantWidthSeconds = gantWidthPx === undefined
+        ? undefined
+        : gantWidthPx / PIXELS_PER_HOUR * 3600;
+    
+    console.log("gant width", gantWidthSeconds);
+
+    const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
+
+    const defaultViewStart = nowInJerusalem
+        .set({
+            hour: nowInJerusalem.hour - (nowInJerusalem.hour % HOURLINE_INTERVAL),
+            minute: 0,
+            second: 0,
+            millisecond: 0
+        })
+        .minus({ hours: 3 });
+    const defaultViewEnd = gantWidthSeconds === undefined
+        ? undefined
+        : defaultViewStart.plus({ seconds: gantWidthSeconds });
+
+    // TODO minimum/maximum scroll position, by first/last alerts in data
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
-    const [viewportEnd, setViewportEnd] = React.useState<DateTime>(defaultViewEnd);
+    const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
+
+    React.useEffect(
+        () => {
+            if (gantWidthSeconds === undefined) return;
+
+            if (!viewportEnd) setViewportEnd(defaultViewEnd)
+            else setViewportEnd(viewportStart.plus({seconds: gantWidthSeconds}));
+        }, [gantWidthSeconds]
+    );
 
     const viewportStartUnixtime = viewportStart.toSeconds();
-    const viewportEndUnixtime = viewportEnd.toSeconds();
+    const viewportEndUnixtime = viewportEnd?.toSeconds();
 
     const periodsInViewport = React.useMemo(
-        () => [...filterPeriodsForViewport(periods, viewportStartUnixtime, viewportEndUnixtime)],
-        [viewportStart.toSeconds(), viewportEnd.toSeconds(), periods]
+        () => viewportEndUnixtime === undefined
+            ? undefined
+            : [...filterPeriodsForViewport(
+                periods,
+                viewportStartUnixtime,
+                viewportEndUnixtime
+            )],
+        [viewportStartUnixtime, viewportEndUnixtime, periods]
     );
 
     const orderOfAppearance = React.useMemo(
         () => {
+            if (!defaultViewEnd) return undefined;
+
             const periodsInDefaultViewport = [...filterPeriodsForViewport(
                 periods,
                 defaultViewStart.toSeconds(),
@@ -81,6 +119,8 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
 
     const moveBack = React.useCallback(
         () => {
+            if (!viewportEnd) return;
+            // TODO limit
             setViewportStart(viewportStart.minus({ hours: 6 }))
             setViewportEnd(viewportEnd.minus({ hours: 6 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
@@ -88,17 +128,21 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
 
     const moveForward = React.useCallback(
         () => {
+            if (!viewportEnd) return;
+            // TODO limit
             setViewportStart(viewportStart.plus({ hours: 6 }))
             setViewportEnd(viewportEnd.plus({ hours: 6 }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
     );
 
+    const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
+
     return <div className="alert-gant">
         {/* TODO actual images for the buttons */}
         <button className="move-viewport" onClick={moveBack}>&lt;</button>
-        <div className="gant-area">
+        <div className="gant-area" ref={gantAreaRef}>
             <ul className="alert-gant-rows">
-                {orderOfAppearance.map(
+                {!stillLoading && orderOfAppearance?.map(
                     ({alertIdx, alert}) =>
                         <AlertGantRow
                             key={alert.id}
@@ -111,7 +155,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                 )}
             </ul>
             <div className="alert-gant-hourlines">
-                {[...dateRange(findNextRoundHour(viewportStart, 6, 0), viewportEnd, {hours: 6})].map(
+                {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, HOURLINE_INTERVAL, 0), viewportEnd, {hours: HOURLINE_INTERVAL})].map(
                     ({prevDate, date}) =>
                         <div 
                             className="hourline"
@@ -132,7 +176,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         </div>
                 )}
             </div>
-            <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />
+            {!stillLoading && <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />}
             {/* TODO clickable gant areas? */}
             {/* TODO links to the alerts' pages? */}
             {/* TODO jump to next alert? */}

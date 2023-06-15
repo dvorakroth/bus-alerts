@@ -54,6 +54,7 @@
     "react-router-dom": "^6.2.1",
     "react-virtuoso": "^2.4.0",
     "smoothscroll-polyfill": "^0.4.4",
+    "use-resize-observer": "^9.1.0",
     "winston": "^3.9.0"
   }
 }
