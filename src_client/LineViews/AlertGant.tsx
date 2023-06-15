@@ -5,6 +5,13 @@ import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from '../junkyard/
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
 
+type AlertAppearance = {
+    alertIdx: number;
+    alert: {id: string; header: TranslationObject};
+    firstAppearance: number;
+    totalLength: number;
+};
+
 interface AlertGantProps {
     periods: AlertPeriodWithRouteChanges[];
     alertMetadata: {id: string; header: TranslationObject}[];
@@ -67,16 +74,18 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
         [viewportStartUnixtime, viewportEndUnixtime, periods]
     );
 
-    const orderOfAppearance = React.useMemo(
+    const [orderOfAppearance, setOrderOfAppearance] = React.useState<AlertAppearance[]|undefined>(undefined);
+
+    React.useEffect(
         () => {
-            if (!defaultViewEnd) return undefined;
+            if (!defaultViewEnd) return;
 
             const periodsInDefaultViewport = [...filterPeriodsForViewport(
                 periods,
                 defaultViewStart.toSeconds(),
                 defaultViewEnd.toSeconds()
             )];
-            return alertMetadata
+            const order = alertMetadata
                 .map(
                     (alert, alertIdx) => ({
                         alertIdx,
@@ -92,9 +101,6 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                 )
                 .map((e) => ({
                     ...e,
-                    // alertLength: (e.lastAppearance >= 0 && e.firstAppearance >= 0)
-                    //     ? e.lastAppearance - e.firstAppearance
-                    //     : -1,
                     firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance,
                 }))
                 .sort((a, b) => {
@@ -111,9 +117,11 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         : a.alertIdx > b.alertIdx
                         ? 1
                         : 0;
-                })
-            },
-        [periods, defaultViewStart, defaultViewEnd, alertMetadata]
+                });
+            
+            setOrderOfAppearance(order);
+        },
+        [defaultViewEnd === null, periods, alertMetadata]
     );
 
     const moveBack = React.useCallback(
