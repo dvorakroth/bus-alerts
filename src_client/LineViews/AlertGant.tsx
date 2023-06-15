@@ -315,10 +315,7 @@ function *filterPeriodsForViewport(
     viewportEnd: number
 ) {
     for (const period of periods) {
-        if (
-            (viewportStart <= period.start && period.start < viewportEnd)
-            || (viewportStart < period.end && period.end <= viewportEnd)
-        ) {
+        if (period.start < viewportEnd && viewportStart < period.end) {
             yield period;
         }
     }
