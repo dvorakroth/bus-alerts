@@ -65,7 +65,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
             setSelectedChangePeriodIdx(nowPeriodIdx);
         },
-        [setSelectedDirectionIdx, setSelectedChangePeriodIdx]
+        [data, setSelectedDirectionIdx, setSelectedChangePeriodIdx]
     );
 
     const onNewChangePeriodSelected = React.useCallback(
