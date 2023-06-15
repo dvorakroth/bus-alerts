@@ -7,9 +7,13 @@ import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 import { AlertGant } from './AlertGant';
+import { JERUSALEM_TZ, short_datetime_hebrew } from '../junkyard/date_utils';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
+
+const NEBULOUS_DISTANT_PAST   = DateTime.fromISO("2000-01-01T00:00:00.000Z").toSeconds();
+const NEBULOUS_DISTANT_FUTURE = DateTime.fromISO("2150-01-01T00:00:00.000Z").toSeconds();
 
 interface ImplSingleLineViewProps {
     data: SingleLineChanges|null;
@@ -100,6 +104,13 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     // const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
     const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_change_alerts;
 
+    const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
+    const showPeriodStart = selectedPeriod?.start && selectedPeriod?.start > NEBULOUS_DISTANT_PAST;
+    const showPeriodEnd   = selectedPeriod?.end   && selectedPeriod?.end < NEBULOUS_DISTANT_FUTURE;
+
+    const startFormattedDate = showPeriodStart && short_datetime_hebrew(DateTime.fromSeconds(selectedPeriod?.start, {zone: JERUSALEM_TZ}));
+    const endFormattedDate = showPeriodEnd && short_datetime_hebrew(DateTime.fromSeconds(selectedPeriod?.end, {zone: JERUSALEM_TZ}));
+
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
             <div className="nav-content">
@@ -152,6 +163,21 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 alertMetadata={route_changes.alertMetadata}
                                 selectedChangePeriodIdx={selectedChangePeriodIdx} />
                     }
+                    <h2>
+                        {/* TODO when the start and end is on the same day, don't print the date twice, just "on day DD.MM, between HH:MM and HH:MM"?? */}
+                        {!selectedPeriod
+                            ? "מפת הקו:"
+                            : !showPeriodStart && !showPeriodEnd
+                            ? "מפת הקו המעודכנת:"
+                            : showPeriodStart && !showPeriodEnd
+                            ? "מפת הקו החל מיום " + startFormattedDate + ":"
+                            : !showPeriodStart && showPeriodEnd
+                            ? "מפת הקו עד ליום " + endFormattedDate + ":"
+                            : showPeriodStart && showPeriodEnd
+                            ? "מפת הקו בין יום " + startFormattedDate + " ליום " + endFormattedDate + ":"
+                            : null
+                        }
+                    </h2>
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
