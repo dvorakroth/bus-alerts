@@ -30,8 +30,6 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
         ? undefined
         : gantWidthPx / PIXELS_PER_HOUR * 3600;
     
-    console.log("gant width", gantWidthSeconds);
-
     const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
 
     const defaultViewStart = nowInJerusalem
