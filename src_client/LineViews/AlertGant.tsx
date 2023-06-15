@@ -22,7 +22,12 @@ interface AlertGantProps {
 const PIXELS_PER_HOUR = 8;
 const HOURLINE_INTERVAL = 6; // spacing between hourlines, in hours
 
-export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
+export function AlertGant({
+    periods,
+    alertMetadata,
+    selectedChangePeriodIdx,
+    onNewChangePeriodSelected
+}: AlertGantProps) {
     // TODO maybe remove the text on the alert items themselves?
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
@@ -145,6 +150,19 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
+    const clickableAreaOnClick = React.useCallback(
+        ({currentTarget}: React.MouseEvent) => {
+            const idxStr = currentTarget.getAttribute("data-idx");
+            if (!idxStr) return;
+
+            const idx = parseInt(idxStr);
+            if (isNaN(idx)) return;
+
+            onNewChangePeriodSelected(idx);
+        },
+        [onNewChangePeriodSelected]
+    )
+
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
     return <div className="alert-gant">
@@ -187,7 +205,24 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                 )}
             </div>
             {!stillLoading && <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />}
-            {/* TODO clickable gant areas? */}
+            <div className="alert-gant-clickable-areas">
+                {!stillLoading && periodsInViewport.map(
+                    ({start, end, originalIndex}) => <button
+                        className={classnames(
+                            "period",
+                            {"start-invisible": start < viewportStartUnixtime},
+                            {"end-invisible": end > viewportEndUnixtime},
+                            {"selected": originalIndex === selectedChangePeriodIdx}
+                        )}
+                        data-idx={originalIndex}
+                        onClick={clickableAreaOnClick}
+                        style={{
+                            right: `calc(${rightPercentageForUnixtime(start, viewportStartUnixtime, viewportEndUnixtime)} - 1px)`,
+                            width: `calc(2px + ${widthPercentageForUnixtime(start, end, viewportStartUnixtime, viewportEndUnixtime)})`
+                            }}
+                    ></button>
+                )}
+            </div>
             {/* TODO links to the alerts' pages? */}
             {/* TODO jump to next alert? */}
             {/* TODO indicators telling you if there's more alerts in some direction? */}
@@ -224,8 +259,8 @@ function AlertGantRow({
                     key={idx}
                     className={classnames(
                         "alert-gant-item",
-                        {"start-visible": start >= viewportStart},
-                        {"end-visible": end <= viewportEnd}
+                        {"start-invisible": start < viewportStart},
+                        {"end-invisible": end > viewportEnd}
                     )}
                     style={{
                         right: rightPercentageForUnixtime(start, viewportStart, viewportEnd),
@@ -314,10 +349,16 @@ function *filterPeriodsForViewport(
     viewportStart: number,
     viewportEnd: number
 ) {
+    let i = 0;
+
     for (const period of periods) {
         if (period.start < viewportEnd && viewportStart < period.end) {
-            yield period;
+            yield {
+                ...period,
+                originalIndex: i
+            };
         }
+        i++;
     }
 }
 
