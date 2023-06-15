@@ -15,7 +15,6 @@ const PIXELS_PER_HOUR = 8;
 const HOURLINE_INTERVAL = 6; // spacing between hourlines, in hours
 
 export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: AlertGantProps) {
-    // TODO viewport size by screen width? (or rather by gant element width)
     // TODO maybe remove the text on the alert items themselves?
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
