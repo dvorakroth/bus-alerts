@@ -166,13 +166,6 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
-                    { /* TODO: alert period selector, in the future */}
-                    {/* {
-                        !route_changes ? null
-                            : <AlertPeriodChooser alert_periods={route_changes.periods}
-                                        selectedIdx={selectedChangePeriodIdx}
-                                        onNewSelection={onNewRouteChangeSelected} />
-                    } */}
                     {
                         !route_changes ? null
                             : <AlertGant periods={route_changes.periods}
@@ -253,32 +246,6 @@ export default function FullPageSingleLineView({isModal}: Props) {
     });
 
     return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} showDistance={false}/>;
-}
-
-interface AlertPeriodChooserProps {
-    alert_periods: {start: number, end: number, bitmask: number}[];
-    selectedIdx: number | null;
-    onNewSelection: (idx: number, event: React.MouseEvent) => void;
-}
-
-function AlertPeriodChooser({alert_periods, selectedIdx, onNewSelection}: AlertPeriodChooserProps) {
-    const cb = React.useCallback((idx, event) => {
-        onNewSelection?.(idx, event);
-        event.preventDefault();
-        event.stopPropagation();
-    }, [onNewSelection]);
-    
-    return <ul className="single-line-alert-list">
-        {alert_periods.map(({start, end, bitmask}, idx) => (
-            <li key={idx} className={(idx === selectedIdx ? "selected" : "")}>
-                <a href="#" onClick={cb.bind(window, idx)}>
-                    {DateTime.fromSeconds(start).toISO()}<br/>
-                    {DateTime.fromSeconds(end || 0).toISO()}<br/>
-                    {bitmask.toString(2)}<br/>
-                </a>
-            </li>
-        ))}
-    </ul>
 }
 
 function findNowPeriod(periods: AlertPeriodWithRouteChanges[]) {
