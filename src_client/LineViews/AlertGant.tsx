@@ -39,12 +39,13 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
             second: 0,
             millisecond: 0
         })
-        .minus({ hours: 3 });
+        .minus({ hours: HOURLINE_INTERVAL / 2 });
     const defaultViewEnd = gantWidthSeconds === undefined
         ? undefined
         : defaultViewStart.plus({ seconds: gantWidthSeconds });
 
-    // TODO minimum/maximum scroll position, by first/last alerts in data
+    const minimumStartPosition = defaultViewStart.minus({ hours: 2 * 24 });
+    const maximumEndPosition = defaultViewEnd?.plus({ hours: 10 * 24 });
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
@@ -122,29 +123,32 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
         [defaultViewEnd === null, periods, alertMetadata]
     );
 
+    const canMoveBack = viewportStartUnixtime > minimumStartPosition.toSeconds();
+    const canMoveForward = maximumEndPosition && viewportEndUnixtime && viewportEndUnixtime < maximumEndPosition.toSeconds();
+
     const moveBack = React.useCallback(
         () => {
-            if (!viewportEnd) return;
-            // TODO limit
-            setViewportStart(viewportStart.minus({ hours: 6 }))
-            setViewportEnd(viewportEnd.minus({ hours: 6 }))
-        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
+            if (!viewportEnd || !canMoveBack) return;
+
+            setViewportStart(viewportStart.minus({ hours: HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.minus({ hours: HOURLINE_INTERVAL }))
+        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveBack]
     );
 
     const moveForward = React.useCallback(
         () => {
-            if (!viewportEnd) return;
-            // TODO limit
-            setViewportStart(viewportStart.plus({ hours: 6 }))
-            setViewportEnd(viewportEnd.plus({ hours: 6 }))
-        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd]
+            if (!viewportEnd || !canMoveForward) return;
+
+            setViewportStart(viewportStart.plus({ hours: HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.plus({ hours: HOURLINE_INTERVAL }))
+        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
     return <div className="alert-gant">
         {/* TODO actual images for the buttons */}
-        <button className="move-viewport" onClick={moveBack}>&lt;</button>
+        <button className="move-viewport" onClick={moveBack} disabled={!canMoveBack}>&lt;</button>
         <div className="gant-area" ref={gantAreaRef}>
             <ul className="alert-gant-rows">
                 {!stillLoading && orderOfAppearance?.map(
@@ -186,8 +190,9 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
             {/* TODO links to the alerts' pages? */}
             {/* TODO jump to next alert? */}
             {/* TODO indicators telling you if there's more alerts in some direction? */}
+            {/* TODO jump to today (back to default view) button? */}
         </div>
-        <button className="move-viewport" onClick={moveForward}>&gt;</button>
+        <button className="move-viewport" onClick={moveForward} disabled={!canMoveForward}>&gt;</button>
     </div>
 }
 
