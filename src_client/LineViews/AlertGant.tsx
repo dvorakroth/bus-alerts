@@ -120,7 +120,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
             
             setOrderOfAppearance(order);
         },
-        [defaultViewEnd === null, periods, alertMetadata]
+        [!defaultViewEnd, periods, alertMetadata]
     );
 
     const canMoveBack = viewportStartUnixtime > minimumStartPosition.toSeconds();
