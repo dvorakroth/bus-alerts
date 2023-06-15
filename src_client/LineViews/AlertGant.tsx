@@ -84,7 +84,7 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                         firstAppearance: periodsInDefaultViewport.findIndex(
                             ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
                         ),
-                        alertLength: countIndices(
+                        totalLength: countPeriodLength(
                             periodsInDefaultViewport,
                             ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
                         )
@@ -98,12 +98,12 @@ export function AlertGant({periods, alertMetadata, selectedChangePeriodIdx}: Ale
                     firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance,
                 }))
                 .sort((a, b) => {
-                    if (a.alertLength !== b.alertLength) {
-                        return b.alertLength - a.alertLength;
-                    }
-                    
                     if (a.firstAppearance !== b.firstAppearance) {
                         return a.firstAppearance - b.firstAppearance;                        
+                    }
+
+                    if (a.totalLength !== b.totalLength) {
+                        return b.totalLength - a.totalLength;
                     }
 
                     return a.alertIdx < b.alertIdx
@@ -312,19 +312,22 @@ function *filterPeriodsForViewport(
     }
 }
 
-function countIndices<T>(
-    arr: T[],
-    predicate: (t: T) => boolean
+function countPeriodLength(
+    arr: AlertPeriodWithRouteChanges[],
+    predicate: (t: AlertPeriodWithRouteChanges) => boolean
 ) {
-    let sum = 0;
+    let sumLength = 0;
 
     for (let i = 0; i < arr.length; i++) {
-        if (predicate(arr[i] as T)) {
-            sum++;
+        const period = arr[i];
+        if (!period) continue;
+
+        if (predicate(period)) {
+            sumLength += (period.end - period.start);
         }
     }
 
-    return sum;
+    return sumLength;
 }
 
 function *range(
