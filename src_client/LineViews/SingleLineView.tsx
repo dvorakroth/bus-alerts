@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { RouteChangeForMap, SingleLineChanges } from '../protocol';
+import { AlertPeriodWithRouteChanges, RouteChangeForMap, SingleLineChanges } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -25,8 +25,24 @@ interface ImplSingleLineViewProps {
 function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingleLineViewProps) {
     const navigate = ReactRouter.useNavigate();
 
-    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number|null>(null);
+    const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(0);
     const [selectedChangePeriodIdx, setSelectedChangePeriodIdx] = React.useState<number>(0);
+
+    React.useEffect(
+        () => {
+            const firstDirectionIdxWithChanges = data?.line_details?.dirs_flattened?.findIndex(
+                dir => dir.route_change_alerts?.periods?.some(p => p.bitmask !== 0)
+            ) ?? 0;
+
+
+            const direction = data?.line_details?.dirs_flattened?.[firstDirectionIdxWithChanges];
+            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.route_change_alerts?.periods ?? []));
+
+            setSelectedDirectionIdx(firstDirectionIdxWithChanges);
+            setSelectedChangePeriodIdx(nowPeriodIdx);
+        },
+        [data]
+    );
 
     const onDismissModal = React.useCallback(
         (event: React.MouseEvent) => {
@@ -41,7 +57,13 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const onNewDirectionSelected = React.useCallback(
         (index) => {
             setSelectedDirectionIdx(index);
-            setSelectedChangePeriodIdx(0);
+
+            // TODO maybe instead of always reverting to "now", i should instead find a period that
+            //      closely matches whatever period was selected for the previously selected direction???
+            const direction = data?.line_details?.dirs_flattened?.[index];
+            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.route_change_alerts?.periods ?? []));
+
+            setSelectedChangePeriodIdx(nowPeriodIdx);
         },
         [setSelectedDirectionIdx, setSelectedChangePeriodIdx]
     );
@@ -55,36 +77,30 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const line = data?.line_details;
 
-    const [route_changes_struct, firstDirectionIdxWithChanges] = React.useMemo(
+    const route_changes_struct = React.useMemo(
         () => {
-            if (!line) return [{}, null];
+            if (!line) return {changes: {}};
 
-            let firstIdxWithChanges: number|null = null;
-
-            return [{
+            return {
                 changes: line.dirs_flattened.reduce<Record<string, RouteChangeForMap[]>>(
-                    (o, d, idx) => {
-                        const periods = d?.route_change_alerts?.periods;
+                    (changesDict, dir, dirIdx) => {
+                        const periods = dir?.route_change_alerts?.periods;
 
                         if (periods?.length) {
-                            o[idx] = periods;
-
-                            if (firstIdxWithChanges === null) {
-                                firstIdxWithChanges = idx;
-                            }
+                            changesDict[dirIdx] = periods;
                         } else {
-                            o[idx] = [{
-                                shape: d.shape,
+                            changesDict[dirIdx] = [{
+                                shape: dir.shape,
                                 deleted_stop_ids: [],
-                                updated_stop_sequence: d.stop_seq.map((stop_id) => [stop_id, false]), 
+                                updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false]), 
                                 has_no_changes: true
                             }];
                         }
-                        return o;
+                        return changesDict;
                     },
                     {}
                 )
-            }, firstIdxWithChanges];
+            };
         },
         [line]
     );
@@ -99,10 +115,10 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         [line]
     );
 
-    const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
+    // const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
     
     // const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
-    const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_change_alerts;
+    const route_changes = line?.dirs_flattened?.[selectedDirectionIdx]?.route_change_alerts;
 
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
     const showPeriodStart = selectedPeriod?.start && selectedPeriod?.start > NEBULOUS_DISTANT_PAST;
@@ -146,7 +162,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                             </div>
                         </div>
                         <DirectionChooser changes_for_line={directions_for_chooser ?? []}
-                                          selectedIndex={actualSelectedDirectionIdx}
+                                          selectedIndex={selectedDirectionIdx}
                                           onNewSelection={onNewDirectionSelected}
                                           hideCaption={true} />
                     </div>
@@ -182,7 +198,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_struct}
                                             stops={data?.all_stops}
-                                            selection={["changes", ""+actualSelectedDirectionIdx, selectedChangePeriodIdx]}
+                                            selection={["changes", ""+selectedDirectionIdx, selectedChangePeriodIdx]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                     
@@ -263,4 +279,12 @@ function AlertPeriodChooser({alert_periods, selectedIdx, onNewSelection}: AlertP
             </li>
         ))}
     </ul>
+}
+
+function findNowPeriod(periods: AlertPeriodWithRouteChanges[]) {
+    const now = DateTime.now().toSeconds();
+
+    return periods.findIndex(
+        ({start, end}) => start <= now && now <= end
+    );
 }
