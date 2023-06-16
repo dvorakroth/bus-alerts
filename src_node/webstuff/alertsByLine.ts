@@ -16,7 +16,7 @@ export async function getAllLines(
     const alerts = await alertsDbApi.getAlerts();
     const firstRelevantDates: Record<string, DateTime> = {};
 
-    const linepkToAlerts: Record<string, AlertWithRelatedInDb[]> = {};
+    const linepkToAlertIds: Record<string, Set<string>> = {};
     const linepkToRemovedStopIds: Record<string, Set<string>> = {};
 
     for (const alert of alerts) {
@@ -34,13 +34,13 @@ export async function getAllLines(
                 continue;
             }
 
-            const alertsForLine = linepkToAlerts[pk]
-                ?? (linepkToAlerts[pk] = []);
+            const alertIdsForLine = linepkToAlertIds[pk]
+                ?? (linepkToAlertIds[pk] = new Set());
             
             const removedStopIdsForLine = linepkToRemovedStopIds[pk]
                 ?? (linepkToRemovedStopIds[pk] = new Set());
             
-            alertsForLine.push(alert);
+            alertIdsForLine.add(alert.id);
             alert.removed_stop_ids.forEach(stopId => removedStopIdsForLine.add(stopId));
         }
     }
@@ -55,24 +55,24 @@ export async function getAllLines(
     const all_lines: ActualLineWithAlertCount[] = [];
 
     for (const actualLine of groupedRoutes.actualLinesList) {
-        const alertsForLine = linepkToAlerts[actualLine.pk] ?? [];
+        const alertsForLine = linepkToAlertIds[actualLine.pk] ?? new Set();
         const removedStopIds = linepkToRemovedStopIds[actualLine.pk] ?? new Set();
 
         const withAlertCount = <ActualLineWithAlertCount>{
             ...actualLine,
-            num_alerts: alertsForLine.length,
+            num_alerts: alertsForLine.size,
             first_relevant_date: minimumDate(
                 (function *() {
-                    for (const alert of alertsForLine) {
-                        const frd = firstRelevantDates[alert.id];
+                    for (const alertId of alertsForLine) {
+                        const frd = firstRelevantDates[alertId];
                         if (!frd) continue;
                         yield frd;
                     }
                 })()
             ),
-            num_relevant_today: alertsForLine.filter(
-                alert => {
-                    const frd = firstRelevantDates[alert.id];
+            num_relevant_today: [...alertsForLine].filter(
+                alertId => {
+                    const frd = firstRelevantDates[alertId];
                     return frd && frd.toSeconds() === todayInJerusalem.toSeconds();
                 }
             ).length,
@@ -108,6 +108,7 @@ function lineWithAlertSortingNple(
     allAgencies: Record<string, Agency>
 ) {
     return [
+        -(line.num_removed_stops ?? 0),
         -line.num_alerts,
         lineNumberForSorting(line.route_short_name),
         allAgencies[line.agency_id]?.agency_name ?? ""
