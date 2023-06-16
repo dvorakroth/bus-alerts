@@ -80,7 +80,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     const line = data?.line_details;
 
-    const route_changes_struct = React.useMemo(
+    const route_changes_for_map = React.useMemo(
         () => {
             if (!line) return {changes: {}};
 
@@ -118,9 +118,6 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         [line]
     );
 
-    // const actualSelectedDirectionIdx = selectedDirectionIdx ?? firstDirectionIdxWithChanges ?? 0;
-    
-    // const route_changes = line?.dirs_flattened?.[actualSelectedDirectionIdx]?.route_changes;
     const route_changes = line?.dirs_flattened?.[selectedDirectionIdx]?.route_change_alerts;
 
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
@@ -192,7 +189,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                         }
                     </h2>
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
-                    <RouteChangesMapView route_changes={route_changes_struct}
+                    <RouteChangesMapView route_changes={route_changes_for_map}
                                             stops={data?.all_stops}
                                             selection={["changes", ""+selectedDirectionIdx, selectedChangePeriodIdx]}
                                             map_bounding_box={data?.map_bounding_box}
