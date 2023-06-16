@@ -230,6 +230,12 @@ interface LinkToAlertProps {
 }
 
 function LinkToAlert({alertId, className, currentLine, children}: LinkToAlertProps) {
+    // TODO i should probably find some kind of solution that keeps several
+    //      background states alive or something, so i don't have to reload
+    //      the SingleLineView (and thus reset its state!) whenever we
+    //      dismiss/go back from the alert page? but that sounds like a pain
+    //      in the ass so uh,,, maybe later
+    
     const location = ReactRouterDOM.useLocation();
     const {backgroundLocation} = (location.state as {
         backgroundLocation?: ReactRouterDOM.Location
