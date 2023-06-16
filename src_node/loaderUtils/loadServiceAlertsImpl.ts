@@ -43,7 +43,44 @@ async function loadSingleEntity(
     for (const period of alert?.activePeriod||[]) {
         const start = forceToNumberOrNull(period.start);
         const end = forceToNumberOrNull(period.end);
-        activePeriods.push([start, end]);
+
+        // apparently sometimes we get alerts with multiple overlapping active periods
+        // so uh,,, fix that lol
+        let foundOverlap = false;
+        const normalizedStart = start||0;
+        const normalizedEnd = end||INFINITE_END_TIME;
+
+        for (const otherPeriod of activePeriods) {
+            const otherPeriodNormalized: [number, number] = [
+                otherPeriod[0]||0,
+                otherPeriod[1]||INFINITE_END_TIME
+            ];
+
+            if (
+                otherPeriodNormalized[0] <= normalizedEnd
+                && otherPeriodNormalized[1] >= normalizedStart
+            ) {
+                foundOverlap = true;
+
+                if (!start || !otherPeriod[0]) {
+                    otherPeriod[0] = null;
+                } else {
+                    otherPeriod[0] = Math.min(start, otherPeriod[0]);
+                }
+
+                if (!end || !otherPeriod[1]) {
+                    otherPeriod[1] = null;
+                } else {
+                    otherPeriod[1] = Math.max(end, otherPeriod[1])
+                }
+
+                break;
+            }
+        }
+
+        if (!foundOverlap) {
+            activePeriods.push([start, end]);
+        }
 
         if (start) {
             if (firstStartTime === null || firstStartTime > start) {
