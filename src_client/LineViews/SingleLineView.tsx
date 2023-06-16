@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouter from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { AlertPeriodWithRouteChanges, RouteChangeForMap, SingleLineChanges } from '../protocol';
+import { AlertPeriodWithRouteChanges, MapBoundingBox, RouteChangeForMap, SingleLineChanges, StopForMap } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -96,7 +96,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 shape: dir.shape,
                                 deleted_stop_ids: [],
                                 updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false]), 
-                                has_no_changes: true
+                                has_no_changes: true,
+                                map_bounding_box: boundingBoxForStops(dir.stop_seq, data.all_stops)
                             }];
                         }
                         return changesDict;
@@ -238,6 +239,47 @@ function *iterateOverBitmask(bitmask: number) {
         }
     }
 }
+
+function boundingBoxForStops(
+    stopIds: Iterable<string>,
+    stops_for_map: Record<string, StopForMap>
+): MapBoundingBox {
+    /**
+     * get bounding box of affected stops, for setting the maps' bounding box
+     */
+
+    let min_lon = Infinity;
+    let min_lat = Infinity;
+    let max_lon = -Infinity;
+    let max_lat = -Infinity;
+
+    for (const stopId of stopIds) {
+        const stop = stops_for_map[stopId];
+        if (!stop) continue;
+
+        if (min_lon > stop.stop_lon) {
+            min_lon = stop.stop_lon;
+        }
+        if (min_lat > stop.stop_lat) {
+            min_lat = stop.stop_lat;
+        }
+        if (max_lon < stop.stop_lon) {
+            max_lon = stop.stop_lon;
+        }
+        if (max_lat < stop.stop_lat) {
+            max_lat = stop.stop_lat;
+        }
+    }
+
+    return {
+        min_lon,
+        min_lat,
+        max_lon,
+        max_lat
+    };
+}
+
+
 interface Props {
     isModal: boolean;
 }
