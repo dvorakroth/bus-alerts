@@ -315,9 +315,9 @@ export async function getSingleLine(
         all_stops
     );
 
-    // if a shape is missing then just make shit up
     for (const dir of line_details.dirs_flattened) {
         if (!dir.shape?.length) {
+            // if a shape is missing then just make shit up
             dir.shape = [];
 
             for (const stop_id of dir.stop_seq) {
