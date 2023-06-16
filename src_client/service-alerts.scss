@@ -894,7 +894,7 @@ a.more-details:active {
         display: flex;
 
         // justify-content: flex-start;
-        align-items: center;
+        align-items: flex-start;
 
         .direction-chooser-wrapper {
             margin-right: 3px;
