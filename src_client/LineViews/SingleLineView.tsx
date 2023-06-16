@@ -30,9 +30,12 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
 
     React.useEffect(
         () => {
-            const firstDirectionIdxWithChanges = data?.line_details?.dirs_flattened?.findIndex(
-                dir => dir.route_change_alerts?.periods?.some(p => p.bitmask !== 0)
-            ) ?? 0;
+            const firstDirectionIdxWithChanges = Math.max(
+                data?.line_details?.dirs_flattened?.findIndex(
+                    dir => dir.route_change_alerts?.periods?.some(p => p.bitmask !== 0)
+                ) ?? 0,
+                0
+            );
 
 
             const direction = data?.line_details?.dirs_flattened?.[firstDirectionIdxWithChanges];
