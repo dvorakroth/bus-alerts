@@ -167,10 +167,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                 selectedChangePeriodIdx={selectedChangePeriodIdx}
                                 onNewChangePeriodSelected={onNewChangePeriodSelected} />
                     }
-                    <h2>
-                        {/* TODO when the start and end is on the same day, don't print the date twice, just "on day DD.MM, between HH:MM and HH:MM"?? */}
-                        {mapTitleForPeriod(selectedPeriod)}
-                    </h2>
+                    <h2>{mapTitleForPeriod(selectedPeriod)}</h2>
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_for_map}
                                             stops={data?.all_stops}
