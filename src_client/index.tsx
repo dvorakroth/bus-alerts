@@ -7,6 +7,7 @@ import LineListPage from "./LineViews/LineListPage";
 import AlertListPage from "./AlertViews/AlertListPage";
 import {FullPageSingleAlert, ModalSingleAlert} from "./AlertViews/SingleAlertView";
 import FullPageSingleLineView from "./LineViews/SingleLineView";
+import { LocationStateAlert } from "./LocationState";
 
 let isStandalone = false;
 
@@ -29,7 +30,7 @@ if ((navigator as any)?.standalone || matchMedia('(display-mode: standalone)').m
 function App() {
     let location = useLocation();
 
-    let state = location.state as { backgroundLocation?: Location };
+    let state = location.state as LocationStateAlert;
 
     console.log(state);
 
@@ -38,7 +39,7 @@ function App() {
             {/* <Route index element={<LineListPage hasModal={!!state?.backgroundLocation} />} /> */}
             <Route index element={<Navigate to="/alerts" replace={true} />}/>
             
-            <Route path="/line/:id" element={<FullPageSingleLineView isModal={false} />} />
+            <Route path="/line/:id" element={<FullPageSingleLineView isModal={false} hasModal={!!state?.backgroundLocation} />} />
             <Route path="/lines" element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
 
             <Route path="/alerts" element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>

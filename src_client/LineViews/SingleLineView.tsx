@@ -1,13 +1,14 @@
 import { DateTime } from 'luxon';
 import * as React from 'react';
-import * as ReactRouter from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { AlertPeriodWithRouteChanges, MapBoundingBox, RouteChangeForMap, SingleLineChanges, StopForMap } from '../protocol';
+import { AlertPeriodWithRouteChanges, LineDetails, MapBoundingBox, RouteChangeForMap, SingleLineChanges, StopForMap } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 import { AlertGant } from './AlertGant';
 import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
+import * as classNames from 'classnames';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -19,11 +20,12 @@ interface ImplSingleLineViewProps {
     data: SingleLineChanges|null;
     isLoading: boolean;
     isModal: boolean;
+    hasModal: boolean;
     showDistance: boolean;
 }
 
-function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingleLineViewProps) {
-    const navigate = ReactRouter.useNavigate();
+function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: ImplSingleLineViewProps) {
+    const navigate = ReactRouterDOM.useNavigate();
 
     const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(0);
     const [selectedChangePeriodIdx, setSelectedChangePeriodIdx] = React.useState<number>(0);
@@ -123,12 +125,12 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     const route_changes = selectedDirection?.route_change_alerts;
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
 
-    return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
+    return <div className={classNames("single-alert-view", {modal: isModal}, {hidden: hasModal})}>
         <nav>
             <div className="nav-content">
                 {isModal
                     ? <a className="back-to-list" href="/lines" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
-                    : <ReactRouter.Link className="back-to-list" to={'/lines'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
+                    : <ReactRouterDOM.Link className="back-to-list" to={'/lines'}>{DISMISS_BUTTON_TEXT}</ReactRouterDOM.Link>}
             </div>
         </nav>
         <div className={"single-alert-content-container" /* i'll... explain later */}
@@ -181,9 +183,17 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                             : <>
                                 <h2>התראות עם שינויי מסלול:</h2>
                                 <ul>
-                                    {/* TODO add links? */}
                                     {[...iterateOverBitmask(selectedPeriod.bitmask)].map(
-                                        idx => <li key={idx}>{route_changes?.alertMetadata?.[idx]?.header?.he}</li>
+                                        idx => {
+                                            const alert = route_changes?.alertMetadata?.[idx];
+                                            if (!alert) return null;
+
+                                            return <li key={alert.id}>
+                                                <LinkToAlert alertId={alert.id} currentLine={line}>
+                                                    {alert.header.he}
+                                                </LinkToAlert>
+                                            </li>;
+                                        }
                                     )}
                                 </ul>
                             </>
@@ -194,9 +204,12 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                             : <>
                                 <h2>התראות ללא שינויי מסלול:</h2>
                                 <ul>
-                                    {/* TODO add links? */}
                                     {selectedDirection.other_alerts.map(
-                                        alert => <li key={alert.id}>{alert.header.he}</li>
+                                        alert => <li key={alert.id}>
+                                            <LinkToAlert alertId={alert.id} currentLine={line}>
+                                                {alert.header.he}
+                                            </LinkToAlert>
+                                        </li>
                                     )}
                                 </ul>
                             </>
@@ -206,6 +219,37 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
             <LoadingOverlay shown={isLoading} />
         </div>
     </div>
+}
+
+interface LinkToAlertProps {
+    alertId: string;
+    className?: string;
+    currentLine: LineDetails;
+
+    children?: string | JSX.Element | JSX.Element[];
+}
+
+function LinkToAlert({alertId, className, currentLine, children}: LinkToAlertProps) {
+    const location = ReactRouterDOM.useLocation();
+    const {backgroundLocation} = (location.state as {
+        backgroundLocation?: ReactRouterDOM.Location
+    }|undefined) ?? {};
+    
+    return <ReactRouterDOM.Link className={className}
+            to={`/alert/${alertId}`}
+            state={{
+                backgroundLocation: backgroundLocation ?? location,
+                alert: null,
+                showDistance: false,
+                matches: [],
+                backToLine: {
+                    line_number: currentLine.route_short_name,
+                    agency_id: currentLine.agency.agency_id,
+                    line_pk: currentLine.pk
+                }
+            }}>
+        {children}
+    </ReactRouterDOM.Link>;
 }
 
 function mapTitleForPeriod(selectedPeriod: AlertPeriodWithRouteChanges|undefined) {
@@ -282,10 +326,11 @@ function boundingBoxForStops(
 
 interface Props {
     isModal: boolean;
+    hasModal?: boolean;
 }
 
-export default function FullPageSingleLineView({isModal}: Props) {
-    const params = ReactRouter.useParams<"id">();
+export default function FullPageSingleLineView({isModal, hasModal}: Props) {
+    const params = ReactRouterDOM.useParams<"id">();
     const [data, setData] = React.useState<SingleLineChanges|null>(null);
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
@@ -314,7 +359,7 @@ export default function FullPageSingleLineView({isModal}: Props) {
         }
     });
 
-    return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} showDistance={false}/>;
+    return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} hasModal={!!hasModal} showDistance={false}/>;
 }
 
 function findNowPeriod(periods: AlertPeriodWithRouteChanges[]) {

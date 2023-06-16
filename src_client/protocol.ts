@@ -28,7 +28,8 @@ export type {
     RouteChangeForApi,
     DepartureChangeDetail,
     AlertPeriodWithRouteChanges,
-    TranslationObject
+    TranslationObject,
+    LineDetails
 } from "../src_node/apiTypes";
 export type ActiveTime = [string, string, boolean];
 export type DateOrDateRange = string | [string, string];

@@ -9,8 +9,10 @@ import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { LoadingOverlay } from "./AlertListPage";
 import DirectionChooser from "../RandomComponents/DirectionChooser";
+import { LocationStateAlert } from "../LocationState";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
+const DISMISS_BUTTON_LINE = "< חזרה לקו";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
 
 const ACTIVE_PERIOD_FROM = "מיום ";
@@ -482,7 +484,12 @@ interface SingleAlertViewProps {
     isLoading: boolean;
     isModal: boolean;
     showDistance: boolean;
-    matches?: FuriousSearchMatch[][]
+    matches?: FuriousSearchMatch[][];
+    backToLine?: {
+        line_number: string;
+        agency_id: string;
+        line_pk: string;
+    };
 }
 
 function shouldShowMapForAlert(alert: ServiceAlert) {
@@ -504,7 +511,8 @@ function SingleAlertView(
         isModal,
         isLoading,
         showDistance,
-        matches
+        matches,
+        backToLine
     }: SingleAlertViewProps
 ) {
     const navigate = ReactRouter.useNavigate();
@@ -543,8 +551,13 @@ function SingleAlertView(
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
             <div className="nav-content">
-                {isModal
+                {isModal && !backToLine
                     ? <a className="back-to-list" href="/alerts" role="link" onClick={onDismissModal}>{DISMISS_BUTTON_TEXT}</a>
+                    : isModal && backToLine
+                    ? <a className="back-to-list" href={`/line/${backToLine.line_pk}`} role="link" onClick={onDismissModal}>
+                        {DISMISS_BUTTON_LINE}&nbsp;&nbsp;
+                        <div className={"line-number line-number-tiny operator-"+backToLine.agency_id}>{backToLine.line_number}</div>
+                    </a>
                     : <ReactRouter.Link className="back-to-list" to={'/alerts'}>{DISMISS_BUTTON_TEXT}</ReactRouter.Link>}
             </div>
         </nav>
@@ -631,29 +644,30 @@ export function FullPageSingleAlert() {
 
 export function ModalSingleAlert() {
     const location = ReactRouter.useLocation();
-    const locationState = location.state as {
-        alert?: ServiceAlert,
-        showDistance?: boolean,
-        matches: FuriousSearchMatch[][]
-    };
-
-    if (!locationState?.alert) {
-        console.error("error: modal alert with no alert data in reactrouter state");
-        return null;
-    }
+    const locationState = location.state as LocationStateAlert;
+    const params = ReactRouter.useParams<"id">();
 
     const alert = locationState.alert;
 
     const hasRouteChanges = 
-        alert.use_case === USE_CASES.STOPS_CANCELLED
-        || alert.use_case === USE_CASES.ROUTE_CHANGES_FLEX
-        || alert.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
+        alert?.use_case === USE_CASES.STOPS_CANCELLED
+        || alert?.use_case === USE_CASES.ROUTE_CHANGES_FLEX
+        || alert?.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(hasRouteChanges);
+    const [isLoading, setIsLoading] = React.useState<boolean>(!alert || hasRouteChanges);
     const [data, setData] = React.useState<AlertsResponse|null>(null);
 
     React.useEffect(() => {
-        if (hasRouteChanges && !data) {
+        if (data) return;
+
+        if (!alert) {
+            fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
+                .then(response => response.json())
+                .then((data: AlertsResponse) => {
+                    setData(data);
+                    setIsLoading(false);
+                });
+        } else if (alert && hasRouteChanges) {
             fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
                 .then((response) => response.json())
                 .then((data: AlertsResponse) => {
@@ -663,9 +677,12 @@ export function ModalSingleAlert() {
         }
     });
 
-    return <SingleAlertView data={{alerts: [locationState.alert], ...(data || {})}}
+    const baseData = alert ? {alerts: [alert]} : {};
+
+    return <SingleAlertView data={{...baseData, ...(data || {})}}
                             isLoading={isLoading}
                             isModal={true}
                             showDistance={locationState?.showDistance ?? false}
-                            matches={locationState?.matches} />;
+                            matches={locationState?.matches}
+                            backToLine={locationState?.backToLine} />;
 }
