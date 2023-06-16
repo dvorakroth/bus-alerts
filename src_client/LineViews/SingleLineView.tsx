@@ -7,7 +7,7 @@ import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 import { AlertGant } from './AlertGant';
-import { JERUSALEM_TZ, short_datetime_hebrew } from '../junkyard/date_utils';
+import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -119,13 +119,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
     );
 
     const route_changes = line?.dirs_flattened?.[selectedDirectionIdx]?.route_change_alerts;
-
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
-    const showPeriodStart = selectedPeriod?.start && selectedPeriod?.start > NEBULOUS_DISTANT_PAST;
-    const showPeriodEnd   = selectedPeriod?.end   && selectedPeriod?.end < NEBULOUS_DISTANT_FUTURE;
-
-    const startFormattedDate = showPeriodStart && short_datetime_hebrew(DateTime.fromSeconds(selectedPeriod?.start, {zone: JERUSALEM_TZ}));
-    const endFormattedDate = showPeriodEnd && short_datetime_hebrew(DateTime.fromSeconds(selectedPeriod?.end, {zone: JERUSALEM_TZ}));
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
         <nav>
@@ -175,18 +169,7 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                     }
                     <h2>
                         {/* TODO when the start and end is on the same day, don't print the date twice, just "on day DD.MM, between HH:MM and HH:MM"?? */}
-                        {!selectedPeriod
-                            ? "מפת הקו:"
-                            : !showPeriodStart && !showPeriodEnd
-                            ? "מפת הקו המעודכנת:"
-                            : showPeriodStart && !showPeriodEnd
-                            ? "מפת הקו החל מיום " + startFormattedDate + ":"
-                            : !showPeriodStart && showPeriodEnd
-                            ? "מפת הקו עד ליום " + endFormattedDate + ":"
-                            : showPeriodStart && showPeriodEnd
-                            ? "מפת הקו בין יום " + startFormattedDate + " ליום " + endFormattedDate + ":"
-                            : null
-                        }
+                        {mapTitleForPeriod(selectedPeriod)}
                     </h2>
                     {/* TODO: "no changes to route" overlay for map? or maybe hide map for directions/alternatives with no route changes? */}
                     <RouteChangesMapView route_changes={route_changes_for_map}
@@ -200,6 +183,30 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
             <LoadingOverlay shown={isLoading} />
         </div>
     </div>
+}
+
+function mapTitleForPeriod(selectedPeriod: AlertPeriodWithRouteChanges|undefined) {
+    const {start: startUnixtime, end: endUnixtime} = selectedPeriod ?? {};
+
+    const showPeriodStart = !!(startUnixtime && startUnixtime > NEBULOUS_DISTANT_PAST);
+    const showPeriodEnd   = !!(endUnixtime   && endUnixtime < NEBULOUS_DISTANT_FUTURE);
+
+    const start = showPeriodStart && DateTime.fromSeconds(startUnixtime, {zone: JERUSALEM_TZ});
+    const end = showPeriodEnd && DateTime.fromSeconds(endUnixtime, {zone: JERUSALEM_TZ});
+
+    return !selectedPeriod
+        ? "מפת הקו:"
+        : !start && !end
+        ? "מפת הקו המעודכנת:"
+        : start && !end
+        ? "מפת הקו החל מיום " + short_datetime_hebrew(start) + ":"
+        : !start && end
+        ? "מפת הקו עד ליום " + short_datetime_hebrew(end) + ":"
+        : start && end && start.toFormat("yyyy-MM-dd") === end.toFormat("yyyy-MM-dd")
+        ? "מפת הקו ביום " + short_date_hebrew(start) + " בין " + short_time_hebrew(start) + " ל-" + short_time_hebrew(end) + ":"
+        : start && end
+        ? "מפת הקו בין יום " + short_datetime_hebrew(start) + " ליום " + short_datetime_hebrew(end) + ":"
+        : null;
 }
 
 interface Props {
