@@ -101,14 +101,15 @@ export type StopMetadata = {
 };
 
 export type AlertMinimal = {
+    id: string;
     header: TranslationObject;
-    description: TranslationObject;
-    active_periods: {
-        raw: [number|null, number|null][];
-        consolidated: PrettyActivePeriod[];
-    };
+    // description: TranslationObject;
+    // active_periods: {
+    //     raw: [number|null, number|null][];
+    //     consolidated: PrettyActivePeriod[];
+    // };
     is_deleted: boolean;
-    departure_change: DepartureChangeDetail|undefined;
+    // departure_change: DepartureChangeDetail|undefined;
 };
 
 export type AlertPeriod = {

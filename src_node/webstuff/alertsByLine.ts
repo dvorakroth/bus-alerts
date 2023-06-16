@@ -210,17 +210,18 @@ export async function getSingleLine(
             if (doesAlertHaveRouteChanges(alertRaw)) {
                 routeChangeAlerts.push([alert, alertRaw]);
             } else {
-                const agency_id = line_details.agency.agency_id;
-                const line_number = line_details.route_short_name;
+                // const agency_id = line_details.agency.agency_id;
+                // const line_number = line_details.route_short_name;
 
                 const alertMinimal = {
+                    id: alert.id,
                     header: alert.header,
-                    description: alert.description,
-                    active_periods: alert.active_periods,
+                    // description: alert.description,
+                    // active_periods: alert.active_periods,
                     is_deleted: alert.is_deleted,
-                    departure_change: alert.departure_changes[agency_id]?.[line_number]?.find(
-                        depChg => depChg.route_id === flatDir.route_id
-                    )
+                    // departure_change: alert.departure_changes[agency_id]?.[line_number]?.find(
+                    //     depChg => depChg.route_id === flatDir.route_id
+                    // )
                 };
                 flatDir.other_alerts.push(alertMinimal)
             }

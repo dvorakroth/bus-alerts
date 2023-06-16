@@ -118,7 +118,8 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
         [line]
     );
 
-    const route_changes = line?.dirs_flattened?.[selectedDirectionIdx]?.route_change_alerts;
+    const selectedDirection = line?.dirs_flattened?.[selectedDirectionIdx];
+    const route_changes = selectedDirection?.route_change_alerts;
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
@@ -174,7 +175,31 @@ function ImplSingleLineView({data, isLoading, isModal, showDistance}: ImplSingle
                                             selection={["changes", ""+selectedDirectionIdx, selectedChangePeriodIdx]}
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
-                    {/* TODO list of alerts (both with and without route changes) in the selected period, with links */}
+                    {
+                        !selectedPeriod?.bitmask ? null
+                            : <>
+                                <h2>התראות עם שינויי מסלול:</h2>
+                                <ul>
+                                    {/* TODO add links? */}
+                                    {[...iterateOverBitmask(selectedPeriod.bitmask)].map(
+                                        idx => <li key={idx}>{route_changes?.alertMetadata?.[idx]?.header?.he}</li>
+                                    )}
+                                </ul>
+                            </>
+                    }
+                    {
+                        /* TODO uh,,, maybe these should also be divided up by period? idk */
+                        !selectedDirection?.other_alerts?.length ? null
+                            : <>
+                                <h2>התראות ללא שינויי מסלול:</h2>
+                                <ul>
+                                    {/* TODO add links? */}
+                                    {selectedDirection.other_alerts.map(
+                                        alert => <li key={alert.id}>{alert.header.he}</li>
+                                    )}
+                                </ul>
+                            </>
+                    }
                 </div>
             }
             <LoadingOverlay shown={isLoading} />
@@ -206,6 +231,13 @@ function mapTitleForPeriod(selectedPeriod: AlertPeriodWithRouteChanges|undefined
         : null;
 }
 
+function *iterateOverBitmask(bitmask: number) {
+    for(let i = 0; bitmask; i++, bitmask >>= 1) {
+        if (bitmask & 1) {
+            yield i;
+        }
+    }
+}
 interface Props {
     isModal: boolean;
 }
