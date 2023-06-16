@@ -184,12 +184,13 @@ export function AlertGant({
             </ul>
             <div className="alert-gant-hourlines">
                 {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, HOURLINE_INTERVAL, 0), viewportEnd, {hours: HOURLINE_INTERVAL})].map(
-                    ({prevDate, date}) =>
+                    ({prevDate, date}, idx) =>
                         <div 
                             className="hourline"
                             style={{
                                 right: rightPercentageForUnixtime(date.toSeconds(), viewportStartUnixtime, viewportEndUnixtime)
                             }}
+                            key={idx}
                         >
                             <span className="datelabel">
                                 {
@@ -214,6 +215,7 @@ export function AlertGant({
                             {"end-invisible": end > viewportEndUnixtime},
                             {"selected": originalIndex === selectedChangePeriodIdx}
                         )}
+                        key={originalIndex}
                         data-idx={originalIndex}
                         onClick={clickableAreaOnClick}
                         style={{
