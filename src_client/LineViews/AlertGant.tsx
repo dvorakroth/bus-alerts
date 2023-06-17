@@ -140,6 +140,32 @@ export function AlertGant({
         [!defaultViewEnd, periods, alertMetadata]
     );
 
+    React.useEffect(
+        () => {
+            if (!defaultViewEnd || !periodsInViewport) return;
+
+            if (periodsInViewport.find(p => p.originalIndex === selectedChangePeriodIdx)) {
+                return;
+            }
+
+            const selectedPeriod = periods[selectedChangePeriodIdx];
+            if (!selectedPeriod) return;
+
+            if (
+                selectedPeriod.end >= defaultViewStart.toSeconds()
+                &&
+                selectedPeriod.start <= defaultViewEnd.toSeconds()
+            ) {
+                setViewportStart(defaultViewStart);
+                setViewportEnd(defaultViewEnd);
+            } else {
+                // TODO?
+                return;
+            }
+        },
+        [selectedChangePeriodIdx, periods, alertMetadata]
+    )
+
     const canMoveBack = viewportStartUnixtime > minimumStartPosition.toSeconds();
     const canMoveForward = viewportEndUnixtime && viewportEndUnixtime < maximumEndPosition.toSeconds();
 
