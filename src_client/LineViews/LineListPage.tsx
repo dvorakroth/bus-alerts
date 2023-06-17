@@ -52,7 +52,11 @@ export default function LineListPage({hasModal}: Props) {
                 //     msg: "newdata",
                 //     alerts: data?.alerts
                 // });
-                searchIndex.current = new FuriousIndex<ActualLine>(data.all_lines, LINE_SEARCH_KEYS, DEFAULT_SORT_COMPARE_FUNC);
+                searchIndex.current = new FuriousIndex<ActualLine>(
+                    data.all_lines,
+                    LINE_SEARCH_KEYS(data.all_agencies),
+                    DEFAULT_SORT_COMPARE_FUNC
+                );
                 setData(data);
                 setIsLoading(false);
                 setShowDistance(!!currentLocationStr);

@@ -1,5 +1,5 @@
 import { FuriousKeyDefinition, FuriousSortFunc } from "../FuriousSearch/furiousindex";
-import { ActualLine, ServiceAlert } from "./protocol";
+import { ActualLine, Agency, ServiceAlert } from "./protocol";
 
 // export type SearchWorkerMessageNewData = {
 //     msg: "newdata",
@@ -48,7 +48,7 @@ export const ALERT_SEARCH_KEY_INDICES = {
     REMOVED_STOP_CODE: 7
 };
 
-export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
+export const LINE_SEARCH_KEYS = (all_agencies: Record<string, Agency>): FuriousKeyDefinition<ActualLine>[] => [
     {
         get: a => a.route_short_name,
         weight: 1
@@ -67,6 +67,10 @@ export const LINE_SEARCH_KEYS: FuriousKeyDefinition<ActualLine>[] = [
     },
     {
         get: a => a.secondary_cities,
+        weight: 0.1
+    },
+    {
+        get: a => all_agencies[a.agency_id]?.agency_name ?? "",
         weight: 0.1
     }
 ];
