@@ -129,6 +129,13 @@ export async function getSingleLine(
     groupedRoutes: GroupedRoutes,
     gtfsDbApi: GtfsDbApi
 ): Promise<SingleLineChanges|null> {
+    // TODO: include alerts that are deleted but not expired!
+    //       though i think those can be just a flat list with no periods
+    //       just so the app doesn't gaslight you about a deleted alert
+    //       and you're left sitting there like "wait wasn't there something here????"
+    // TODO: make it so that the alert periods also include a bitmask of
+    //       non-route-changes alerts (though that's really just departure changes)
+    //       (so in fact, maybe just... specifically include those?)
     const actualLine = groupedRoutes.actualLinesDict[linePk];
     if (!actualLine) return null;
 
