@@ -225,7 +225,6 @@ export function AlertGant({
                     ></button>
                 )}
             </div>
-            {/* TODO links to the alerts' pages? */}
             {/* TODO jump to next alert? */}
             {/* TODO indicators telling you if there's more alerts in some direction? */}
             {/* TODO jump to today (back to default view) button? */}
