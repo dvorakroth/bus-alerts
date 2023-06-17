@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ReactRouter from "react-router-dom";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
-import { areMatchesEqual, DistanceTag, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
+import { areMatchesEqual, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
+import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { PrettyActivePeriod, ActiveTime, Agency, MapBoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChangeDetail, RouteChangeForApi, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
 import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";

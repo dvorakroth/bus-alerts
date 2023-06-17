@@ -13,6 +13,7 @@ import { LineListResponseContext } from "./LineListPage";
 import { MatchedString } from "../AlertViews/AlertSummary";
 import hazardImg from '../assets/hazard.svg';
 import cancelledstop from '../assets/cancelledstop.svg'
+import { DistanceTag } from "../RandomComponents/DistanceTag";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -113,7 +114,6 @@ interface LineSummaryProps {
 }
 
 function LineSummary({line, matches, showDistance}: LineSummaryProps) {
-    // TODO show distance? if (serverResponse.uses_location)
     const serverResponse = React.useContext(LineListResponseContext);
 
     const location = ReactRouterDOM.useLocation();
@@ -123,6 +123,9 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
     return <div className="alert-summary-wrapper"><div className="line-summary">
         {!line.num_relevant_today ? null
             : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
+        }
+        {line.distance === undefined ? null
+            : <DistanceTag distance={line.distance} />
         }
         {/* <AlertCountTag num_alerts={line.num_alerts || 0} first_relevant_date={line.first_relevant_date} /> */}
         <AgencyTag agency_id={line.agency_id} agency_name={serverResponse.all_agencies[line.agency_id].agency_name} hideName={true} is_night_line={line.is_night_line} />

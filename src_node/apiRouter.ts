@@ -3,12 +3,14 @@ import { DbLocals, LinesLocals, asyncHandler, tryParsingQueryCoordinate } from "
 import NodeCache from "node-cache";
 import { AlertWithRelatedInDb } from "./dbTypes.js";
 import { AlertSupplementalMetadata } from "./webstuff/gtfsDbApi.js";
-import { AlertForApi, AllLinesResponse, RouteChangesResponse, SingleLineChanges } from "./apiTypes.js";
-import { AllAlertsResult, calculateDistanceToAlert, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
+import { ActualLineWithAlertCount, AlertForApi, AllLinesResponse, RouteChangesResponse, SingleLineChanges, StopForMap } from "./apiTypes.js";
+import { AllAlertsResult, enrichAlerts, sortAlerts } from "./webstuff/alerts.js";
 import { StatusCodes } from "http-status-codes";
 import { getRouteChanges } from "./webstuff/routeChgs.js";
 import winston from "winston";
-import { getAllLines, getSingleLine } from "./webstuff/alertsByLine.js";
+import { getAllLines, getSingleLine, sortLinesWithAlerts } from "./webstuff/alertsByLine.js";
+import { asyncMap } from "./generalJunkyard.js";
+import { calculateDistanceToAlert, calculateDistanceToLine } from "./webstuff/distances.js";
 
 export const apiRouter = express.Router();
 
@@ -70,10 +72,11 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
 }));
 
 apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>) => {
-    // const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
 
-    // TODO location?
-    const allLines = await getAllLinesCached(res.locals);
+    const allLines = coord
+        ? await getAllLinesCachedWithLocation(coord, res.locals)
+        : await getAllLinesCached(res.locals);
 
     res.json(allLines);
 }))
@@ -216,6 +219,29 @@ async function distanceToAlertCached(
     return result;
 }
 
+async function distanceToLineCached(
+    line: ActualLineWithAlertCount,
+    coord: [number, number],
+    allStops: Record<string, StopForMap>
+) {
+    const cacheKey = `line_${line.pk}____${JSON.stringify(coord)}`;
+
+    let result = distancesCache.get<number|null>(cacheKey);
+    if (result !== undefined) return result;
+
+    const [coordY, coordX] = coord;
+
+    result = await calculateDistanceToLine(
+        line,
+        {x: coordX, y: coordY},
+        allStops
+    );
+
+    distancesCache.set(cacheKey, result);
+
+    return result;
+}
+
 const routeChgsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
 async function getRouteChangesCached(
@@ -243,6 +269,79 @@ async function getAllLinesCached(dbAndLines: DbLocals&LinesLocals) {
     if (result) return result;
 
     result = await getAllLines(dbAndLines.alertsDbApi, dbAndLines.groupedRoutes);
+    linesCache.set(cacheKey, result);
+
+    return result;
+}
+
+async function getAllLinesCachedWithLocation(
+    coord: [number, number],
+    dbAndLines: DbLocals&LinesLocals
+) {
+    const cacheKey = JSON.stringify(coord) + "___/all_lines";
+
+    let result = linesCache.get<AllLinesResponse>(cacheKey);
+    if (result) return result;
+
+    result = {
+        ...await getAllLinesCached(dbAndLines),
+        uses_location: true
+    };
+
+    // should i cache this? idk, maybe
+    const allStops = await dbAndLines.gtfsDbApi.getStopsForMap(
+        result.lines_with_alert.flatMap(
+            line => line.all_stopids_distinct
+        )
+    );
+
+    const linePkToDistance: Record<string, number> = {};
+
+    result.lines_with_alert = await asyncMap(
+        result.lines_with_alert,
+        async line => {
+            const distance = await distanceToLineCached(line, coord, allStops);
+
+            if (distance !== null) {
+                linePkToDistance[line.pk] = distance;
+                return { ...line, distance };
+            } else {
+                return line;
+            }
+        }
+    );
+
+    // add the distances we just calculated to all_lines, at least for
+    // the lines that we calculated distances for
+    result.all_lines = result.all_lines.map(
+        line => {
+            const distance = linePkToDistance[line.pk];
+
+            if (distance !== undefined) {
+                return { ...line, distance };
+            } else {
+                return line;
+            }
+        }
+    );
+
+
+    // this is commented out because i decided it's simply overkill to
+    // allow users to request the server/the db to do this;
+    // it would, in effect, mean calculating the distance from the user
+    // to EVERY SINGLE STOP IN THE GTFS and that's uh,,, too much lol
+
+    // result.all_lines = await asyncMap(
+    //     result.all_lines,
+    //     async line => ({
+    //         ...line,
+    //         distance: await distanceToLineCached(line, coord, dbAndLines)
+    //     })
+    // );
+
+    // re-sort the list, because the sort cares about the distances
+    sortLinesWithAlerts(result.lines_with_alert, dbAndLines.groupedRoutes);
+
     linesCache.set(cacheKey, result);
 
     return result;

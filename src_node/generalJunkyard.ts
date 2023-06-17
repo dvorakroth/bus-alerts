@@ -178,3 +178,16 @@ export function arrayToDictDifferent<T, V>(
         {}
     );
 }
+
+export async function asyncMap<S, T>(
+    arr: T[],
+    callback: (t: T) => Promise<S>
+): Promise<S[]> {
+    const result: S[] = new Array(arr.length);
+
+    for (let i = 0; i < arr.length; i++) {
+        result[i] = await callback(arr[i]!);
+    }
+
+    return result;
+}

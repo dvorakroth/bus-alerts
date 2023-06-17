@@ -357,6 +357,21 @@ hr {
         }
     }
 
+    .relevant-tag {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+    }
+    
+    .distance-tag {
+        left: unset;
+        right: 5px;
+    }
+    
+    .relevant-tag ~ .distance-tag {
+        top: 35px;
+    }
+
     // .destinations + * {
     //     margin-top: 20px;
     // }

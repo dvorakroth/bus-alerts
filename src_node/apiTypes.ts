@@ -83,6 +83,9 @@ export type ActualLineWithAlertCount =
         num_relevant_today: number|null;
         num_removed_stops: number|null;
         all_directions_grouped: undefined;
+    }
+    & {
+        distance?: number;
     };
 
 export type AllLinesResponse = {

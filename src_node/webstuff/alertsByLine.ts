@@ -87,13 +87,8 @@ export async function getAllLines(
     }
 
     const lines_with_alert = all_lines
-        .filter(({num_alerts}) => num_alerts > 0)
-        .sort(
-            (a, b) => compareNple(
-                lineWithAlertSortingNple(a, groupedRoutes.allAgencies),
-                lineWithAlertSortingNple(b, groupedRoutes.allAgencies)
-            )
-        );
+        .filter(({num_alerts}) => num_alerts > 0);
+    sortLinesWithAlerts(lines_with_alert, groupedRoutes);
     
     return {
         all_lines,
@@ -103,11 +98,24 @@ export async function getAllLines(
     };
 }
 
+export function sortLinesWithAlerts(
+    lines: ActualLineWithAlertCount[],
+    groupedRoutes: GroupedRoutes
+) {
+    return lines.sort(
+        (a, b) => compareNple(
+            lineWithAlertSortingNple(a, groupedRoutes.allAgencies),
+            lineWithAlertSortingNple(b, groupedRoutes.allAgencies)
+        )
+    );
+}
+
 function lineWithAlertSortingNple(
     line: ActualLineWithAlertCount,
     allAgencies: Record<string, Agency>
 ) {
     return [
+        line.distance ?? Infinity,
         -(line.num_removed_stops ?? 0),
         -line.num_alerts,
         lineNumberForSorting(line.route_short_name),
