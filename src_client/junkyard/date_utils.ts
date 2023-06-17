@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime, DurationLike } from "luxon";
 
 export function isoToLocal(dateString: string|null) {
     if (!dateString) {
@@ -54,4 +54,44 @@ export function short_datetime_hebrew(date: DateTime|null) {
         + "בשעה"
         + " " 
         + short_time_hebrew(date);
+}
+
+export function *dateRange(
+    start: DateTime,
+    endInclusive: DateTime,
+    increment: DurationLike
+) {
+    let prevDate = null;
+    let date = start;
+    do {
+        yield {prevDate, date};
+        prevDate = date;
+        date = date.plus(increment);
+    } while(date.toSeconds() <= endInclusive.toSeconds());
+}
+
+export function findNextRoundHour(
+    start: DateTime,
+    modulo: number,
+    moduloEquals = 0
+) {
+    modulo = Math.max(1, Math.floor(modulo));
+    moduloEquals = Math.max(0, Math.min(modulo - 1, moduloEquals));
+
+    let d = start.set({
+        second: 0,
+        millisecond: 0
+    });
+
+    if (d.minute !== 0) {
+        d = d.plus({
+            minutes: 60 - d.minute
+        });
+    }
+
+    while (d.hour % modulo !== moduloEquals) {
+        d = d.plus({hours: 1});
+    }
+
+    return d;
 }

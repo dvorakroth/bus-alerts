@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AlertPeriodWithRouteChanges, TranslationObject } from '../protocol';
 import { DateTime, DurationLike } from 'luxon';
-import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
+import { JERUSALEM_TZ, dateRange, findNextRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
 
@@ -417,44 +417,4 @@ function widthPercentageForUnixtime(
             /
             (viewportEnd - viewportStart)
     ) + "%";
-}
-
-function findNextRoundHour(
-    start: DateTime,
-    modulo: number,
-    moduloEquals = 0
-) {
-    modulo = Math.max(1, Math.floor(modulo));
-    moduloEquals = Math.max(0, Math.min(modulo - 1, moduloEquals));
-
-    let d = start.set({
-        second: 0,
-        millisecond: 0
-    });
-
-    if (d.minute !== 0) {
-        d = d.plus({
-            minutes: 60 - d.minute
-        });
-    }
-
-    while (d.hour % modulo !== moduloEquals) {
-        d = d.plus({hours: 1});
-    }
-
-    return d;
-}
-
-function *dateRange(
-    start: DateTime,
-    endInclusive: DateTime,
-    increment: DurationLike
-) {
-    let prevDate = null;
-    let date = start;
-    do {
-        yield {prevDate, date};
-        prevDate = date;
-        date = date.plus(increment);
-    } while(date.toSeconds() <= endInclusive.toSeconds());
 }
