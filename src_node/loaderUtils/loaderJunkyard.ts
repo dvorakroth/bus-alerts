@@ -59,7 +59,8 @@ export function gtfsRtTranslationsToObject(
 
 const ALLOWED_UNICODE_REPLACEMENTS = {
     ["\\u2013"]: "\u2013",
-    ["\\u2019"]: "\u2019"
+    ["\\u2019"]: "\u2019",
+    ["\\u2022"]: "\u2022"
 } as {[key: string]: string};
 
 function replaceUnicodeFails(s: string) {
