@@ -111,6 +111,11 @@ winston.info("Done grouping routes");
 
 const app = express();
 
+// disable etag headers because this is an api service??
+// TODO ideally i should probably find a way to integrate this with the
+//      caches that i use internally in apiRouter.ts, but, uh,,, later;
+app.disable("etag");
+
 // log all requests
 const morganMiddleware = morgan(
     ':method :url :status :res[content-length] bytes - :response-time ms - :referrer - :user-agent',
