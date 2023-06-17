@@ -1110,7 +1110,6 @@ body.disable-momentum * {
 .alert-gant {
     width: 100%;
 
-    background: #fff9e8;
 
     display: flex;
     align-items: stretch;
@@ -1122,6 +1121,7 @@ body.disable-momentum * {
     & > .gant-area {
         flex-grow: 1;
         position: relative;
+        background: #fff9e8;
     }
 
     & > button.move-viewport {
