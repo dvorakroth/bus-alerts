@@ -1,20 +1,20 @@
 import * as React from 'react';
-import { AlertPeriodWithRouteChanges, TranslationObject } from '../protocol';
-import { DateTime, DurationLike } from 'luxon';
+import { AlertMinimal, AlertPeriodWithRouteChanges, USE_CASES } from '../protocol';
+import { DateTime } from 'luxon';
 import { JERUSALEM_TZ, dateRange, findNextRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
 
 type AlertAppearance = {
     alertIdx: number;
-    alert: {id: string; header: TranslationObject};
+    alert: AlertMinimal;
     firstAppearance: number;
     totalLength: number;
 };
 
 interface AlertGantProps {
     periods: AlertPeriodWithRouteChanges[];
-    alertMetadata: {id: string; header: TranslationObject}[];
+    alertMetadata: AlertMinimal[];
     selectedChangePeriodIdx: number;
     onNewChangePeriodSelected: (idx: number) => void;
 }
@@ -291,7 +291,7 @@ export function AlertGant({
 interface AlertGantRowProps {
     alertIdx: number;
     periodsInViewport: AlertPeriodWithRouteChanges[];
-    alert: {id: string; header: TranslationObject};
+    alert: AlertMinimal;
     viewportStart: number;
     viewportEnd: number;
 }
@@ -316,7 +316,8 @@ function AlertGantRow({
                     className={classnames(
                         "alert-gant-item",
                         {"start-invisible": start < viewportStart},
-                        {"end-invisible": end > viewportEnd}
+                        {"end-invisible": end > viewportEnd},
+                        {"less-important": alert.use_case === USE_CASES.SCHEDULE_CHANGES}
                     )}
                     style={{
                         right: rightPercentageForUnixtime(start, viewportStart, viewportEnd),

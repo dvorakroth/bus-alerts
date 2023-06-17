@@ -9,6 +9,7 @@ import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 import { AlertGant } from './AlertGant';
 import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classNames from 'classnames';
+import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -34,14 +35,14 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
         () => {
             const firstDirectionIdxWithChanges = Math.max(
                 data?.line_details?.dirs_flattened?.findIndex(
-                    dir => dir.route_change_alerts?.periods?.some(p => p.bitmask !== 0)
+                    dir => dir.time_sensitive_alerts?.periods?.some(p => p.bitmask !== 0)
                 ) ?? 0,
                 0
             );
 
 
             const direction = data?.line_details?.dirs_flattened?.[firstDirectionIdxWithChanges];
-            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.route_change_alerts?.periods ?? []));
+            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.time_sensitive_alerts?.periods ?? []));
 
             setSelectedDirectionIdx(firstDirectionIdxWithChanges);
             setSelectedChangePeriodIdx(nowPeriodIdx);
@@ -66,7 +67,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
             // TODO maybe instead of always reverting to "now", i should instead find a period that
             //      closely matches whatever period was selected for the previously selected direction???
             const direction = data?.line_details?.dirs_flattened?.[index];
-            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.route_change_alerts?.periods ?? []));
+            const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.time_sensitive_alerts?.periods ?? []));
 
             setSelectedChangePeriodIdx(nowPeriodIdx);
         },
@@ -89,7 +90,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
             return {
                 changes: line.dirs_flattened.reduce<Record<string, RouteChangeForMap[]>>(
                     (changesDict, dir, dirIdx) => {
-                        const periods = dir?.route_change_alerts?.periods;
+                        const periods = dir?.time_sensitive_alerts?.periods;
 
                         if (periods?.length) {
                             changesDict[dirIdx] = periods;
@@ -115,14 +116,14 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
         () => line?.dirs_flattened?.map?.(
             (dir) => ({
                 ...dir,
-                has_alerts: !!(dir.route_change_alerts?.periods?.length || dir.other_alerts?.length)
+                has_alerts: !!(dir.time_sensitive_alerts?.periods?.length/* || dir.other_alerts?.length*/)
             })
         ),
         [line]
     );
 
     const selectedDirection = line?.dirs_flattened?.[selectedDirectionIdx];
-    const route_changes = selectedDirection?.route_change_alerts;
+    const route_changes = selectedDirection?.time_sensitive_alerts;
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
 
     return <div className={classNames("single-alert-view", {modal: isModal}, {hidden: hasModal})}>
@@ -167,7 +168,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                     {
                         !route_changes ? null
                             : <AlertGant periods={route_changes.periods}
-                                alertMetadata={route_changes.alertMetadata}
+                                alertMetadata={route_changes.alert_metadata}
                                 selectedChangePeriodIdx={selectedChangePeriodIdx}
                                 onNewChangePeriodSelected={onNewChangePeriodSelected} />
                     }
@@ -179,13 +180,17 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                                             map_bounding_box={data?.map_bounding_box}
                                             onSelectionMoveToBBox={true} />
                     {
+                        !selectedPeriod?.departure_changes ? null
+                            : <DepartureChangesView departure_change={selectedPeriod.departure_changes} />
+                    }
+                    {
                         !selectedPeriod?.bitmask ? null
                             : <>
-                                <h2>התראות עם שינויי מסלול:</h2>
+                                <h2>התראות פעילות:</h2>
                                 <ul>
                                     {[...iterateOverBitmask(selectedPeriod.bitmask)].map(
                                         idx => {
-                                            const alert = route_changes?.alertMetadata?.[idx];
+                                            const alert = route_changes?.alert_metadata?.[idx];
                                             if (!alert) return null;
 
                                             return <li key={alert.id}>
@@ -199,12 +204,11 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                             </>
                     }
                     {
-                        /* TODO uh,,, maybe these should also be divided up by period? idk */
-                        !selectedDirection?.other_alerts?.length ? null
+                        !selectedDirection?.deleted_alerts?.length ? null
                             : <>
-                                <h2>התראות ללא שינויי מסלול:</h2>
-                                <ul>
-                                    {selectedDirection.other_alerts.map(
+                                <h2>התראות שנמחקו:</h2>
+                                <ul className="deleted">
+                                    {selectedDirection.deleted_alerts.map(
                                         alert => <li key={alert.id}>
                                             <LinkToAlert alertId={alert.id} currentLine={line}>
                                                 {alert.header.he}

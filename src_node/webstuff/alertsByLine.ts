@@ -1,11 +1,11 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
-import { AlertWithRelatedInDb } from "../dbTypes.js";
+import { ActualLineWithAlertCount, AddedRemovedDepartures, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
+import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
 import { AllAlertsResult, alertFindNextRelevantDate } from "./alerts.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
 import { GroupedRoutes } from "./routeGrouping.js";
 import winston from "winston";
-import { JERUSALEM_TZ, arrayToDictDifferent, compareNple, compareTuple, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
+import { JERUSALEM_TZ, arrayToDictDifferent, compareNple, compareTuple, copySortAndUnique, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
 import { ApplyAlertState, applyAlertToRoute, boundingBoxForStops, doesAlertHaveRouteChanges, labelHeadsignsForDirectionAndAlternative } from "./routeChgs.js";
 
@@ -183,8 +183,7 @@ export async function getSingleLine(
                 alt_id: alt.alt_id,
                 stop_seq: representativeTripId ? await gtfsDbApi.getStopSeq(representativeTripId) : [],
                 shape: representativeTripId ? await gtfsDbApi.getShapePoints(representativeTripId) : [],
-                other_alerts: [],
-                alert_periods: [],
+                deleted_alerts: [],
                 dir_name: null,
                 alt_name: null
             };
@@ -219,43 +218,43 @@ export async function getSingleLine(
     }
 
     for (const [flatDir, alertPairs] of zip(line_details.dirs_flattened, alerts_grouped)) {
-        const routeChangeAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
+        const timeSensitiveAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
 
         // at first, just get every alert's route_changes (but limited to each route_id) on its own
         for (const [alert, alertRaw] of alertPairs) {
-            if (doesAlertHaveRouteChanges(alertRaw)) {
-                routeChangeAlerts.push([alert, alertRaw]);
-            } else {
-                // const agency_id = line_details.agency.agency_id;
-                // const line_number = line_details.route_short_name;
-
+            if (alert.is_deleted && !alert.is_expired) {
                 const alertMinimal = {
                     id: alert.id,
                     header: alert.header,
-                    // description: alert.description,
-                    // active_periods: alert.active_periods,
-                    is_deleted: alert.is_deleted,
-                    // departure_change: alert.departure_changes[agency_id]?.[line_number]?.find(
-                    //     depChg => depChg.route_id === flatDir.route_id
-                    // )
+                    use_case: alert.use_case
                 };
-                flatDir.other_alerts.push(alertMinimal)
+                flatDir.deleted_alerts.push(alertMinimal)
+            } else if (
+                !alert.is_deleted && !alert.is_expired
+                && (
+                    doesAlertHaveRouteChanges(alertRaw)
+                    || alertRaw.use_case === AlertUseCase.ScheduleChanges
+                )
+            ) {
+                timeSensitiveAlerts.push([alert, alertRaw]);
             }
         }
 
-        if(!routeChangeAlerts.length) {
+        if(!timeSensitiveAlerts.length) {
             continue;
         }
 
-        flatDir.route_change_alerts = {
+        flatDir.time_sensitive_alerts = {
             periods: [],
-            alertMetadata: alertPairs.map(([{id, header}, _]) => ({id, header}))
+            alert_metadata: alertPairs.map(
+                ([{id, header, use_case}, _]) => ({id, header, use_case})
+            )
         };
 
         // now after we got all those alerts we can actually do the ~*~*MAGIC*~*~
 
         // divide the routeChangeAlerts active_periods.raw into a sequence of nicer periods
-        const alertPeriods = listOfAlertsToActivePeriodIntersectionsAndBitmasks(routeChangeAlerts);
+        const alertPeriods = listOfAlertsToActivePeriodIntersectionsAndBitmasks(timeSensitiveAlerts);
 
         for (const period of alertPeriods) {
             const startDate = DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}).set({
@@ -266,6 +265,7 @@ export async function getSingleLine(
             });
 
             let state: ApplyAlertState|null = null;
+            let departure_changes: AddedRemovedDepartures|undefined = undefined;
 
             for (let i = 0; i < alertPairs.length; i++) {
                 const alertRaw = alertPairs[i]?.[1];
@@ -278,20 +278,44 @@ export async function getSingleLine(
                     continue;
                 }
 
-                state = await applyAlertToRoute(
-                    gtfsDbApi,
-                    alertRaw,
-                    flatDir.route_id,
-                    allStopIds,
-                    state?.representativeDate ?? startDate,
-                    state?.representativeTripId ?? null,
-                    state?.rawStopSeq ?? null,
-                    state?.updatedStopSeq ?? null,
-                    state?.deletedStopIds ?? null
-                ) as ApplyAlertState|null;
-                // for some inscrutable reason, if i don't include the
-                // "as ApplyAlertState|null" here, tsc yells at me??????
-                // idk, whatever
+                if (doesAlertHaveRouteChanges(alertRaw)) {
+                    state = await applyAlertToRoute(
+                        gtfsDbApi,
+                        alertRaw,
+                        flatDir.route_id,
+                        allStopIds,
+                        state?.representativeDate ?? startDate,
+                        state?.representativeTripId ?? null,
+                        state?.rawStopSeq ?? null,
+                        state?.updatedStopSeq ?? null,
+                        state?.deletedStopIds ?? null
+                    ) as ApplyAlertState|null;
+                    // for some inscrutable reason, if i don't include the
+                    // "as ApplyAlertState|null" here, tsc yells at me??????
+                    // idk, whatever
+                }
+                
+                if (alertRaw.use_case === AlertUseCase.ScheduleChanges) {
+                    const alertDepartureChanges = alertRaw.schedule_changes?.[flatDir.route_id];
+                    if (!alertDepartureChanges) continue;
+
+                    if (!departure_changes) {
+                        departure_changes = {
+                            added_hours: alertDepartureChanges.added,
+                            removed_hours: alertDepartureChanges.removed
+                        };
+                    } else {
+                        departure_changes.added_hours = copySortAndUnique([
+                            ...departure_changes.added_hours,
+                            ...alertDepartureChanges.added
+                        ]);
+
+                        departure_changes.removed_hours = copySortAndUnique([
+                            ...departure_changes.removed_hours,
+                            ...alertDepartureChanges.removed
+                        ]);
+                    }
+                }
             }
 
             const representativeTripId = state?.representativeTripId
@@ -299,28 +323,30 @@ export async function getSingleLine(
                 : await gtfsDbApi.getRepresentativeTripId(flatDir.route_id, startDate);
 
             if (state?.updatedStopSeq) {
-                flatDir.route_change_alerts.periods.push({
+                flatDir.time_sensitive_alerts.periods.push({
                     ...period,
                     updated_stop_sequence: state.updatedStopSeq,
                     deleted_stop_ids: [...state.deletedStopIds],
                     raw_stop_seq: state.rawStopSeq ?? [],
                     shape: state.representativeTripId
                         ? await gtfsDbApi.getShapePoints(state.representativeTripId)
-                        : null
+                        : null,
+                    departure_changes
                 });
             } else {
                 const stopSeq = representativeTripId
                     ? await gtfsDbApi.getStopSeq(representativeTripId)
                     : [];
 
-                flatDir.route_change_alerts.periods.push({
+                flatDir.time_sensitive_alerts.periods.push({
                     ...period,
                     updated_stop_sequence: stopSeq.map(s => [s, false]),
                     deleted_stop_ids: [],
                     raw_stop_seq: stopSeq,
                     shape: representativeTripId
                         ? await gtfsDbApi.getShapePoints(representativeTripId)
-                        : null
+                        : null,
+                    departure_changes
                 })
             }
         }
@@ -345,12 +371,15 @@ export async function getSingleLine(
             }
         }
 
-        for (const period of dir.route_change_alerts?.periods ?? []) {
+        for (const period of dir.time_sensitive_alerts?.periods ?? []) {
             if (!period.shape?.length) {
                 period.shape = [...dir.shape];
             }
 
-            period.map_bounding_box = calculateBoundingBoxForPeriod(period, all_stops);
+            const bbox = calculateBoundingBoxForPeriod(period, all_stops);
+            if (bbox) {
+                period.map_bounding_box = bbox;
+            }
         }
     }
 
@@ -498,8 +527,10 @@ function calculateBoundingBoxForPeriod(
     all_stops: Record<string, StopForMap>
 ) {
     if (period.bitmask === 0) {
+        if (!period.raw_stop_seq?.length) return null;
+
         return boundingBoxForStops(
-            period.raw_stop_seq ?? [],
+            period.raw_stop_seq,
             all_stops
         );
     }
@@ -526,5 +557,11 @@ function calculateBoundingBoxForPeriod(
         prevIsAdded = isAdded;
     }
 
-    return boundingBoxForStops(relevantStopIds, all_stops);
+    if (relevantStopIds.size) {
+        return boundingBoxForStops(relevantStopIds, all_stops);
+    } else if (period.raw_stop_seq?.length) {
+        return boundingBoxForStops(period.raw_stop_seq, all_stops);
+    } else {
+        return null;
+    }
 }

@@ -1,11 +1,12 @@
 import { DateTime } from "luxon";
-import { ActualLine, BaseAlert, ConsolidatedActivePeriod, LineDir, PrettyActivePeriod, SimpleActivePeriod, TranslationObject } from "./dbTypes.js";
+import { ActualLine, AlertUseCase, BaseAlert, ConsolidatedActivePeriod, LineDir, PrettyActivePeriod, SimpleActivePeriod, TranslationObject } from "./dbTypes.js";
 
 export type {
     PrettyActivePeriod,
     SimpleActivePeriod,
     ConsolidatedActivePeriod,
-    TranslationObject
+    TranslationObject,
+    AlertUseCase
 };
 
 export type AlertAdditionalData = {
@@ -20,11 +21,14 @@ export type AlertAdditionalData = {
     departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>; // agency_id -> line_number -> [change, change, change, ...]
 }
 
-export type DepartureChangeDetail = RouteMetadata & {
-    to_text: string,
+export type DepartureChangeDetail = RouteMetadata & AddedRemovedDepartures & {
+    to_text: string;
+};
+
+export type AddedRemovedDepartures = {
     added_hours: string[],
     removed_hours: string[]
-};
+}
 
 export type RouteMetadata = {
     route_id: string,
@@ -106,13 +110,7 @@ export type StopMetadata = {
 export type AlertMinimal = {
     id: string;
     header: TranslationObject;
-    // description: TranslationObject;
-    // active_periods: {
-    //     raw: [number|null, number|null][];
-    //     consolidated: PrettyActivePeriod[];
-    // };
-    is_deleted: boolean;
-    // departure_change: DepartureChangeDetail|undefined;
+    use_case: AlertUseCase;
 };
 
 export type AlertPeriod = {
@@ -130,20 +128,19 @@ export type RouteChangeMapData = {
     map_bounding_box?: MapBoundingBox; // TODO use this in per-alert route changes
 }
 
-export type AlertPeriodWithRouteChanges = AlertPeriod & RouteChangeMapData;
+export type AlertPeriodWithRouteChanges = AlertPeriod & RouteChangeMapData & {
+    departure_changes?: AddedRemovedDepartures|undefined;
+};
 
 export type FlattnedLineDir = LineDir & {
     alt_id: string;
     stop_seq: string[];
     shape: null|([number, number][]); // [[lon, lat], [lon, lat], ...]
-    other_alerts: AlertMinimal[];
-    route_change_alerts?: {
+    deleted_alerts: AlertMinimal[];
+    time_sensitive_alerts?: {
         periods: AlertPeriodWithRouteChanges[];
-        alertMetadata: {
-            id: string;
-            header: TranslationObject;
-        }[]
-    };
+        alert_metadata: AlertMinimal[];
+    }
 
     dir_name: string|null;
     alt_name: string|null;

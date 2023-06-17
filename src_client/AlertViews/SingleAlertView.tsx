@@ -11,6 +11,7 @@ import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { LoadingOverlay } from "./AlertListPage";
 import DirectionChooser from "../RandomComponents/DirectionChooser";
 import { LocationStateAlert } from "../LocationState";
+import { DepartureChangesView } from "../RandomComponents/DepartureChangesView";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISMISS_BUTTON_LINE = "< חזרה לקו";
@@ -403,7 +404,7 @@ function LineAndDirectionChooser(
     </>
 }
 
-function groupDepartureTimesByHour(times: string[]): JSX.Element {
+export function groupDepartureTimesByHour(times: string[]): JSX.Element {
     const result: JSX.Element[] = [];
 
     let currentHour: string|null = null;
@@ -458,26 +459,6 @@ function groupDepartureTimesByHour(times: string[]): JSX.Element {
     }
 
     return <>{result}</>;
-}
-
-interface DepartureChangesViewProps {
-    departure_change: DepartureChangeDetail;
-}
-
-function DepartureChangesView({departure_change: {added_hours, removed_hours}}: DepartureChangesViewProps) {
-    // added_hours = removed_hours; // TESTING
-    
-    return <>
-        {added_hours?.length ? <h2>נוספו:</h2> : null}
-        <ul className="departure-time-groups departure-time-groups-added">
-            {groupDepartureTimesByHour(added_hours)}
-        </ul>
-
-        {removed_hours?.length ? <h2>בוטלו:</h2> : null}
-        <ul className="departure-time-groups departure-time-groups-removed">
-            {groupDepartureTimesByHour(removed_hours)}
-        </ul>
-    </>;
 }
 
 interface SingleAlertViewProps {

@@ -715,6 +715,7 @@ $alert-color-green: rgb(21, 92, 21);
     }
 }
 
+
 .last-end-time {
     color: #666;
     font-size: 90%;
@@ -827,6 +828,10 @@ a.more-details:active {
     font-size: 180%;
 
     color: white;
+}
+
+.deleted {
+    text-decoration: line-through;
 }
 
 .single-alert-view {
@@ -1265,6 +1270,10 @@ ul.alert-gant-rows {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            &.less-important {
+                background: rgb(136, 193, 243);
+            }
         }
     }
 }
