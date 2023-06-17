@@ -14,6 +14,7 @@ import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
 import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
 import { groupRoutes } from "./webstuff/routeGrouping.js";
+import { JERUSALEM_TZ } from "./generalJunkyard.js";
 
 const doc = `Service Alerts App Web Server.
 
@@ -90,7 +91,7 @@ const alertsDbPool = new pg.Pool({
 
 pg.types.setTypeParser(
     pg.types.builtins.TIMESTAMPTZ,
-    (isoStr) => DateTime.fromISO(isoStr)
+    (isoStr) => DateTime.fromSQL(isoStr).setZone(JERUSALEM_TZ)
 );
 
 
