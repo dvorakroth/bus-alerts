@@ -1132,6 +1132,33 @@ body.disable-momentum * {
         font-size: 30px;
 
         cursor: pointer;
+
+        position: relative;
+
+        &::before {
+            content: "";
+            display: block;
+            position: absolute;
+
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+
+            background: url(/assets/chevron-right.svg) no-repeat center/40%;
+        }
+
+        &.forwards::before {
+            transform: scaleX(-1);
+        }
+
+        &[disabled] {
+            cursor: unset;
+        }
+
+        &[disabled]::before {
+            opacity: 0.2;
+        }
     }
 }
 

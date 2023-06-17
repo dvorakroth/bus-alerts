@@ -203,8 +203,7 @@ export function AlertGant({
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
     return <div className="alert-gant">
-        {/* TODO actual images for the buttons */}
-        <button className="move-viewport" onClick={moveBack} disabled={!canMoveBack}>&lt;</button>
+        <button className="move-viewport back" onClick={moveBack} disabled={!canMoveBack} aria-label="אחורה"></button>
         <div className="gant-area" ref={gantAreaRef}>
             <ul className="alert-gant-rows">
                 {!stillLoading && orderOfAppearance?.map(
@@ -266,7 +265,7 @@ export function AlertGant({
             {/* TODO indicators telling you if there's more alerts in some direction? */}
             {/* TODO jump to today (back to default view) button? */}
         </div>
-        <button className="move-viewport" onClick={moveForward} disabled={!canMoveForward}>&gt;</button>
+        <button className="move-viewport forwards" onClick={moveForward} disabled={!canMoveForward} aria-label="קדימה"></button>
     </div>
 }
 
