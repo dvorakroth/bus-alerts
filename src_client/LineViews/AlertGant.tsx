@@ -164,7 +164,17 @@ export function AlertGant({
             }
         },
         [selectedChangePeriodIdx, periods, alertMetadata]
-    )
+    );
+
+    const hasAlertsBefore = periods.filter(
+        p => minimumStartPosition.toSeconds() < p.end &&  p.end <= viewportStartUnixtime
+        && p.bitmask !== 0
+    ).length !== 0;
+
+    const hasAlertsAfter = viewportEndUnixtime && periods.filter(
+        p => maximumEndPosition.toSeconds() > p.start && p.start >= viewportEndUnixtime
+        && p.bitmask !== 0
+    ).length !== 0;
 
     const canMoveBack = viewportStartUnixtime > minimumStartPosition.toSeconds();
     const canMoveForward = viewportEndUnixtime && viewportEndUnixtime < maximumEndPosition.toSeconds();
@@ -202,70 +212,79 @@ export function AlertGant({
 
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
-    return <div className="alert-gant">
-        <button className="move-viewport back" onClick={moveBack} disabled={!canMoveBack} aria-label="אחורה"></button>
-        <div className="gant-area" ref={gantAreaRef}>
-            <ul className="alert-gant-rows">
-                {!stillLoading && orderOfAppearance?.map(
-                    ({alertIdx, alert}) =>
-                        <AlertGantRow
-                            key={alert.id}
-                            alertIdx={alertIdx}
-                            alert={alert}
-                            periodsInViewport={periodsInViewport}
-                            viewportStart={viewportStartUnixtime}
-                            viewportEnd={viewportEndUnixtime}
-                        />
-                )}
-            </ul>
-            <div className="alert-gant-hourlines">
-                {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, HOURLINE_INTERVAL, 0), viewportEnd, {hours: HOURLINE_INTERVAL})].map(
-                    ({prevDate, date}, idx) =>
-                        <div 
-                            className="hourline"
+    return <div className="alert-gant-container">
+        <div className="alert-gant">
+            <button className="move-viewport back" onClick={moveBack} disabled={!canMoveBack} aria-label="אחורה"></button>
+            <div className="gant-area" ref={gantAreaRef}>
+                <ul className="alert-gant-rows">
+                    {!stillLoading && orderOfAppearance?.map(
+                        ({alertIdx, alert}) =>
+                            <AlertGantRow
+                                key={alert.id}
+                                alertIdx={alertIdx}
+                                alert={alert}
+                                periodsInViewport={periodsInViewport}
+                                viewportStart={viewportStartUnixtime}
+                                viewportEnd={viewportEndUnixtime}
+                            />
+                    )}
+                </ul>
+                <div className="alert-gant-hourlines">
+                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, HOURLINE_INTERVAL, 0), viewportEnd, {hours: HOURLINE_INTERVAL})].map(
+                        ({prevDate, date}, idx) =>
+                            <div 
+                                className="hourline"
+                                style={{
+                                    right: rightPercentageForUnixtime(date.toSeconds(), viewportStartUnixtime, viewportEndUnixtime)
+                                }}
+                                key={idx}
+                            >
+                                <span className="datelabel">
+                                    {
+                                        !prevDate || prevDate.weekday !== date.weekday
+                                            ? <>{short_date_hebrew(date)}<br/></>
+                                            : null
+                                    }
+                                    {
+                                        short_time_hebrew(date)
+                                    }
+                                </span>
+                            </div>
+                    )}
+                </div>
+                {!stillLoading && <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />}
+                <div className="alert-gant-clickable-areas">
+                    {!stillLoading && periodsInViewport.map(
+                        ({start, end, originalIndex}) => <button
+                            className={classnames(
+                                "period",
+                                {"start-invisible": start < viewportStartUnixtime},
+                                {"end-invisible": end > viewportEndUnixtime},
+                                {"selected": originalIndex === selectedChangePeriodIdx}
+                            )}
+                            key={originalIndex}
+                            data-idx={originalIndex}
+                            onClick={clickableAreaOnClick}
                             style={{
-                                right: rightPercentageForUnixtime(date.toSeconds(), viewportStartUnixtime, viewportEndUnixtime)
-                            }}
-                            key={idx}
-                        >
-                            <span className="datelabel">
-                                {
-                                    !prevDate || prevDate.weekday !== date.weekday
-                                        ? <>{short_date_hebrew(date)}<br/></>
-                                        : null
-                                }
-                                {
-                                    short_time_hebrew(date)
-                                }
-                            </span>
-                        </div>
-                )}
+                                right: `calc(${rightPercentageForUnixtime(start, viewportStartUnixtime, viewportEndUnixtime)} - 1px)`,
+                                width: `calc(2px + ${widthPercentageForUnixtime(start, end, viewportStartUnixtime, viewportEndUnixtime)})`
+                                }}
+                        ></button>
+                    )}
+                </div>
+                {/* TODO jump to next alert? */}
+                {/* TODO jump to today (back to default view) button? */}
             </div>
-            {!stillLoading && <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />}
-            <div className="alert-gant-clickable-areas">
-                {!stillLoading && periodsInViewport.map(
-                    ({start, end, originalIndex}) => <button
-                        className={classnames(
-                            "period",
-                            {"start-invisible": start < viewportStartUnixtime},
-                            {"end-invisible": end > viewportEndUnixtime},
-                            {"selected": originalIndex === selectedChangePeriodIdx}
-                        )}
-                        key={originalIndex}
-                        data-idx={originalIndex}
-                        onClick={clickableAreaOnClick}
-                        style={{
-                            right: `calc(${rightPercentageForUnixtime(start, viewportStartUnixtime, viewportEndUnixtime)} - 1px)`,
-                            width: `calc(2px + ${widthPercentageForUnixtime(start, end, viewportStartUnixtime, viewportEndUnixtime)})`
-                            }}
-                    ></button>
-                )}
-            </div>
-            {/* TODO jump to next alert? */}
-            {/* TODO indicators telling you if there's more alerts in some direction? */}
-            {/* TODO jump to today (back to default view) button? */}
+            <button className="move-viewport forwards" onClick={moveForward} disabled={!canMoveForward} aria-label="קדימה"></button>
         </div>
-        <button className="move-viewport forwards" onClick={moveForward} disabled={!canMoveForward} aria-label="קדימה"></button>
+        <div className="hints-container">
+            {!hasAlertsBefore ? null
+                : <span className="hint-more-before">→ יש עוד</span>
+            }
+            {!hasAlertsAfter ? null
+                : <span className="hint-more-after">יש עוד ←</span>
+            }
+        </div>
     </div>
 }
 

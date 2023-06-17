@@ -1107,6 +1107,33 @@ body.disable-momentum * {
     -webkit-overflow-scrolling: auto;
 }
 
+.alert-gant-container {
+    margin-bottom: 20px;
+
+    .hints-container {
+        margin: 0 30px;
+        height: 20px;
+
+        position: relative;
+
+        & > .hint-more-before,
+        & > .hint-more-after {
+            display: block;
+            position: absolute;
+
+            color: rgb(184, 49, 49);
+        }
+
+        & > .hint-more-before {
+            right: 0;
+        }
+
+        & > .hint-more-after {
+            left: 0;
+        }
+    }
+}
+
 .alert-gant {
     width: 100%;
 
@@ -1116,7 +1143,6 @@ body.disable-momentum * {
     justify-content: space-between;
 
     margin-top: 53px; /* for the hourlines' datelabels */
-    margin-bottom: 20px;
 
     & > .gant-area {
         flex-grow: 1;
