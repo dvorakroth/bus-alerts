@@ -51,7 +51,7 @@ export function AlertGant({
         : defaultViewStart.plus({ seconds: gantWidthSeconds });
 
     const minimumStartPosition = defaultViewStart.minus({ hours: 2 * 24 });
-    const maximumEndPosition = defaultViewEnd?.plus({ hours: 10 * 24 });
+    const maximumEndPosition = defaultViewStart.plus({ days: 10 });
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
@@ -90,6 +90,13 @@ export function AlertGant({
                 defaultViewStart.toSeconds(),
                 defaultViewEnd.toSeconds()
             )];
+
+            const allPossibleViewablePeriods = [...filterPeriodsForViewport(
+                periods,
+                minimumStartPosition.toSeconds(),
+                maximumEndPosition.toSeconds()
+            )];
+
             const order = alertMetadata
                 .map(
                     (alert, alertIdx) => ({
@@ -101,10 +108,14 @@ export function AlertGant({
                         totalLength: countPeriodLength(
                             periodsInDefaultViewport,
                             ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
-                        )
+                        ),
+                        doesAppearAtAll: allPossibleViewablePeriods.findIndex(
+                            ({bitmask}) => (bitmask & (1 << alertIdx)) !== 0
+                        ) >= 0
                     })
                 )
-                .map((e) => ({
+                .filter(e => e.doesAppearAtAll)
+                .map(e => ({
                     ...e,
                     firstAppearance: e.firstAppearance < 0 ? Infinity : e.firstAppearance,
                 }))
@@ -130,7 +141,7 @@ export function AlertGant({
     );
 
     const canMoveBack = viewportStartUnixtime > minimumStartPosition.toSeconds();
-    const canMoveForward = maximumEndPosition && viewportEndUnixtime && viewportEndUnixtime < maximumEndPosition.toSeconds();
+    const canMoveForward = viewportEndUnixtime && viewportEndUnixtime < maximumEndPosition.toSeconds();
 
     const moveBack = React.useCallback(
         () => {
