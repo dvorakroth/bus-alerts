@@ -65,10 +65,11 @@ export default function LineListPage({hasModal}: Props) {
         () => {
             const id = ++currentSearch.current;
 
-            if (!data?.lines_with_alert?.length && currentlyDisplayedData?.length) {
-                setCurrentlyDisplayedData([]);
-                return;
-            }
+            // i have NO idea what the HELL i was thinking when i wrote this check so i commented it out?????
+            // if (!data?.lines_with_alert?.length && currentlyDisplayedData?.length) {
+            //     setCurrentlyDisplayedData([]);
+            //     return;
+            // }
 
             let searchStringSep: string[];
 
@@ -121,7 +122,7 @@ export default function LineListPage({hasModal}: Props) {
             0
         )
         : null;
-    const noAlertsToday = !data?.lines_with_alert.length && !isLoading;
+    const noAlertsToday = !data?.lines_with_alert.length && !isLoading && !showFilterNotice;
 
     const onNewLocation = React.useCallback(
         (newLocation: GeolocationPosition) => {
