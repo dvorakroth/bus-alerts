@@ -21,6 +21,11 @@ body {
     background: rgb(12, 36, 69); // for ios safari to show this color around the notch
 }
 
+h1 + ul,
+h2 + ul {
+    margin-top: 0;
+}
+
 #content {
     height: 100%;
 
@@ -1016,6 +1021,11 @@ a.more-details:active {
         cursor: pointer;
         font-family: $font-stack;
     }
+
+    & + h1,
+    & + h2 {
+        margin-top: 20px;
+    }
 }
 
 .direction-chooser {
@@ -1106,7 +1116,8 @@ body.disable-momentum * {
     align-items: stretch;
     justify-content: space-between;
 
-    margin-top: 53px;
+    margin-top: 53px; /* for the hourlines' datelabels */
+    margin-bottom: 20px;
 
     & > .gant-area {
         flex-grow: 1;
