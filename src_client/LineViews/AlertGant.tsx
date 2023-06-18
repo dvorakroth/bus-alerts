@@ -4,6 +4,7 @@ import { DateTime } from 'luxon';
 import { JERUSALEM_TZ, dateRange, findNextRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
+import { GANT_HOURLINE_INTERVAL, alertGantMinMaxLimits } from '../bothSides';
 
 type AlertAppearance = {
     alertIdx: number;
@@ -20,7 +21,6 @@ interface AlertGantProps {
 }
 
 const PIXELS_PER_HOUR = 8;
-const HOURLINE_INTERVAL = 6; // spacing between hourlines, in hours
 
 export function AlertGant({
     periods,
@@ -38,20 +38,12 @@ export function AlertGant({
     
     const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
 
-    const defaultViewStart = nowInJerusalem
-        .set({
-            hour: nowInJerusalem.hour - (nowInJerusalem.hour % HOURLINE_INTERVAL),
-            minute: 0,
-            second: 0,
-            millisecond: 0
-        })
-        .minus({ hours: HOURLINE_INTERVAL / 2 });
+    const {
+        defaultViewStart, minimumStartPosition, maximumEndPosition
+    } = alertGantMinMaxLimits(nowInJerusalem);
     const defaultViewEnd = gantWidthSeconds === undefined
         ? undefined
         : defaultViewStart.plus({ seconds: gantWidthSeconds });
-
-    const minimumStartPosition = defaultViewStart.minus({ hours: 2 * 24 });
-    const maximumEndPosition = defaultViewStart.plus({ days: 10 });
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
@@ -183,8 +175,8 @@ export function AlertGant({
         () => {
             if (!viewportEnd || !canMoveBack) return;
 
-            setViewportStart(viewportStart.minus({ hours: HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.minus({ hours: HOURLINE_INTERVAL }))
+            setViewportStart(viewportStart.minus({ hours: GANT_HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.minus({ hours: GANT_HOURLINE_INTERVAL }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveBack]
     );
 
@@ -192,8 +184,8 @@ export function AlertGant({
         () => {
             if (!viewportEnd || !canMoveForward) return;
 
-            setViewportStart(viewportStart.plus({ hours: HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.plus({ hours: HOURLINE_INTERVAL }))
+            setViewportStart(viewportStart.plus({ hours: GANT_HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.plus({ hours: GANT_HOURLINE_INTERVAL }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
@@ -230,7 +222,7 @@ export function AlertGant({
                     )}
                 </ul>
                 <div className="alert-gant-hourlines">
-                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, HOURLINE_INTERVAL, 0), viewportEnd, {hours: HOURLINE_INTERVAL})].map(
+                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, GANT_HOURLINE_INTERVAL, 0), viewportEnd, {hours: GANT_HOURLINE_INTERVAL})].map(
                         ({prevDate, date}, idx) =>
                             <div 
                                 className="hourline"

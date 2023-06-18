@@ -8,6 +8,7 @@ import winston from "winston";
 import { JERUSALEM_TZ, arrayToDictDifferent, compareNple, compareTuple, copySortAndUnique, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
 import { ApplyAlertState, applyAlertToRoute, boundingBoxForStops, doesAlertHaveRouteChanges, labelHeadsignsForDirectionAndAlternative } from "./routeChgs.js";
+import { alertGantMinMaxLimits } from "../bothSidesConsts.js";
 
 export async function getAllLines(
     alertsDbApi: AlertsDbApi,
@@ -19,8 +20,26 @@ export async function getAllLines(
     const linepkToAlertIds: Record<string, Set<string>> = {};
     const linepkToRemovedStopIds: Record<string, Set<string>> = {};
 
+    // 
+    const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
+    const {
+        minimumStartPosition,
+        maximumEndPosition
+    } = alertGantMinMaxLimits(nowInJerusalem);
+
+    const minimumStartPositionUnixtime = minimumStartPosition.toSeconds();
+    const maximumEndPositionUnixtime = maximumEndPosition.toSeconds();
+
     for (const alert of alerts) {
         if (alert.is_deleted || alert.is_expired) continue;
+
+        if (
+            alert.first_start_time.toSeconds() >= maximumEndPositionUnixtime
+            ||
+            alert.last_end_time.toSeconds() <= minimumStartPositionUnixtime
+        ) {
+            continue;
+        }
 
         const [firstRelevantDate, _] = alertFindNextRelevantDate(alert);
         if (!firstRelevantDate) continue;
