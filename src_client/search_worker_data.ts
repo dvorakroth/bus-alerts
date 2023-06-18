@@ -71,7 +71,7 @@ export const LINE_SEARCH_KEYS = (all_agencies: Record<string, Agency>): FuriousK
     },
     {
         get: a => all_agencies[a.agency_id]?.agency_name ?? "",
-        weight: 0.1
+        weight: 0.05
     }
 ];
 
