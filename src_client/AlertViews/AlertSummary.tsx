@@ -470,7 +470,7 @@ export const MatchedString = React.memo(
 
 export interface AlertSummaryProps {
     alert: ServiceAlert;
-    matches?: FuriousSearchMatch[][];
+    matches?: FuriousSearchMatch[][]|null;
     showDistance: boolean;
 }
 

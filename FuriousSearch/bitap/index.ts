@@ -83,11 +83,19 @@ export default class BitapSearch {
             totalScore += score;
         }
 
-        return {
-            isMatch: hasMatches,
-            score: hasMatches ? totalScore / this.chunks.length : 1,
-            matchMask: hasMatches ? allMatchMasks : undefined
-        };
+        if (hasMatches) {
+            return {
+                isMatch: true,
+                score: totalScore / this.chunks.length,
+                matchMask: allMatchMasks
+            };
+        } else {
+            return {
+                isMatch: false,
+                score: 1,
+                matchMask: undefined
+            };
+        }
     }
 }
 

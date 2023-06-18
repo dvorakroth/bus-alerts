@@ -96,22 +96,25 @@ export class FuriousIndex<T> {
                         for (let patIndex = 0; patIndex < patterns.length; patIndex++) {
                             const newResult = searchers[patIndex].searchIn(valueList[valueIndex]);
 
-                            if (newResult.isMatch) {
+                            if (newResult.isMatch && newResult.matchMask !== undefined) {
                                 hasMatchByPattern[patIndex] = true;
                                 fieldScore = fieldScore == null ? newResult.score : Math.min(fieldScore, newResult.score);
 
                                 const existingResult = matchesForKey[valueIndex];
 
-                                if (!existingResult) {
+                                if (!existingResult?.matchMask) {
                                     matchesForKey[valueIndex] = newResult;
                                 } else {
                                     existingResult.score = Math.min(newResult.score, existingResult.score);
                                     for (
                                         let i = 0;
-                                        i < Math.max(existingResult.matchMask.length, newResult.matchMask.length);
+                                        i < Math.max(existingResult.matchMask?.length ?? 0, newResult.matchMask?.length ?? 0);
                                         i++
                                     ) {
-                                        existingResult.matchMask[i] |= newResult.matchMask[i] || 0;
+                                        existingResult.matchMask[i] =
+                                            (existingResult.matchMask[i] || 0)
+                                            |
+                                            (newResult.matchMask[i] || 0);
                                     }
                                 }
                             }
@@ -140,7 +143,7 @@ export class FuriousIndex<T> {
                     score: totalScore,
                     matches: matches.map(matchesForKey =>
                         matchesForKey?.map?.(matchForValue => 
-                            matchForValue ? convertMaskToIndices(matchForValue.matchMask, 1) : null
+                            matchForValue ? convertMaskToIndices(matchForValue.matchMask || [], 1) : null
                         )
                     )
                 });
@@ -175,7 +178,7 @@ export interface ProcessedObject {
     data: (string | string[])[];
 }
 
-export type FuriousSearchMatch = [number, number][];
+export type FuriousSearchMatch = [number, number][]|null;
 
 export interface FuriousSearchResult<T> {
     furiousSearchResult: true,
@@ -183,7 +186,7 @@ export interface FuriousSearchResult<T> {
     obj: T;
     idx: number;
     score: number;
-    matches: FuriousSearchMatch[][]; // matches[keyIndex][valueIndex || 0]
+    matches: FuriousSearchMatch[][]|null; // matches[keyIndex][valueIndex || 0]
 }
 
 export function isFuriousSearchResult<T>(x: any): x is FuriousSearchResult<T> {

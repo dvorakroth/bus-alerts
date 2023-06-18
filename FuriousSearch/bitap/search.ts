@@ -100,16 +100,28 @@ export default function search(
 
   // const indices = convertMaskToIndices(matchMask, 1)
   const isMatch = (bestLocation >= 0);// && (indices.length >= 0);
-  return {
+  if (isMatch) {
+    return {
+        isMatch,
+        // Count exact matches (those with a score of 0) to be "almost" exact
+        score: finalScore,
+        matchMask: matchMask
+    };
+  } else {
+    return {
       isMatch,
-      // Count exact matches (those with a score of 0) to be "almost" exact
       score: finalScore,
-      matchMask
+      matchMask: []
     }
+  }
 }
 
 export type SearchResult = {
-  isMatch: boolean;
+  isMatch: true;
   score: number;
-  matchMask: (undefined | number)[] | undefined;
+  matchMask: (undefined | number)[];
+} | {
+  isMatch: false;
+  score: number;
+  matchMask: never[]|undefined;
 };
