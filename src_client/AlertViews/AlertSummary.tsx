@@ -337,6 +337,8 @@ export function areMatchesEqual(a: FuriousSearchMatch|undefined, b: FuriousSearc
     return true;
 }
 
+const MAX_STOPS_IN_LIST = 7; // chosen arbitrarily sunglasses emoji
+
 interface RelevantStopsListProps {
     relevant_stops: [string, string][];
     isRemoved: boolean;
@@ -353,22 +355,44 @@ export const RelevantStopsList = React.memo(
             stopCodeMatches
         }: RelevantStopsListProps
     ) => {
-        // TODO: hide some of them when the list is excessively long
-        // also TODO: if there's search matches in the hiddens stop names,
-        //            maybe show them? or show them but smaller? or just
-        //            highlight the show more button?
+        const shownStops = [];
+        let hiddenStopCount = 0;
+
+        for (let i = 0; i < relevant_stops.length; i++) {
+            const stop = relevant_stops[i];
+            if (!stop) continue;
+
+            const nameMatches = stopNameMatches?.[i];
+            const codeMatches = stopCodeMatches?.[i];
+
+            if (i < MAX_STOPS_IN_LIST || nameMatches?.length || codeMatches?.length) {
+                shownStops.push({stop, nameMatches, codeMatches});
+            } else {
+                hiddenStopCount += 1;
+            }
+        }
+
         return (relevant_stops.length > 0)
             ? <>
                 <h2>{isRemoved ? REMOVED_STOPS_LABEL : ADDED_STOPS_LABEL}</h2>
                 <ul className="relevant-stops">
-                    {relevant_stops.map(
-                        ([stop_code, stop_name], idx) => 
+                    {shownStops.map(
+                        ({stop: [stop_code, stop_name], nameMatches, codeMatches}) => 
                             <li key={stop_code}>
-                                    <MatchedString s={stop_code} matches={stopCodeMatches?.[idx]} />
+                                    <MatchedString s={stop_code} matches={codeMatches} />
                                     &nbsp;-&nbsp;
-                                    <MatchedString s={stop_name} matches={stopNameMatches?.[idx]} />
+                                    <MatchedString s={stop_name} matches={nameMatches} />
                             </li>
                     )}
+                    {
+                        !hiddenStopCount ? null
+                            : <li className="hidden-count">
+                                {hiddenStopCount === 1
+                                    ? `(ועוד תחנה 1 נוספת...)`
+                                    : `(ועוד ${hiddenStopCount} תחנות נוספות...)`
+                                }
+                            </li>
+                    }
                 </ul>
             </>
             : null
