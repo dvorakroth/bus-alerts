@@ -792,7 +792,7 @@ a.more-details:active {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .loading-indicator {
