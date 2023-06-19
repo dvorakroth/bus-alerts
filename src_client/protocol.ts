@@ -31,11 +31,11 @@ export type {
     TranslationObject,
     LineDetails,
     AlertMinimal,
-    AddedRemovedDepartures
+    AddedRemovedDepartures,
+    RouteChangeMapData
 } from "../src_node/apiTypes";
 export type ActiveTime = [string, string, boolean];
 export type DateOrDateRange = string | [string, string];
-export type RouteChangeForMap = RouteChangeMapData & {has_no_changes?: boolean};
 
 export const USE_CASES = {
     "NATIONAL": 1,

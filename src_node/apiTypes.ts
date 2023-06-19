@@ -126,6 +126,7 @@ export type RouteChangeMapData = {
     shape: null|([number, number][]);
 
     map_bounding_box?: MapBoundingBox; // TODO use this in per-alert route changes
+    has_no_route_changes?: boolean;
 }
 
 export type AlertPeriodWithRouteChanges = AlertPeriod & RouteChangeMapData & {

@@ -1,11 +1,11 @@
 import * as mapboxgl from 'mapbox-gl';
 import * as React from "react";
-import { MapBoundingBox, RouteChangeForMap, StopForMap } from '../protocol';
+import { MapBoundingBox, RouteChangeMapData, StopForMap } from '../protocol';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 
 const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRxMnBkdTBjIn0.IDeZtjeHSZmEXyD3o7p6ww';
 
-function newShapesForChange(change: RouteChangeForMap, stops: Record<string, StopForMap>) {
+function newShapesForChange(change: RouteChangeMapData, stops: Record<string, StopForMap>) {
     const newStopidLists = [];
 
     let currentNewStopidList = [];
@@ -65,7 +65,7 @@ const IMAGE_ICON_X = 'map-x';
 
 function convertSingleChangeToMapData(
     selector: string,
-    change: RouteChangeForMap,
+    change: RouteChangeMapData,
     stops: Record<string, StopForMap>
 ): Record<string, any[]> {
     const newShapes = newShapesForChange(change, stops);
@@ -128,7 +128,7 @@ function stringForSelection(agency_id: string, line_number: string, i: number) {
 
 function convertChangesToMapData(
     initialSelection: [string, string, number],
-    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
+    route_changes: Record<string, Record<string, RouteChangeMapData[]>>,
     map: mapboxgl.Map,
     stops: Record<string, StopForMap>,
     xImage: HTMLImageElement | ImageBitmap
@@ -271,7 +271,7 @@ function setLayerFilters(
 }
 
 export interface RouteChangesMapViewProps {
-    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
+    route_changes: Record<string, Record<string, RouteChangeMapData[]>>,
     stops: Record<string, StopForMap>,
     selection: [string, string, number];
     map_bounding_box: MapBoundingBox;
@@ -289,9 +289,9 @@ const FIT_BOUNDS_OPTIONS = {
 };
 
 function traverseRouteChanges(
-    route_changes: Record<string, Record<string, RouteChangeForMap[]>>,
+    route_changes: Record<string, Record<string, RouteChangeMapData[]>>,
     selection: [string, string, number]
-): RouteChangeForMap {
+): RouteChangeMapData {
     let current: any = route_changes;
     for (const k of selection || []) {
         current = current?.[k];
@@ -299,7 +299,13 @@ function traverseRouteChanges(
     return current;
 }
 
-export const RouteChangesMapView = ({route_changes, stops, selection, map_bounding_box, onSelectionMoveToBBox}: RouteChangesMapViewProps) => {
+export const RouteChangesMapView = ({
+    route_changes,
+    stops,
+    selection,
+    map_bounding_box,
+    onSelectionMoveToBBox
+}: RouteChangesMapViewProps) => {
     const mapContainer = React.useRef<HTMLDivElement>(null);
     const map = React.useRef<mapboxgl.Map|null>(null);
     const previousSelection = React.useRef<[string, string, number]>(selection);
@@ -310,15 +316,15 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
     const bboxRaw = React.useRef<MapBoundingBox|null>(null);
     const bbox = React.useRef<[[number, number], [number, number]]|null>(null);
 
+    const selectedRouteChange = traverseRouteChanges(route_changes, selection);
+
     React.useEffect(() => {
         // set bbox.current to either the current selected change's bbox, or the global bbox
 
         let candidate = map_bounding_box;
 
-        const rc = traverseRouteChanges(route_changes, selection);
-
-        if (rc?.map_bounding_box) {
-            candidate = rc.map_bounding_box;
+        if (selectedRouteChange?.map_bounding_box) {
+            candidate = selectedRouteChange.map_bounding_box;
         }
 
         if (bboxRaw.current != candidate) {
@@ -452,8 +458,12 @@ export const RouteChangesMapView = ({route_changes, stops, selection, map_boundi
 
     return <div className="map-container-container">
         <button className={"back-to-changes" + (isLookingAtBbox ? " hidden" : "")}
-                onClick={goBackToChanges}>{/* TODO: different string for when there's no changes */}
-            לחצו לחזרה לאזור השינויים
+                onClick={goBackToChanges}>
+            {
+                selectedRouteChange.has_no_route_changes
+                    ? "לחצו לחזרה למפת הקו"
+                    : "לחצו לחזרה לאזור השינויים"
+            }
         </button>
         <div className={"map-container"} ref={mapContainer}></div>
         <LoadingOverlay shown={isLoading} textOverride="מפה בטעינה..." />

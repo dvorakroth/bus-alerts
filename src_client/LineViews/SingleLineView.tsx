@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import * as React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
-import { AlertPeriodWithRouteChanges, LineDetails, MapBoundingBox, RouteChangeForMap, SingleLineChanges, StopForMap } from '../protocol';
+import { AlertPeriodWithRouteChanges, LineDetails, MapBoundingBox, RouteChangeMapData, SingleLineChanges, StopForMap } from '../protocol';
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
@@ -88,7 +88,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
             if (!line) return {changes: {}};
 
             return {
-                changes: line.dirs_flattened.reduce<Record<string, RouteChangeForMap[]>>(
+                changes: line.dirs_flattened.reduce<Record<string, RouteChangeMapData[]>>(
                     (changesDict, dir, dirIdx) => {
                         const periods = dir?.time_sensitive_alerts?.periods;
 
@@ -99,7 +99,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                                 shape: dir.shape,
                                 deleted_stop_ids: [],
                                 updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false]), 
-                                has_no_changes: true,
+                                has_no_route_changes: true,
                                 map_bounding_box: boundingBoxForStops(dir.stop_seq, data.all_stops)
                             }];
                         }

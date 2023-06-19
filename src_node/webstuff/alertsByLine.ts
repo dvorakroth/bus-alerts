@@ -148,13 +148,6 @@ export async function getSingleLine(
     groupedRoutes: GroupedRoutes,
     gtfsDbApi: GtfsDbApi
 ): Promise<SingleLineChanges|null> {
-    // TODO: include alerts that are deleted but not expired!
-    //       though i think those can be just a flat list with no periods
-    //       just so the app doesn't gaslight you about a deleted alert
-    //       and you're left sitting there like "wait wasn't there something here????"
-    // TODO: make it so that the alert periods also include a bitmask of
-    //       non-route-changes alerts (though that's really just departure changes)
-    //       (so in fact, maybe just... specifically include those?)
     const actualLine = groupedRoutes.actualLinesDict[linePk];
     if (!actualLine) return null;
 
@@ -241,7 +234,9 @@ export async function getSingleLine(
 
         // at first, just get every alert's route_changes (but limited to each route_id) on its own
         for (const [alert, alertRaw] of alertPairs) {
-            if (alert.is_deleted && !alert.is_expired) {
+            if (alert.is_expired) continue;
+
+            if (alert.is_deleted) {
                 const alertMinimal = {
                     id: alert.id,
                     header: alert.header,
@@ -249,11 +244,8 @@ export async function getSingleLine(
                 };
                 flatDir.deleted_alerts.push(alertMinimal)
             } else if (
-                !alert.is_deleted && !alert.is_expired
-                && (
-                    doesAlertHaveRouteChanges(alertRaw)
-                    || alertRaw.use_case === AlertUseCase.ScheduleChanges
-                )
+                doesAlertHaveRouteChanges(alertRaw)
+                || alertRaw.use_case === AlertUseCase.ScheduleChanges
             ) {
                 timeSensitiveAlerts.push([alert, alertRaw]);
             }
@@ -365,8 +357,9 @@ export async function getSingleLine(
                     shape: representativeTripId
                         ? await gtfsDbApi.getShapePoints(representativeTripId)
                         : null,
-                    departure_changes
-                })
+                    departure_changes,
+                    has_no_route_changes: true
+                });
             }
         }
     }
