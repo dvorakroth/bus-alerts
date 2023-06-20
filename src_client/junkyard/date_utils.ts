@@ -75,7 +75,7 @@ export function findNextRoundHour(
     modulo: number,
     moduloEquals = 0
 ) {
-    modulo = Math.max(1, Math.floor(modulo));
+    modulo = Math.max(1, Math.min(24, Math.floor(modulo)));
     moduloEquals = Math.max(0, Math.min(modulo - 1, moduloEquals));
 
     let d = start.set({
@@ -91,6 +91,27 @@ export function findNextRoundHour(
 
     while (d.hour % modulo !== moduloEquals) {
         d = d.plus({hours: 1});
+    }
+
+    return d;
+}
+
+export function findPreviousRoundHour(
+    start: DateTime,
+    modulo: number,
+    moduloEquals = 0
+) {
+    modulo = Math.max(1, Math.min(24, Math.floor(modulo)));
+    moduloEquals = Math.max(0, Math.min(modulo - 1, moduloEquals));
+
+    let d = start.set({
+        minute: 0,
+        second: 0,
+        millisecond: 0
+    });
+
+    while (d.hour % modulo !== moduloEquals) {
+        d = d.minus({hours: 1});
     }
 
     return d;

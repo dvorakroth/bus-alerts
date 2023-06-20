@@ -1133,6 +1133,10 @@ body.disable-momentum * {
             position: absolute;
 
             color: rgb(184, 49, 49);
+
+            &:not([disabled]) {
+                cursor: pointer;
+            }
         }
 
         & > .hint-more-before {

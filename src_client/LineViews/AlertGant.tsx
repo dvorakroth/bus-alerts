@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { AlertMinimal, AlertPeriodWithRouteChanges, USE_CASES } from '../protocol';
 import { DateTime } from 'luxon';
-import { JERUSALEM_TZ, dateRange, findNextRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
+import { JERUSALEM_TZ, dateRange, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
-import { GANT_HOURLINE_INTERVAL, alertGantMinMaxLimits } from '../bothSides';
+import { GANT_DEFAULT_START_MINUS, GANT_HOURLINE_INTERVAL, alertGantMinMaxLimits } from '../bothSides';
 
 type AlertAppearance = {
     alertIdx: number;
@@ -134,7 +134,13 @@ export function AlertGant({
 
     React.useEffect(
         () => {
-            if (!defaultViewEnd || !periodsInViewport) return;
+            if (
+                !defaultViewEnd
+                || !periodsInViewport
+                || !gantWidthSeconds
+            ) {
+                return;
+            }
 
             if (periodsInViewport.find(p => p.originalIndex === selectedChangePeriodIdx)) {
                 return;
@@ -151,8 +157,24 @@ export function AlertGant({
                 setViewportStart(defaultViewStart);
                 setViewportEnd(defaultViewEnd);
             } else {
-                // TODO?
-                return;
+                let aimingForStart = findPreviousRoundHour(
+                    DateTime.fromSeconds(selectedPeriod.start, {zone: JERUSALEM_TZ}),
+                    GANT_HOURLINE_INTERVAL
+                ).minus({hours: GANT_DEFAULT_START_MINUS});
+                let aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
+
+                if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
+                    aimingForStart = minimumStartPosition;
+                    aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
+                }
+
+                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
+                    aimingForEnd = maximumEndPosition;
+                    aimingForStart = aimingForEnd.minus({seconds: gantWidthSeconds});
+                }
+
+                setViewportStart(aimingForStart);
+                setViewportEnd(aimingForEnd);
             }
         },
         [selectedChangePeriodIdx, periods, alertMetadata]
@@ -189,6 +211,55 @@ export function AlertGant({
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
+    const goToPreviousAlert = React.useCallback(
+        () => {
+            if (!hasAlertsBefore) return;
+
+            for (let i = periods.length; i >= 0; i--) {
+                // find the last alertful period that ends before the
+                // current **VIEW** starts (not currently-selected period!)
+
+                // this is because the "there's more -->" buttons appear
+                // whenever there's something OUT OF VIEW, unrelated to what
+                // the currently-selected period is
+
+                const period = periods[i];
+                if (!period) continue;
+                if (period.end > viewportStartUnixtime) continue;
+
+                if (period?.bitmask !== 0) {
+                    onNewChangePeriodSelected(i);
+                    return;
+                }
+            }
+        }, [hasAlertsBefore, viewportStartUnixtime]
+    );
+
+    const goToNextAlert = React.useCallback(
+        () => {
+            if (!hasAlertsAfter) return;
+            if (!viewportEndUnixtime) return;
+
+            for (let i = 0; i < periods.length; i++) {
+                // find the first alertful period that starts after the
+                // current **VIEW** ends (not currently-selected period!)
+
+                // this is because the "there's more -->" buttons appear
+                // whenever there's something OUT OF VIEW, unrelated to what
+                // the currently-selected period is
+
+                const period = periods[i];
+                if (!period) continue;
+                if (period.start < viewportEndUnixtime) continue;
+
+                if (period?.bitmask !== 0) {
+                    onNewChangePeriodSelected(i);
+                    return;
+                }
+            }
+        }, [hasAlertsAfter, viewportEndUnixtime]
+    );
+
     const clickableAreaOnClick = React.useCallback(
         ({currentTarget}: React.MouseEvent) => {
             const idxStr = currentTarget.getAttribute("data-idx");
@@ -200,7 +271,7 @@ export function AlertGant({
             onNewChangePeriodSelected(idx);
         },
         [onNewChangePeriodSelected]
-    )
+    );
 
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
@@ -271,10 +342,10 @@ export function AlertGant({
         </div>
         <div className="hints-container">
             {!hasAlertsBefore ? null
-                : <span className="hint-more-before">→ יש עוד</span>
+                : <button className="hint-more-before" onClick={goToPreviousAlert}>→ יש עוד</button>
             }
             {!hasAlertsAfter ? null
-                : <span className="hint-more-after">יש עוד ←</span>
+                : <button className="hint-more-after" onClick={goToNextAlert}>יש עוד ←</button>
             }
         </div>
     </div>
