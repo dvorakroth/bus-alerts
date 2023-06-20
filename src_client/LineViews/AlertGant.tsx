@@ -31,6 +31,8 @@ export function AlertGant({
     // TODO maybe remove the text on the alert items themselves?
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
+
+    // TODO add a zoomed-in version of the gant?
     const {ref: gantAreaRef, width: gantWidthPx} = useResizeObserver();
     const gantWidthSeconds = gantWidthPx === undefined
         ? undefined
