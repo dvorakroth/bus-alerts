@@ -203,14 +203,15 @@ export function AlertGant({
     );
 
     const scrollToViewPeriod = React.useCallback(
-        (period: AlertPeriodWithRouteChanges) => {
+        (period: AlertPeriodWithRouteChanges, atEnd = false) => {
             if (!gantWidthSeconds) return;
 
             const [aimingForStart, aimingForEnd] = viewForPeriod(
                 period,
                 minimumStartPosition,
                 maximumEndPosition,
-                gantWidthSeconds
+                gantWidthSeconds,
+                atEnd
             );
 
             setViewportStart(aimingForStart);
@@ -268,7 +269,7 @@ export function AlertGant({
 
                 if (period?.bitmask !== 0) {
                     // onNewChangePeriodSelected(i);
-                    scrollToViewPeriod(period);
+                    scrollToViewPeriod(period, true);
                     return;
                 }
             }
@@ -556,13 +557,33 @@ function viewForPeriod(
     period: AlertPeriodWithRouteChanges,
     minimumStartPosition: DateTime,
     maximumEndPosition: DateTime,
-    gantWidthSeconds: number
+    gantWidthSeconds: number,
+    viewAtEnd = false
 ): [DateTime, DateTime] {
-    let aimingForStart = findPreviousRoundHour(
-        DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}),
-        GANT_HOURLINE_INTERVAL
-    ).minus({hours: GANT_DEFAULT_START_MINUS});
-    let aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
+    let aimingForStart, aimingForEnd;
+
+    if (!viewAtEnd) {
+        aimingForStart = findPreviousRoundHour(
+            DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}),
+            GANT_HOURLINE_INTERVAL
+        ).minus({hours: GANT_DEFAULT_START_MINUS});
+        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
+    } else {
+        const bestStart = Math.min(
+            period.end + (
+                GANT_HOURLINE_INTERVAL + GANT_DEFAULT_START_MINUS
+            ) * 3600,
+            period.start + gantWidthSeconds/* - (
+                (GANT_HOURLINE_INTERVAL + GANT_DEFAULT_START_MINUS) * 3600
+            )*/
+        ) - gantWidthSeconds;
+
+        aimingForStart = findPreviousRoundHour(
+            DateTime.fromSeconds(bestStart, {zone: JERUSALEM_TZ}),
+            GANT_HOURLINE_INTERVAL
+        ).minus({hours: GANT_DEFAULT_START_MINUS});
+        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
+    }
 
     if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
         aimingForStart = minimumStartPosition;
