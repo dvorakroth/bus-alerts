@@ -157,21 +157,12 @@ export function AlertGant({
                 setViewportStart(defaultViewStart);
                 setViewportEnd(defaultViewEnd);
             } else {
-                let aimingForStart = findPreviousRoundHour(
-                    DateTime.fromSeconds(selectedPeriod.start, {zone: JERUSALEM_TZ}),
-                    GANT_HOURLINE_INTERVAL
-                ).minus({hours: GANT_DEFAULT_START_MINUS});
-                let aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
-
-                if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
-                    aimingForStart = minimumStartPosition;
-                    aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
-                }
-
-                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
-                    aimingForEnd = maximumEndPosition;
-                    aimingForStart = aimingForEnd.minus({seconds: gantWidthSeconds});
-                }
+                const [aimingForStart, aimingForEnd] = viewForPeriod(
+                    selectedPeriod,
+                    minimumStartPosition,
+                    maximumEndPosition,
+                    gantWidthSeconds
+                );
 
                 setViewportStart(aimingForStart);
                 setViewportEnd(aimingForEnd);
@@ -211,6 +202,28 @@ export function AlertGant({
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
+    const scrollToViewPeriod = React.useCallback(
+        (period: AlertPeriodWithRouteChanges) => {
+            if (!gantWidthSeconds) return;
+
+            const [aimingForStart, aimingForEnd] = viewForPeriod(
+                period,
+                minimumStartPosition,
+                maximumEndPosition,
+                gantWidthSeconds
+            );
+
+            setViewportStart(aimingForStart);
+            setViewportEnd(aimingForEnd);
+        }, [
+            setViewportStart,
+            setViewportEnd,
+            minimumStartPosition,
+            maximumEndPosition,
+            gantWidthSeconds
+        ]
+    )
+
     const goToPreviousAlert = React.useCallback(
         () => {
             if (!hasAlertsBefore) return;
@@ -228,11 +241,12 @@ export function AlertGant({
                 if (period.end > viewportStartUnixtime) continue;
 
                 if (period?.bitmask !== 0) {
-                    onNewChangePeriodSelected(i);
+                    // onNewChangePeriodSelected(i);
+                    scrollToViewPeriod(period);
                     return;
                 }
             }
-        }, [hasAlertsBefore, viewportStartUnixtime]
+        }, [hasAlertsBefore, viewportStartUnixtime, scrollToViewPeriod]
     );
 
     const goToNextAlert = React.useCallback(
@@ -253,11 +267,12 @@ export function AlertGant({
                 if (period.start < viewportEndUnixtime) continue;
 
                 if (period?.bitmask !== 0) {
-                    onNewChangePeriodSelected(i);
+                    // onNewChangePeriodSelected(i);
+                    scrollToViewPeriod(period);
                     return;
                 }
             }
-        }, [hasAlertsAfter, viewportEndUnixtime]
+        }, [hasAlertsAfter, viewportEndUnixtime, scrollToViewPeriod]
     );
 
     const clickableAreaOnClick = React.useCallback(
@@ -535,4 +550,29 @@ function widthPercentageForUnixtime(
             /
             (viewportEnd - viewportStart)
     ) + "%";
+}
+
+function viewForPeriod(
+    period: AlertPeriodWithRouteChanges,
+    minimumStartPosition: DateTime,
+    maximumEndPosition: DateTime,
+    gantWidthSeconds: number
+): [DateTime, DateTime] {
+    let aimingForStart = findPreviousRoundHour(
+        DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}),
+        GANT_HOURLINE_INTERVAL
+    ).minus({hours: GANT_DEFAULT_START_MINUS});
+    let aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
+
+    if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
+        aimingForStart = minimumStartPosition;
+        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
+    }
+
+    if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
+        aimingForEnd = maximumEndPosition;
+        aimingForStart = aimingForEnd.minus({seconds: gantWidthSeconds});
+    }
+
+    return [aimingForStart, aimingForEnd];
 }
