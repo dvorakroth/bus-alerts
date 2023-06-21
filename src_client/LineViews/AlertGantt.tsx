@@ -314,6 +314,10 @@ export function AlertGantt({
             //      i think this should follow either the center of the view,
             //      (i.e. keep the center centered), or keep the currently
             //      selected period in the view? idk
+
+            // TODO if zooming out takes the viewportEnd past the maximum,
+            //      then set the view bounds to the maximum
+            //      (ditto past the minimum?)
             setZoomLevel(1 - zoomLevel);
         }, [setZoomLevel, zoomLevel]
     );
