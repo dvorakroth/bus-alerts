@@ -353,7 +353,6 @@ export function AlertGant({
                         ></button>
                     )}
                 </div>
-                {/* TODO jump to next alert? */}
                 {/* TODO jump to today (back to default view) button? */}
             </div>
             <button className="move-viewport forwards" onClick={moveForward} disabled={!canMoveForward} aria-label="קדימה"></button>
