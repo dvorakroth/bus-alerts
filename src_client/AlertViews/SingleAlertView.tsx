@@ -271,6 +271,7 @@ interface LineChooserAndMapProps extends RelevantLinesListProps {
     route_changes: Record<string, Record<string, RouteChangeForApi[]>>;
     stops_for_map: Record<string, StopForMap>;
     map_bounding_box: MapBoundingBox;
+    polygon: [number, number][]|undefined;
 }
 
 function LineChooserAndMap(
@@ -281,7 +282,8 @@ function LineChooserAndMap(
         stops_for_map,
         map_bounding_box,
         agencyNameMatches,
-        lineNumberMatches
+        lineNumberMatches,
+        polygon
     }: LineChooserAndMapProps
 ) {
     const getChangesForLine = React.useCallback(
@@ -298,10 +300,13 @@ function LineChooserAndMap(
             <RouteChangesMapView route_changes={route_changes}
                                  stops={stops_for_map}
                                  selection={[agency_id, line_number, direction_index]}
-                                 map_bounding_box={map_bounding_box} />
+                                 map_bounding_box={map_bounding_box}
+                                 polygon={polygon} />
         ),
         [route_changes, stops_for_map, map_bounding_box]
     );
+    
+    // TODO when there's a polygon but no change data, show just a map with the polygon?
 
     return <LineAndDirectionChooser relevant_agencies={relevant_agencies}
                                     relevant_lines={relevant_lines}
@@ -561,7 +566,8 @@ function SingleAlertView(
                                                      stops_for_map={data.stops_for_map}
                                                      map_bounding_box={data.map_bounding_box}
                                                      agencyNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.AGENCY_NAME]}
-                                                     lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]} />
+                                                     lineNumberMatches={matches?.[ALERT_SEARCH_KEY_INDICES.LINE_NUMBER]}
+                                                     polygon={data.polygon} />
                                 : 
                                     should_show_departure_chgs
                                         ? <LineChooserAndDepChgs relevant_agencies={alert.relevant_agencies}

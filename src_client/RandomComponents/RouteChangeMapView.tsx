@@ -265,6 +265,49 @@ function convertChangesToMapData(
     });
 }
 
+const SOURCE_REGION_POLYGON = "region-polygon";
+const LAYER_REGION_POLYGON_FILL = "region-polygon-fill";
+const LAYER_REGION_POLYGON_OUTLINE = "region-polygon-outline";
+
+function loadPolygonToMapData(
+    map: mapboxgl.Map,
+    polygon: [number, number][]
+) {
+    map.addSource(SOURCE_REGION_POLYGON, {
+        "type": "geojson",
+        "data": {
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [polygon]
+            },
+            "properties": {}
+        }
+    });
+
+    map.addLayer({
+        "id": LAYER_REGION_POLYGON_FILL,
+        "source": SOURCE_REGION_POLYGON,
+        "type": "fill",
+        "paint": {
+            "fill-color": "#f00",
+            "fill-outline-color": "#f00",
+            "fill-opacity": 0.2
+        }
+    });
+
+    map.addLayer({
+        "id": LAYER_REGION_POLYGON_OUTLINE,
+        "source": SOURCE_REGION_POLYGON,
+        "type": "line",
+        "paint": {
+            "line-color": "#f00",
+            "line-dasharray": [5, 5],
+            "line-width": 3
+        }
+    });
+}
+
 function setLayerFilters(
     layers: string[],
     selector: string,
@@ -272,10 +315,11 @@ function setLayerFilters(
 ) {
     for (const l of layers) {
         const layer = map.getLayer(l);
+        if (!layer) continue;
+        if (layer.id === LAYER_REGION_POLYGON_FILL) continue;
+        if (layer.id === LAYER_REGION_POLYGON_OUTLINE) continue;
 
-        if (layer) {
-            map.setFilter(l, ["==", "selector", selector]);
-        }
+        map.setFilter(l, ["==", "selector", selector]);
     }
 }
 
@@ -285,6 +329,7 @@ export interface RouteChangesMapViewProps {
     selection: [string, string, number];
     map_bounding_box: MapBoundingBox;
     onSelectionMoveToBBox?: boolean;
+    polygon: [number, number][]|undefined;
 }
 
 const FIT_BOUNDS_OPTIONS = {
@@ -313,7 +358,8 @@ export const RouteChangesMapView = ({
     stops,
     selection,
     map_bounding_box,
-    onSelectionMoveToBBox
+    onSelectionMoveToBBox,
+    polygon
 }: RouteChangesMapViewProps) => {
     const mapContainer = React.useRef<HTMLDivElement>(null);
     const map = React.useRef<mapboxgl.Map|null>(null);
@@ -402,6 +448,8 @@ export const RouteChangesMapView = ({
                     mapXImage
                 );
 
+                if (polygon) loadPolygonToMapData(map.current, polygon);
+
                 setIsLoading(false);
             };
             mapXImage.src = mapXBlobUrl;           
@@ -413,7 +461,7 @@ export const RouteChangesMapView = ({
             map.current.remove();
             map.current = null;
         };
-    }, [route_changes, stops]);
+    }, [route_changes, stops, polygon]);
 
     // this is basically our "event handler" for when the user changes their selection
     React.useEffect(() => {
