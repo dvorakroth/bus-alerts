@@ -5,6 +5,11 @@ import BitapSearch from "./bitap";
 import convertMaskToIndices from "./bitap/convertMaskToIndices";
 import { SearchResult } from "./bitap/search";
 
+// TODO allow defining some characters/sequences as identical?
+//      (the mot confuses '' and " all the time; and iphone users can
+//      only type gershayim on their keyboard usually; so they all need
+//      to just be exactly the same)
+
 export class FuriousIndex<T> {
     originalObjects: T[];
     keys: FuriousKeyDefinition<T>[];
