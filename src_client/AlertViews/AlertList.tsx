@@ -20,8 +20,8 @@ interface AlertListProps {
 export default function AlertList({alerts, showDistance, noAlertsToday}: AlertListProps) {
     const rowRenderer = React.useCallback<ItemContent<ServiceAlertOrSearchResult>>(
         (index) => {
-            if (!noAlertsToday && index < alerts.length) {
-                const searchResultOrAlert = alerts[index];
+            const searchResultOrAlert = alerts[index];
+            if (!noAlertsToday && searchResultOrAlert) {
                 const [alert, searchResult] = breakoutSearchableListItem(searchResultOrAlert);
                 
                 return <AlertSummary alert={alert}

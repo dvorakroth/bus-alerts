@@ -32,8 +32,9 @@ interface LineListProps {
 export default function LineList({lines, showDistance, noAlertsToday}: LineListProps) {
     const rowRenderer = React.useCallback<ItemContent<LineListItem>>(
         (index) => {
-            if (!noAlertsToday && index < lines.length) {
-                const [line, searchResult] = breakoutSearchableListItem(lines[index]);
+            const searchResultOrLine = lines[index];
+            if (!noAlertsToday && searchResultOrLine) {
+                const [line, searchResult] = breakoutSearchableListItem(searchResultOrLine);
                 
                 return <LineSummary line={line}
                                     matches={searchResult?.matches ?? []}

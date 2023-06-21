@@ -9,33 +9,38 @@ import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 
+type ValueOf<T> = T[keyof T];
+
 const RELEVANCE_LEVELS = {
     TODAY: 'today',
     TOMORROW: 'tomorrow',
     FUTURE: 'future',
     EXPIRED: 'expired',
     DELETED: 'deleted' 
-}
+} as const;
 const RELEVANCE_TEXT = {
     [RELEVANCE_LEVELS.TODAY]: 'רלוונטית להיום!',
     [RELEVANCE_LEVELS.TOMORROW]: 'רלוונטית ממחר ',
     [RELEVANCE_LEVELS.FUTURE]: 'רלוונטית מיום ',
     [RELEVANCE_LEVELS.EXPIRED]: 'פגת תוקף',
     [RELEVANCE_LEVELS.DELETED]: 'נמחקה',
-}
+} as const;
 
 function get_relevance_string(
     relevance_level: string,
     relevant_date: DateTime|null,
     first_start_time: DateTime|null
 ) {
+
     if (
         relevance_level === RELEVANCE_LEVELS.DELETED
         || relevance_level === RELEVANCE_LEVELS.EXPIRED
-        || !relevant_date
-        || !first_start_time
     ) {
         return RELEVANCE_TEXT[relevance_level];
+    }
+
+    if (!relevant_date || !first_start_time) {
+        return RELEVANCE_TEXT[RELEVANCE_LEVELS.DELETED];
     }
 
     switch(relevance_level) {
@@ -67,7 +72,7 @@ export const RelevanceTag = React.memo(
         const _first_relevant_date = isoToLocal(first_relevant_date);
         const _first_start_time = isoToLocal(first_start_time);
 
-        let relevance_level = RELEVANCE_LEVELS.FUTURE;
+        let relevance_level: ValueOf<typeof RELEVANCE_LEVELS> = RELEVANCE_LEVELS.FUTURE;
         if (is_deleted) {
             relevance_level = RELEVANCE_LEVELS.DELETED;
         } else if (is_expired || !first_relevant_date) {
@@ -329,7 +334,7 @@ export function areMatchesEqual(a: FuriousSearchMatch|undefined, b: FuriousSearc
     }
 
     for (let i = 0; i < a.length; i++) {
-        if (a[i][0] !== b[i][0] || a[i][1] !== b[i][1]) {
+        if (a[i]?.[0] !== b[i]?.[0] || a[i]?.[1] !== b[i]?.[1]) {
             return false;
         }
     }

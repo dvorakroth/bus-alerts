@@ -85,11 +85,11 @@ if (!(window as any).AGENCY_LOGOS_PRELOADED) {
     for (const k of Object.keys(AGENCY_LOGOS)) {
         const imgPath = AGENCY_LOGOS[k];
 
-        if (alreadyFound[imgPath]) {
+        if (!imgPath || alreadyFound[imgPath]) {
             continue;
         }
 
-        alreadyFound[imgPath] = new Image();
-        alreadyFound[imgPath].src = imgPath;
+        const img = alreadyFound[imgPath] = new Image();
+        img.src = imgPath;
     }
 }

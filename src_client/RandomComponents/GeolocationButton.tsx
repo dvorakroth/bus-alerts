@@ -30,7 +30,7 @@ const LOCATION_LABEL_CLASSES = {
     [GEOLOCATION_STATUS.TRYING]: "is-loading"
 };
 interface GeolocationButtonProps {
-    onNewLocation: (newLocation: GeolocationPosition) => void;
+    onNewLocation: (newLocation: GeolocationPosition|null) => void;
 }
 interface GeolocationButtonState {
     geolocation_status: number;

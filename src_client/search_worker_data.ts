@@ -94,7 +94,7 @@ export const ALERT_SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
     {
         // "name": "relevant_lines_for_search",
         "get": (a) => a.relevant_agencies
-                        .map(({agency_id}) => a.relevant_lines[agency_id])
+                        .map(({agency_id}) => a.relevant_lines[agency_id] ?? [])
                         .reduce((a, b) => a.concat(b), []),
         "weight": 1
     },

@@ -8,18 +8,22 @@ const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoiaXNoMCIsImEiOiJja3h3aW90N2Ixd3B1MnNtcHRx
 function newShapesForChange(change: RouteChangeMapData, stops: Record<string, StopForMap>) {
     const newStopidLists = [];
 
-    let currentNewStopidList = [];
+    let currentNewStopidList: string[] = [];
 
     for (let i = 0; i < change.updated_stop_sequence.length; i++) {
-        const [stop_id, is_added] = change.updated_stop_sequence[i];
+        const thisItem = change.updated_stop_sequence[i];
+        if (!thisItem) continue;
+
+        const [stop_id, is_added] = thisItem;
 
         if (is_added) {
             if (currentNewStopidList.length) {
                 currentNewStopidList.push(stop_id);
             } else {
-                if (i > 0) {
+                const prevItem = change.updated_stop_sequence[i - 1];
+                if (prevItem) {
                     currentNewStopidList.push(
-                        change.updated_stop_sequence[i - 1][0]
+                        prevItem[0]
                     );
                 }
 
@@ -41,7 +45,9 @@ function newShapesForChange(change: RouteChangeMapData, stops: Record<string, St
 
     return newStopidLists.map(
         stopidList => stopidList.map(
-            stop_id => [stops[stop_id].stop_lon, stops[stop_id].stop_lat]
+            stop_id => [stops[stop_id]?.stop_lon, stops[stop_id]?.stop_lat]
+        ).filter(
+            (lonlat): lonlat is [number, number] => lonlat[0] !== undefined && lonlat[1] !== undefined
         )
     );
 }
@@ -90,8 +96,8 @@ function convertSingleChangeToMapData(
                 "geometry": {
                     "type": "Point",
                     "coordinates": [
-                        stops[stop_id].stop_lon,
-                        stops[stop_id].stop_lat
+                        stops[stop_id]?.stop_lon,
+                        stops[stop_id]?.stop_lat
                     ]
                 }
             })),
@@ -104,8 +110,8 @@ function convertSingleChangeToMapData(
                 "geometry": {
                     "type": "Point",
                     "coordinates": [
-                        stops[stop_id].stop_lon,
-                        stops[stop_id].stop_lat
+                        stops[stop_id]?.stop_lon,
+                        stops[stop_id]?.stop_lat
                     ]
                 }
             })),
@@ -141,11 +147,14 @@ function convertChangesToMapData(
     };
 
     for (const agency_id of Object.keys(route_changes)) {
-        for (const line_number of Object.keys(route_changes[agency_id])) {
-            for (let i = 0; i < route_changes[agency_id][line_number].length; i++) {
+        for (const [line_number, changes] of Object.entries(route_changes[agency_id] ?? {})) {
+            for (let i = 0; i < changes.length ?? 0; i++) {
+                const change = changes[i];
+                if (!change) continue;
+
                 const newValues = convertSingleChangeToMapData(
                     stringForSelection(agency_id, line_number, i),
-                    route_changes[agency_id][line_number][i],
+                    change,
                     stops
                 );
 
