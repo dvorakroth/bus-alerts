@@ -3,7 +3,6 @@ import * as ReactRouterDOM from "react-router-dom";
 
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
 import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../../FuriousSearch/furiousindex";
-// import { AlertSummary } from "./AlertSummary";
 import { ActualLine } from "../protocol";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
