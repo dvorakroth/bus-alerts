@@ -8,7 +8,7 @@ import winston from "winston";
 import { JERUSALEM_TZ, arrayToDictDifferent, compareNple, compareTuple, copySortAndUnique, lineNumberForSorting, minimumDate, zip } from "../generalJunkyard.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
 import { ApplyAlertState, applyAlertToRoute, boundingBoxForStops, doesAlertHaveRouteChanges, labelHeadsignsForDirectionAndAlternative } from "./routeChgs.js";
-import { alertGanttMinMaxLimits } from "../bothSidesConsts.js";
+import { GANTT_DEFAULT_ZOOM_LEVEL, alertGanttMinMaxLimits } from "../bothSidesConsts.js";
 
 export async function getAllLines(
     alertsDbApi: AlertsDbApi,
@@ -25,7 +25,7 @@ export async function getAllLines(
     const {
         minimumStartPosition,
         maximumEndPosition
-    } = alertGanttMinMaxLimits(nowInJerusalem);
+    } = alertGanttMinMaxLimits(nowInJerusalem, GANTT_DEFAULT_ZOOM_LEVEL);
 
     const minimumStartPositionUnixtime = minimumStartPosition.toSeconds();
     const maximumEndPositionUnixtime = maximumEndPosition.toSeconds();

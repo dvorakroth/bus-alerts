@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { JERUSALEM_TZ, dateRange, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
-import { GANTT_DEFAULT_START_MINUS, GANTT_HOURLINE_INTERVAL, alertGanttMinMaxLimits } from '../bothSides';
+import { GANTT_DEFAULT_START_MINUS, GANTT_DEFAULT_ZOOM_LEVEL, GANTT_HOURLINE_INTERVAL, GANTT_PIXELS_PER_HOUR, alertGanttMinMaxLimits } from '../bothSides';
 
 type AlertAppearance = {
     alertIdx: number;
@@ -20,8 +20,6 @@ interface AlertGanttProps {
     onNewChangePeriodSelected: (idx: number) => void;
 }
 
-const PIXELS_PER_HOUR = 8;
-
 export function AlertGantt({
     periods,
     alertMetadata,
@@ -32,17 +30,25 @@ export function AlertGantt({
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
 
-    // TODO add a zoomed-in version of the gantt?
+    const [zoomLevel, setZoomLevel] = React.useState(GANTT_DEFAULT_ZOOM_LEVEL);
+    const hourlineInterval = GANTT_HOURLINE_INTERVAL[zoomLevel];
+    const startMinus = GANTT_DEFAULT_START_MINUS[zoomLevel];
+    const pixelsPerHour = GANTT_PIXELS_PER_HOUR[zoomLevel];
+
+    if (hourlineInterval === undefined || startMinus === undefined || pixelsPerHour === undefined) {
+        throw new Error("invalid zoom level " + zoomLevel);
+    }
+
     const {ref: ganttAreaRef, width: ganttWidthPx} = useResizeObserver();
     const ganttWidthSeconds = ganttWidthPx === undefined
         ? undefined
-        : ganttWidthPx / PIXELS_PER_HOUR * 3600;
+        : ganttWidthPx / pixelsPerHour * 3600;
     
     const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
 
     const {
         defaultViewStart, minimumStartPosition, maximumEndPosition
-    } = alertGanttMinMaxLimits(nowInJerusalem);
+    } = alertGanttMinMaxLimits(nowInJerusalem, zoomLevel);
     const defaultViewEnd = ganttWidthSeconds === undefined
         ? undefined
         : defaultViewStart.plus({ seconds: ganttWidthSeconds });
@@ -58,6 +64,13 @@ export function AlertGantt({
             else setViewportEnd(viewportStart.plus({seconds: ganttWidthSeconds}));
         }, [ganttWidthSeconds]
     );
+
+    React.useEffect(
+        () => {
+            if (!viewportEnd) return;
+
+        }, [zoomLevel]
+    )
 
     const viewportStartUnixtime = viewportStart.toSeconds();
     const viewportEndUnixtime = viewportEnd?.toSeconds();
@@ -163,7 +176,9 @@ export function AlertGantt({
                     selectedPeriod,
                     minimumStartPosition,
                     maximumEndPosition,
-                    ganttWidthSeconds
+                    ganttWidthSeconds,
+                    hourlineInterval,
+                    startMinus
                 );
 
                 setViewportStart(aimingForStart);
@@ -190,18 +205,18 @@ export function AlertGantt({
         () => {
             if (!viewportEnd || !canMoveBack) return;
 
-            setViewportStart(viewportStart.minus({ hours: GANTT_HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.minus({ hours: GANTT_HOURLINE_INTERVAL }))
-        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveBack]
+            setViewportStart(viewportStart.minus({ hours: hourlineInterval }))
+            setViewportEnd(viewportEnd.minus({ hours: hourlineInterval }))
+        }, [hourlineInterval, viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveBack]
     );
 
     const moveForward = React.useCallback(
         () => {
             if (!viewportEnd || !canMoveForward) return;
 
-            setViewportStart(viewportStart.plus({ hours: GANTT_HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.plus({ hours: GANTT_HOURLINE_INTERVAL }))
-        }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
+            setViewportStart(viewportStart.plus({ hours: hourlineInterval }))
+            setViewportEnd(viewportEnd.plus({ hours: hourlineInterval }))
+        }, [hourlineInterval, viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
     const scrollToViewPeriod = React.useCallback(
@@ -213,6 +228,8 @@ export function AlertGantt({
                 minimumStartPosition,
                 maximumEndPosition,
                 ganttWidthSeconds,
+                hourlineInterval,
+                startMinus,
                 atEnd
             );
 
@@ -291,6 +308,12 @@ export function AlertGantt({
         [onNewChangePeriodSelected]
     );
 
+    const toggleZoom = React.useCallback(
+        () => {
+            setZoomLevel(1 - zoomLevel);
+        }, [setZoomLevel, zoomLevel]
+    );
+
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
     return <div className="alert-gantt-container">
@@ -311,7 +334,7 @@ export function AlertGantt({
                     )}
                 </ul>
                 <div className="alert-gantt-hourlines">
-                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, GANTT_HOURLINE_INTERVAL, 0), viewportEnd, {hours: GANTT_HOURLINE_INTERVAL})].map(
+                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, hourlineInterval, 0), viewportEnd, {hours: hourlineInterval})].map(
                         ({prevDate, date}, idx) =>
                             <div 
                                 className="hourline"
@@ -365,6 +388,7 @@ export function AlertGantt({
                 : <button className="hint-more-after" onClick={goToNextAlert}>יש עוד ←</button>
             }
         </div>
+        <button onClick={toggleZoom}>Zoom in/out lol</button>
     </div>
 }
 
@@ -559,6 +583,8 @@ function viewForPeriod(
     minimumStartPosition: DateTime,
     maximumEndPosition: DateTime,
     ganttWidthSeconds: number,
+    hourlineInterval: number,
+    startMinus: number,
     viewAtEnd = false
 ): [DateTime, DateTime] {
     let aimingForStart, aimingForEnd;
@@ -566,23 +592,23 @@ function viewForPeriod(
     if (!viewAtEnd) {
         aimingForStart = findPreviousRoundHour(
             DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}),
-            GANTT_HOURLINE_INTERVAL
-        ).minus({hours: GANTT_DEFAULT_START_MINUS});
+            hourlineInterval
+        ).minus({hours: startMinus});
         aimingForEnd = aimingForStart.plus({seconds: ganttWidthSeconds});
     } else {
         const bestStart = Math.min(
             period.end + (
-                GANTT_HOURLINE_INTERVAL + GANTT_DEFAULT_START_MINUS
+                hourlineInterval + startMinus
             ) * 3600,
             period.start + ganttWidthSeconds/* - (
-                (GANTT_HOURLINE_INTERVAL + GANTT_DEFAULT_START_MINUS) * 3600
+                (hourlineInterval + startMinus) * 3600
             )*/
         ) - ganttWidthSeconds;
 
         aimingForStart = findPreviousRoundHour(
             DateTime.fromSeconds(bestStart, {zone: JERUSALEM_TZ}),
-            GANTT_HOURLINE_INTERVAL
-        ).minus({hours: GANTT_DEFAULT_START_MINUS});
+            hourlineInterval
+        ).minus({hours: startMinus});
         aimingForEnd = aimingForStart.plus({seconds: ganttWidthSeconds})
     }
 
