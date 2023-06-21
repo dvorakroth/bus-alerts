@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { JERUSALEM_TZ, dateRange, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
-import { GANT_DEFAULT_START_MINUS, GANT_HOURLINE_INTERVAL, alertGantMinMaxLimits } from '../bothSides';
+import { GANTT_DEFAULT_START_MINUS, GANTT_HOURLINE_INTERVAL, alertGanttMinMaxLimits } from '../bothSides';
 
 type AlertAppearance = {
     alertIdx: number;
@@ -13,7 +13,7 @@ type AlertAppearance = {
     totalLength: number;
 };
 
-interface AlertGantProps {
+interface AlertGanttProps {
     periods: AlertPeriodWithRouteChanges[];
     alertMetadata: AlertMinimal[];
     selectedChangePeriodIdx: number;
@@ -22,41 +22,41 @@ interface AlertGantProps {
 
 const PIXELS_PER_HOUR = 8;
 
-export function AlertGant({
+export function AlertGantt({
     periods,
     alertMetadata,
     selectedChangePeriodIdx,
     onNewChangePeriodSelected
-}: AlertGantProps) {
+}: AlertGanttProps) {
     // TODO maybe remove the text on the alert items themselves?
     //      the text is so Bad that most of the time it just says
     //      something useless like "Tel Av..." or "Kiryat Ono, ..."
 
-    // TODO add a zoomed-in version of the gant?
-    const {ref: gantAreaRef, width: gantWidthPx} = useResizeObserver();
-    const gantWidthSeconds = gantWidthPx === undefined
+    // TODO add a zoomed-in version of the gantt?
+    const {ref: ganttAreaRef, width: ganttWidthPx} = useResizeObserver();
+    const ganttWidthSeconds = ganttWidthPx === undefined
         ? undefined
-        : gantWidthPx / PIXELS_PER_HOUR * 3600;
+        : ganttWidthPx / PIXELS_PER_HOUR * 3600;
     
     const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
 
     const {
         defaultViewStart, minimumStartPosition, maximumEndPosition
-    } = alertGantMinMaxLimits(nowInJerusalem);
-    const defaultViewEnd = gantWidthSeconds === undefined
+    } = alertGanttMinMaxLimits(nowInJerusalem);
+    const defaultViewEnd = ganttWidthSeconds === undefined
         ? undefined
-        : defaultViewStart.plus({ seconds: gantWidthSeconds });
+        : defaultViewStart.plus({ seconds: ganttWidthSeconds });
 
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
 
     React.useEffect(
         () => {
-            if (gantWidthSeconds === undefined) return;
+            if (ganttWidthSeconds === undefined) return;
 
             if (!viewportEnd) setViewportEnd(defaultViewEnd)
-            else setViewportEnd(viewportStart.plus({seconds: gantWidthSeconds}));
-        }, [gantWidthSeconds]
+            else setViewportEnd(viewportStart.plus({seconds: ganttWidthSeconds}));
+        }, [ganttWidthSeconds]
     );
 
     const viewportStartUnixtime = viewportStart.toSeconds();
@@ -139,7 +139,7 @@ export function AlertGant({
             if (
                 !defaultViewEnd
                 || !periodsInViewport
-                || !gantWidthSeconds
+                || !ganttWidthSeconds
             ) {
                 return;
             }
@@ -163,7 +163,7 @@ export function AlertGant({
                     selectedPeriod,
                     minimumStartPosition,
                     maximumEndPosition,
-                    gantWidthSeconds
+                    ganttWidthSeconds
                 );
 
                 setViewportStart(aimingForStart);
@@ -190,8 +190,8 @@ export function AlertGant({
         () => {
             if (!viewportEnd || !canMoveBack) return;
 
-            setViewportStart(viewportStart.minus({ hours: GANT_HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.minus({ hours: GANT_HOURLINE_INTERVAL }))
+            setViewportStart(viewportStart.minus({ hours: GANTT_HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.minus({ hours: GANTT_HOURLINE_INTERVAL }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveBack]
     );
 
@@ -199,20 +199,20 @@ export function AlertGant({
         () => {
             if (!viewportEnd || !canMoveForward) return;
 
-            setViewportStart(viewportStart.plus({ hours: GANT_HOURLINE_INTERVAL }))
-            setViewportEnd(viewportEnd.plus({ hours: GANT_HOURLINE_INTERVAL }))
+            setViewportStart(viewportStart.plus({ hours: GANTT_HOURLINE_INTERVAL }))
+            setViewportEnd(viewportEnd.plus({ hours: GANTT_HOURLINE_INTERVAL }))
         }, [viewportStart, viewportEnd, setViewportStart, setViewportEnd, canMoveForward]
     );
 
     const scrollToViewPeriod = React.useCallback(
         (period: AlertPeriodWithRouteChanges, atEnd = false) => {
-            if (!gantWidthSeconds) return;
+            if (!ganttWidthSeconds) return;
 
             const [aimingForStart, aimingForEnd] = viewForPeriod(
                 period,
                 minimumStartPosition,
                 maximumEndPosition,
-                gantWidthSeconds,
+                ganttWidthSeconds,
                 atEnd
             );
 
@@ -223,7 +223,7 @@ export function AlertGant({
             setViewportEnd,
             minimumStartPosition,
             maximumEndPosition,
-            gantWidthSeconds
+            ganttWidthSeconds
         ]
     )
 
@@ -293,14 +293,14 @@ export function AlertGant({
 
     const stillLoading = !orderOfAppearance || !periodsInViewport || !viewportEnd || viewportEndUnixtime === undefined;
 
-    return <div className="alert-gant-container">
-        <div className="alert-gant">
+    return <div className="alert-gantt-container">
+        <div className="alert-gantt">
             <button className="move-viewport back" onClick={moveBack} disabled={!canMoveBack} aria-label="אחורה"></button>
-            <div className="gant-area" ref={gantAreaRef}>
-                <ul className="alert-gant-rows">
+            <div className="gantt-area" ref={ganttAreaRef}>
+                <ul className="alert-gantt-rows">
                     {!stillLoading && orderOfAppearance?.map(
                         ({alertIdx, alert}) =>
-                            <AlertGantRow
+                            <AlertGanttRow
                                 key={alert.id}
                                 alertIdx={alertIdx}
                                 alert={alert}
@@ -310,8 +310,8 @@ export function AlertGant({
                             />
                     )}
                 </ul>
-                <div className="alert-gant-hourlines">
-                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, GANT_HOURLINE_INTERVAL, 0), viewportEnd, {hours: GANT_HOURLINE_INTERVAL})].map(
+                <div className="alert-gantt-hourlines">
+                    {!stillLoading && [...dateRange(findNextRoundHour(viewportStart, GANTT_HOURLINE_INTERVAL, 0), viewportEnd, {hours: GANTT_HOURLINE_INTERVAL})].map(
                         ({prevDate, date}, idx) =>
                             <div 
                                 className="hourline"
@@ -334,7 +334,7 @@ export function AlertGant({
                     )}
                 </div>
                 {!stillLoading && <NowHourline viewportStart={viewportStartUnixtime} viewportEnd={viewportEndUnixtime} />}
-                <div className="alert-gant-clickable-areas">
+                <div className="alert-gantt-clickable-areas">
                     {!stillLoading && periodsInViewport.map(
                         ({start, end, originalIndex}) => <button
                             className={classnames(
@@ -368,7 +368,7 @@ export function AlertGant({
     </div>
 }
 
-interface AlertGantRowProps {
+interface AlertGanttRowProps {
     alertIdx: number;
     periodsInViewport: AlertPeriodWithRouteChanges[];
     alert: AlertMinimal;
@@ -376,13 +376,13 @@ interface AlertGantRowProps {
     viewportEnd: number;
 }
 
-function AlertGantRow({
+function AlertGanttRow({
     alertIdx,
     periodsInViewport,
     alert,
     viewportStart,
     viewportEnd
-}: AlertGantRowProps) {
+}: AlertGanttRowProps) {
     const activePeriods = React.useMemo(
         () => constructVisibleActivePeriods(periodsInViewport, alertIdx),
         [alertIdx, periodsInViewport]
@@ -394,7 +394,7 @@ function AlertGantRow({
                 <div
                     key={idx}
                     className={classnames(
-                        "alert-gant-item",
+                        "alert-gantt-item",
                         {"start-invisible": start < viewportStart},
                         {"end-invisible": end > viewportEnd},
                         {"less-important": alert.use_case === USE_CASES.SCHEDULE_CHANGES}
@@ -558,7 +558,7 @@ function viewForPeriod(
     period: AlertPeriodWithRouteChanges,
     minimumStartPosition: DateTime,
     maximumEndPosition: DateTime,
-    gantWidthSeconds: number,
+    ganttWidthSeconds: number,
     viewAtEnd = false
 ): [DateTime, DateTime] {
     let aimingForStart, aimingForEnd;
@@ -566,34 +566,34 @@ function viewForPeriod(
     if (!viewAtEnd) {
         aimingForStart = findPreviousRoundHour(
             DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}),
-            GANT_HOURLINE_INTERVAL
-        ).minus({hours: GANT_DEFAULT_START_MINUS});
-        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds});
+            GANTT_HOURLINE_INTERVAL
+        ).minus({hours: GANTT_DEFAULT_START_MINUS});
+        aimingForEnd = aimingForStart.plus({seconds: ganttWidthSeconds});
     } else {
         const bestStart = Math.min(
             period.end + (
-                GANT_HOURLINE_INTERVAL + GANT_DEFAULT_START_MINUS
+                GANTT_HOURLINE_INTERVAL + GANTT_DEFAULT_START_MINUS
             ) * 3600,
-            period.start + gantWidthSeconds/* - (
-                (GANT_HOURLINE_INTERVAL + GANT_DEFAULT_START_MINUS) * 3600
+            period.start + ganttWidthSeconds/* - (
+                (GANTT_HOURLINE_INTERVAL + GANTT_DEFAULT_START_MINUS) * 3600
             )*/
-        ) - gantWidthSeconds;
+        ) - ganttWidthSeconds;
 
         aimingForStart = findPreviousRoundHour(
             DateTime.fromSeconds(bestStart, {zone: JERUSALEM_TZ}),
-            GANT_HOURLINE_INTERVAL
-        ).minus({hours: GANT_DEFAULT_START_MINUS});
-        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
+            GANTT_HOURLINE_INTERVAL
+        ).minus({hours: GANTT_DEFAULT_START_MINUS});
+        aimingForEnd = aimingForStart.plus({seconds: ganttWidthSeconds})
     }
 
     if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
         aimingForStart = minimumStartPosition;
-        aimingForEnd = aimingForStart.plus({seconds: gantWidthSeconds})
+        aimingForEnd = aimingForStart.plus({seconds: ganttWidthSeconds})
     }
 
     if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
         aimingForEnd = maximumEndPosition;
-        aimingForStart = aimingForEnd.minus({seconds: gantWidthSeconds});
+        aimingForStart = aimingForEnd.minus({seconds: ganttWidthSeconds});
     }
 
     return [aimingForStart, aimingForEnd];

@@ -1121,7 +1121,7 @@ body.disable-momentum * {
     -webkit-overflow-scrolling: auto;
 }
 
-.alert-gant-container {
+.alert-gantt-container {
     margin-bottom: 20px;
 
     .hints-container {
@@ -1152,7 +1152,7 @@ body.disable-momentum * {
     }
 }
 
-.alert-gant {
+.alert-gantt {
     width: 100%;
 
 
@@ -1162,7 +1162,7 @@ body.disable-momentum * {
 
     margin-top: 53px; /* for the hourlines' datelabels */
 
-    & > .gant-area {
+    & > .gantt-area {
         flex-grow: 1;
         position: relative;
         background: #fff9e8;
@@ -1206,7 +1206,7 @@ body.disable-momentum * {
     }
 }
 
-.alert-gant-hourlines {
+.alert-gantt-hourlines {
     position: absolute;
     top: 0;
     bottom: 0;
@@ -1214,7 +1214,7 @@ body.disable-momentum * {
     right: 0;
 }
 
-.alert-gant .hourline {
+.alert-gantt .hourline {
     position: absolute;
     // height: 100%;
     width: 1px;
@@ -1246,7 +1246,7 @@ body.disable-momentum * {
     }
 }
 
-ul.alert-gant-rows {
+ul.alert-gantt-rows {
     position: relative;
     z-index: 3;
 
@@ -1265,7 +1265,7 @@ ul.alert-gant-rows {
             border-bottom: 1px dashed #aaa;
         }
 
-        & > .alert-gant-item {
+        & > .alert-gantt-item {
             font-size: 14px;
             line-height: 18px;
 
@@ -1291,19 +1291,19 @@ ul.alert-gant-rows {
     }
 }
 
-.gant-area .start-invisible {
+.gantt-area .start-invisible {
     border-right: none !important;
     border-top-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
 }
 
-.gant-area .end-invisible {
+.gantt-area .end-invisible {
     border-left: none !important;
     border-top-left-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
 }
 
-.alert-gant-clickable-areas {
+.alert-gantt-clickable-areas {
     position: absolute;
     top: 0;
     bottom: 0;

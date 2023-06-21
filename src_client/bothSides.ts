@@ -1,5 +1,5 @@
 export {
-    GANT_HOURLINE_INTERVAL,
-    GANT_DEFAULT_START_MINUS,
-    alertGantMinMaxLimits
+    GANTT_HOURLINE_INTERVAL,
+    GANTT_DEFAULT_START_MINUS,
+    alertGanttMinMaxLimits
 } from "../src_node/bothSidesConsts";

@@ -6,7 +6,7 @@ import { AlertPeriodWithRouteChanges, LineDetails, MapBoundingBox, RouteChangeMa
 import { AgencyTag } from '../RandomComponents/AgencyTag';
 import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
-import { AlertGant } from './AlertGant';
+import { AlertGantt } from './AlertGantt';
 import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classNames from 'classnames';
 import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
@@ -167,7 +167,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                     </div>
                     {
                         !route_changes ? null
-                            : <AlertGant periods={route_changes.periods}
+                            : <AlertGantt periods={route_changes.periods}
                                 alertMetadata={route_changes.alert_metadata}
                                 selectedChangePeriodIdx={selectedChangePeriodIdx}
                                 onNewChangePeriodSelected={onNewChangePeriodSelected} />
