@@ -27,7 +27,8 @@ export type OriginalSelector =
     } | {
         // empty object, for when it's a national alert
     } | {
-        old_aramaic: string
+        old_aramaic: string,
+        polygon: [string, string][] // [[lat, lon], [lat, lon], ...]
     };
 
 export type TripSelector = {

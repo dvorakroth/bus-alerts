@@ -142,10 +142,22 @@ export async function getRouteChanges(
         stops_for_map
     );
 
+    // 9. for region alerts, also return the polygon, in geojson compatible
+    //    format (i.e. [[lon, lat], [lon, lat], ...])
+    let polygon = undefined;
+
+    if (alertRaw.use_case === AlertUseCase.Region && "polygon" in alertRaw.original_selector) {
+        polygon = alertRaw.original_selector.polygon.map(
+            // parse to float AND flip around
+            ([y, x]) => [parseFloat(x), parseFloat(y)] as [number, number]
+        )
+    }
+
     return {
         route_changes: changes_by_agency_and_line,
         stops_for_map,
-        map_bounding_box
+        map_bounding_box,
+        ...(polygon ? {polygon} : {})
     };
 }
 
@@ -154,7 +166,7 @@ export function doesAlertHaveRouteChanges(alertRaw: AlertWithRelatedInDb) {
         alertRaw.use_case === AlertUseCase.StopsCancelled
         || alertRaw.use_case === AlertUseCase.RouteChangesFlex
         || alertRaw.use_case === AlertUseCase.RouteChangesSimple
-        // TODO region use case???
+        || alertRaw.use_case === AlertUseCase.Region
     );
 }
 
@@ -177,11 +189,6 @@ export async function applyAlertToRoute(
     updatedStopSeq: [string, boolean][]|null = null,
     deletedStopIds: Set<string>|null = null
 ): Promise<ApplyAlertState|null> {
-    // TODO: it looks like i never took care of the REGION use case lmaoooooo
-    //       i'd feel much more comfortable implementing it if they,, uh,,,,,, ever used it :|
-    //       but sure; i can try to do it al iver just in case
-
-
     if (!doesAlertHaveRouteChanges(alertRaw)) {
         return null;
     }
@@ -222,7 +229,14 @@ export async function applyAlertToRoute(
     }
 
     // and actually do the magic of computing the new stop sequence
-    if (alertRaw.use_case === AlertUseCase.StopsCancelled) {
+    if (
+        alertRaw.use_case === AlertUseCase.StopsCancelled
+        ||
+        alertRaw.use_case === AlertUseCase.Region
+        // i'd feel much more comfortable with the || === .Region part of this,
+        // it if they,, uh,,,,,, ever used region alerts :|
+        // but sure; i can try to do it al iver just in case
+    ) {
         // special case :|
 
         for (const removedStopId of alertRaw.removed_stop_ids) {

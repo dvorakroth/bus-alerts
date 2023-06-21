@@ -306,7 +306,7 @@ async function loadSingleEntity(
     if (useCase === null && !foundAgencyIds.length && oldAramaic?.startsWith(OAR_PREFIX_REGION)) {
         polygon = parseOldAramaicRegion(oldAramaic);
         useCase = AlertUseCase.Region;
-        originalSelector = {old_aramaic: oldAramaic};
+        originalSelector = {old_aramaic: oldAramaic, polygon};
 
         removedStopIds.push(...await fetchStopsByPolygon(gtfsDb, polygon));
         relevantRouteIds.push(...await fetchAllRouteIdsAtStopsInDateranges(gtfsDb, removedStopIds, activePeriods));
@@ -317,8 +317,6 @@ async function loadSingleEntity(
         useCase = AlertUseCase.Agency;
         relevantAgencies.push(...foundAgencyIds);
     }
-
-    transit_realtime.FeedEntity.encode(entity).finish()
 
     const alertObj = <AlertInDb>{
         id,
@@ -609,7 +607,7 @@ async function fetchStopsByPolygon(
 
     winston.debug('fetchStopsByPolygon');
     const res = await gtfsDb.query<{stop_id: string}, [string]>(
-        "SELECT stop_id FROM stops WHERE point(stop_lat, stop_lon) <@ polygon $1;",
+        "SELECT stop_id FROM stops WHERE point(stop_lat, stop_lon) <@ $1::polygon;",
         [
             "(" + polygon.map(([lat,lon]) => `(${lat},${lon})`).join(",") + ")"
         ]

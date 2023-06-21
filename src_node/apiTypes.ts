@@ -71,7 +71,8 @@ export type MapBoundingBox = {
 export type RouteChangesResponse = {
     route_changes: Record<string, Record<string, RouteChangeForApi[]>>, // agency_id -> line_number -> changes[]
     stops_for_map: Record<string, StopForMap>,
-    map_bounding_box: MapBoundingBox
+    map_bounding_box: MapBoundingBox,
+    polygon?: [number, number][] // [[lon, lat], [lon, lat], ...]
 };
 
 export type Agency = {

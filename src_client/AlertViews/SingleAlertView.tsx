@@ -121,7 +121,7 @@ function ConsolidatedActivePeriodView({period}: ConsolidatedActivePeriodViewProp
         period.dates.length === 1 
         && period.times.length === 1 
     ) {
-        return <li>{formatSingleDayPeriod(period.dates[0], period.times[0])}</li>
+        return <li>{formatSingleDayPeriod(period.dates[0]!, period.times[0]!)}</li>
     } else {
         return <li>
             <ConsolidatedDatesView dates={period.dates}/>
@@ -230,8 +230,8 @@ function LineChooser(
     // of line_numbers
 
     const firstAgencyId = relevant_agencies[0]?.agency_id;
-    const firstLineNumber = relevant_lines[firstAgencyId]?.[0];
-    const [selection, setSelection] = React.useState<[string, string]>([firstAgencyId, firstLineNumber]);
+    const firstLineNumber = relevant_lines[firstAgencyId ?? ""]?.[0];
+    const [selection, setSelection] = React.useState<[string, string]>([firstAgencyId ?? "", firstLineNumber ?? ""]);
 
     const onLineClick = React.useCallback(
         (agency_id: string, line_number: string, event: React.MouseEvent) => {
@@ -251,7 +251,7 @@ function LineChooser(
                                agency_id={agency_id}
                                matches={agencyNameMatches?.[agencyIdx]} />
                     <ul className={"relevant-lines" + (onNewSelection ? " interactive" : "")} key={agency_id}>
-                        {relevant_lines[agency_id].map((line_number) => {
+                        {relevant_lines[agency_id]?.map((line_number) => {
                             lineGlobalIdx += 1;
 
                             return <LineChooserLineNumber agency_id={agency_id}
@@ -287,7 +287,7 @@ function LineChooserAndMap(
     const getChangesForLine = React.useCallback(
         (agency_id: string, line_number: string) => (
             route_changes 
-                ? route_changes[agency_id]?.[line_number]
+                ? (route_changes[agency_id]?.[line_number] ?? [])
                 : []
         ),
         [route_changes]
@@ -328,7 +328,7 @@ function LineChooserAndDepChgs(
     const getChangesForLine = React.useCallback(
         (agency_id: string, line_number: string) => (
             departure_changes 
-                ? departure_changes[agency_id]?.[line_number]
+                ? (departure_changes[agency_id]?.[line_number] ?? [])
                 : []
         ),
         [departure_changes]
@@ -336,7 +336,10 @@ function LineChooserAndDepChgs(
 
     const getInnerComponent = React.useCallback(
         (agency_id: string, line_number: string, direction_index: number) => (
-            <DepartureChangesView departure_change={departure_changes[agency_id]?.[line_number]?.[direction_index]} />
+            <DepartureChangesView departure_change={
+                departure_changes[agency_id]?.[line_number]?.[direction_index]
+                ?? {added_hours: [], removed_hours: []}
+            } />
         ),
         [departure_changes]
     );
@@ -368,8 +371,8 @@ function LineAndDirectionChooser(
     }: LineAndDirectionChooserProps
 ) {
     const firstAgencyId = relevant_agencies[0]?.agency_id;
-    const firstLineNumber = relevant_lines[firstAgencyId]?.[0];
-    const [lineSelection, setLineSelection] = React.useState<[string, string]>([firstAgencyId, firstLineNumber]);
+    const firstLineNumber = relevant_lines[firstAgencyId ?? ""]?.[0];
+    const [lineSelection, setLineSelection] = React.useState<[string, string]>([firstAgencyId ?? "", firstLineNumber ?? ""]);
     const [directionSelection, setDirectionSelection] = React.useState<number>(0);
 
     const onNewLineSelection = React.useCallback(
@@ -389,6 +392,9 @@ function LineAndDirectionChooser(
         [directionSelection, setDirectionSelection] // am i doing this right
     );
 
+    if (!firstAgencyId || !firstLineNumber) {
+        return <></>;
+    }
 
     return <>
         <LineChooser relevant_lines={relevant_lines}
@@ -474,10 +480,11 @@ interface SingleAlertViewProps {
     };
 }
 
-function shouldShowMapForAlert(alert: ServiceAlert) {
+function shouldShowMapForAlert(alert: ServiceAlert|undefined) {
     return alert?.use_case === USE_CASES.STOPS_CANCELLED ||
            alert?.use_case === USE_CASES.ROUTE_CHANGES_FLEX ||
-           alert?.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
+           alert?.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE ||
+           alert?.use_case === USE_CASES.REGION;
 }
 
 function shouldShowDepartureChangesForAlert(alert: ServiceAlert) {
@@ -507,25 +514,6 @@ function SingleAlertView(
     }
 
     const alert = data?.alerts?.[0];
-
-    // const {
-    //     first_start_time,
-    //     first_relevant_date,
-    //     active_periods,
-    //     header,
-    //     description,
-
-    //     is_deleted,
-    //     is_expired,
-
-    //     relevant_agencies,
-    //     relevant_lines,
-    //     added_stops,
-    //     removed_stops,
-
-    //     distance,
-    //     departure_changes
-    // } = alert || {};
 
     const should_show_map = alert ? shouldShowMapForAlert(alert): false;
     const should_show_departure_chgs = alert ? shouldShowDepartureChangesForAlert(alert) : false;
@@ -631,10 +619,7 @@ export function ModalSingleAlert() {
 
     const alert = locationState.alert;
 
-    const hasRouteChanges = 
-        alert?.use_case === USE_CASES.STOPS_CANCELLED
-        || alert?.use_case === USE_CASES.ROUTE_CHANGES_FLEX
-        || alert?.use_case === USE_CASES.ROUTE_CHANGES_SIMPLE;
+    const hasRouteChanges = shouldShowMapForAlert(alert);
 
     const [isLoading, setIsLoading] = React.useState<boolean>(!alert || hasRouteChanges);
     const [data, setData] = React.useState<AlertsResponse|null>(null);
