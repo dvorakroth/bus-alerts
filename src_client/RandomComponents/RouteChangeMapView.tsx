@@ -269,7 +269,7 @@ const SOURCE_REGION_POLYGON = "region-polygon";
 const LAYER_REGION_POLYGON_FILL = "region-polygon-fill";
 const LAYER_REGION_POLYGON_OUTLINE = "region-polygon-outline";
 
-function loadPolygonToMapData(
+function createPolygonMapSource(
     map: mapboxgl.Map,
     polygon: [number, number][]
 ) {
@@ -284,6 +284,13 @@ function loadPolygonToMapData(
             "properties": {}
         }
     });
+}
+
+function createPolygonMapLayers(
+    map: mapboxgl.Map,
+    polygon: [number, number][]
+) {
+    createPolygonMapSource(map, polygon);
 
     map.addLayer({
         "id": LAYER_REGION_POLYGON_FILL,
@@ -448,7 +455,7 @@ export const RouteChangesMapView = ({
                     mapXImage
                 );
 
-                if (polygon) loadPolygonToMapData(map.current, polygon);
+                if (polygon) createPolygonMapLayers(map.current, polygon);
 
                 setIsLoading(false);
             };
@@ -526,3 +533,131 @@ export const RouteChangesMapView = ({
         <LoadingOverlay shown={isLoading} textOverride="מפה בטעינה..." />
     </div>;
 };
+
+export interface PolygonMapViewProps {
+    polygon: [number, number][];
+}
+
+export function PolygonMapView({
+    polygon
+}: PolygonMapViewProps) {
+    const mapContainer = React.useRef<HTMLDivElement|null>(null);
+    const map = React.useRef<mapboxgl.Map|null>(null);
+
+    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [isLookingAtBbox, setIsLookingAtBbox] = React.useState<boolean>(true);
+
+    const bbox = React.useMemo(
+        () => bboxForPolygon(polygon),
+        [polygon]
+    );
+
+    React.useEffect(() => {
+        if (!mapContainer.current) {
+            if (!isLoading) {
+                setIsLoading(true);
+            }
+            return;
+        }
+
+        if (map.current) {
+            return;
+        }
+
+        setIsLoading(true);
+        
+        if (!(window as any).rtl_plugin_was_set) {
+            mapboxgl.setRTLTextPlugin('https://cdn.maptiler.com/mapbox-gl-js/plugins/mapbox-gl-rtl-text/v0.2.3/mapbox-gl-rtl-text.js', ()=>{}, true);
+            (window as any).rtl_plugin_was_set = true;
+        }
+        map.current = new mapboxgl.Map({
+            accessToken: MAPBOX_ACCESS_TOKEN,
+            container: mapContainer.current,
+            style: 'https://api.maptiler.com/maps/893ed6e5-f439-431b-a9a6-885c01fa3e48/style.json?key=XQ643Hu2aW2ClNCu8gL4',
+            bounds: bbox,
+            fitBoundsOptions: FIT_BOUNDS_OPTIONS
+        });
+
+        map.current.on('move', () => {
+            const bounds = map.current?.getBounds();
+            if (!bounds) return;
+
+            setIsLookingAtBbox(
+                bounds.contains(bbox[0]) && bounds.contains(bbox[1])
+            );
+        })
+
+        map.current.on('load', () => {
+            if (!map.current) return;
+
+            createPolygonMapLayers(map.current, polygon);
+            setIsLoading(false);        
+        });
+
+        return () => { // <-- this pattern is so cursed wow
+                       //     (tho tbf the entire react hooks pattern kinda is?)
+            if (!map.current) return;
+            map.current.remove();
+            map.current = null;
+        };
+    }, []);
+
+    React.useEffect(() => {
+        if (isLoading || !map.current) return;
+        // this check seems to have 0 effect?????
+        if (!map.current.isStyleLoaded || !map.current.isSourceLoaded) return;
+        // this one actually prevents the "Style is not done loading" error:
+        if (!map.current.getLayer(LAYER_REGION_POLYGON_FILL)) return;
+
+        map.current.removeLayer(LAYER_REGION_POLYGON_FILL);
+        map.current.removeLayer(LAYER_REGION_POLYGON_OUTLINE);
+        map.current.removeSource(SOURCE_REGION_POLYGON);
+        createPolygonMapLayers(map.current, polygon);
+    }, [polygon]);
+
+    
+    // and this is for when the user clicks the "go back to where the changes are" button
+    const goBackToChanges = React.useCallback(() => {
+        if(map.current) {
+            const reduceMotion = window?.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+            
+            map.current.fitBounds(
+                bbox,
+                {
+                    ...FIT_BOUNDS_OPTIONS,
+                    animate: !reduceMotion
+                }
+            );
+        }
+    }, [bbox, map]);
+
+    return <div className="map-container-container">
+        <button className={"back-to-changes" + (isLookingAtBbox ? " hidden" : "")}
+                onClick={goBackToChanges}>
+            לחצו לחזרה לאזור השינויים
+        </button>
+        <div className={"map-container"} ref={mapContainer}></div>
+        <LoadingOverlay shown={isLoading} textOverride="מפה בטעינה..." />
+    </div>;
+}
+
+function bboxForPolygon(polygon: [number, number][]): [
+    [number, number], [number, number]
+] {
+    let min_lon = Infinity;
+    let min_lat = Infinity;
+    let max_lon = -Infinity;
+    let max_lat = -Infinity;
+
+    for (const [lon, lat] of polygon) {
+        if (lon < min_lon) min_lon = lon;
+        if (lon > max_lon) max_lon = lon;
+        if (lat < min_lat) min_lat = lat;
+        if (lat > max_lat) max_lat = lat;
+    }
+
+    return [
+        [min_lon, min_lat],
+        [max_lon, max_lat]
+    ];
+}

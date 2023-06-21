@@ -6,7 +6,7 @@ import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { PrettyActivePeriod, ActiveTime, Agency, MapBoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChangeDetail, RouteChangeForApi, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
 import { isoToLocal, make_sure_two_digits, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
-import { RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
+import { PolygonMapView, RouteChangesMapView } from "../RandomComponents/RouteChangeMapView";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { LoadingOverlay } from "./AlertListPage";
 import DirectionChooser from "../RandomComponents/DirectionChooser";
@@ -305,9 +305,14 @@ function LineChooserAndMap(
         ),
         [route_changes, stops_for_map, map_bounding_box]
     );
-    
-    // TODO when there's a polygon but no change data, show just a map with the polygon?
 
+    const hasChanges = relevant_agencies.length 
+        && Object.values(Object.values(route_changes)[0] ?? {})[0]?.length;
+    
+    if (!hasChanges) {
+        return polygon ? <PolygonMapView polygon={polygon} /> : null;
+    }
+    
     return <LineAndDirectionChooser relevant_agencies={relevant_agencies}
                                     relevant_lines={relevant_lines}
                                     agencyNameMatches={agencyNameMatches}

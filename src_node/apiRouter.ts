@@ -55,20 +55,23 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
         return;
     }
 
+    // the reason i don't just yolo and send over the entire struct, is that i don't want
+    // to include the metadata and the raw alerts
+    const result: any = {
+        alerts: alertsAndMetadata.alerts
+    };
+
     if ("route_changes" in alertsAndMetadata) {
-        // the reason i don't just yolo and send over the entire struct, is that i don't want
-        // to include the metadata and the raw alerts
-        res.json({
-            alerts: alertsAndMetadata.alerts,
-            route_changes: alertsAndMetadata.route_changes,
-            stops_for_map: alertsAndMetadata.stops_for_map,
-            map_bounding_box: alertsAndMetadata.map_bounding_box
-        });
-    } else {
-        res.json({
-            alerts: alertsAndMetadata.alerts
-        });
+        result.route_changes = alertsAndMetadata.route_changes;
+        result.stops_for_map = alertsAndMetadata.stops_for_map;
+        result.map_bounding_box = alertsAndMetadata.map_bounding_box;
     }
+
+    if ("polygon" in alertsAndMetadata && alertsAndMetadata.polygon) {
+        result.polygon = alertsAndMetadata.polygon;
+    }
+    
+    res.json(result);
 }));
 
 apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>) => {
