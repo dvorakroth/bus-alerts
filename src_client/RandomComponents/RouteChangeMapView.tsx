@@ -206,8 +206,8 @@ function convertChangesToMapData(
         "source": SOURCE_NEW_SHAPES,
         "type": "line",
         "paint": {
-            "line-color": "#000", // TODO
-            "line-width": 3, // TODO?,
+            "line-color": "#000",
+            "line-width": 3,
             "line-dasharray": [2, 2] 
         },
         "filter": ["==", "selector", initialSelector]
@@ -218,8 +218,8 @@ function convertChangesToMapData(
         "source": SOURCE_TRIP_SHAPE,
         "type": "line",
         "paint": {
-            "line-color": "#000", // TODO
-            "line-width": 3 // TODO?
+            "line-color": "#000",
+            "line-width": 3
         },
         "filter": ["==", "selector", initialSelector]
     });
@@ -232,7 +232,7 @@ function convertChangesToMapData(
         "paint": {
             "circle-color": "#fff",
             "circle-radius": 3,
-            "circle-stroke-color": "#000", // TODO
+            "circle-stroke-color": "#000",
             "circle-stroke-width": 2
         },
         "filter": ["==", "selector", initialSelector]
@@ -246,7 +246,7 @@ function convertChangesToMapData(
         "paint": {
             "circle-color": "#fff",
             "circle-radius": 3,
-            "circle-stroke-color": "#000", // TODO
+            "circle-stroke-color": "#000",
             "circle-stroke-width": 2
         },
         "filter": ["==", "selector", initialSelector]
