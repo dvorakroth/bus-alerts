@@ -310,6 +310,10 @@ export function AlertGantt({
 
     const toggleZoom = React.useCallback(
         () => {
+            // TODO uhhh,,, something about the positioning i guess?
+            //      i think this should follow either the center of the view,
+            //      (i.e. keep the center centered), or keep the currently
+            //      selected period in the view? idk
             setZoomLevel(1 - zoomLevel);
         }, [setZoomLevel, zoomLevel]
     );
@@ -388,7 +392,7 @@ export function AlertGantt({
                 : <button className="hint-more-after" onClick={goToNextAlert}>יש עוד ←</button>
             }
         </div>
-        <button onClick={toggleZoom}>Zoom in/out lol</button>
+        <button onClick={toggleZoom}>Zoom in/out lol</button> {/* TODO lol */}
     </div>
 }
 
