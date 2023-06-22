@@ -16,7 +16,7 @@ export const GANTT_DEFAULT_START_MINUS = [
 
 export const GANTT_PIXELS_PER_HOUR = [
     8,
-    48
+    36
 ];
 
 export function alertGanttMinMaxLimits(nowInJerusalem: DateTime, zoomLevel: number) {
@@ -27,7 +27,31 @@ export function alertGanttMinMaxLimits(nowInJerusalem: DateTime, zoomLevel: numb
         throw new Error("invalid zoom level " + zoomLevel);
     }
 
-    const defaultViewStart = nowInJerusalem
+    const defaultViewStart = computeDefaultViewStart(nowInJerusalem, zoomLevel);
+    
+    const defaultZoom0View = zoomLevel === 0
+        ? defaultViewStart
+        : computeDefaultViewStart(nowInJerusalem, 0);
+    
+    const minimumStartPosition = defaultZoom0View.minus({ hours: 2 * 24 });
+    const maximumEndPosition = defaultZoom0View.plus({ days: 10 });
+
+    return {
+        minimumStartPosition, 
+        maximumEndPosition,
+        defaultViewStart
+    };
+}
+
+function computeDefaultViewStart(nowInJerusalem: DateTime, zoomLevel: number) {
+    const hourlineInterval = GANTT_HOURLINE_INTERVAL[zoomLevel];
+    const startMinus = GANTT_DEFAULT_START_MINUS[zoomLevel];
+
+    if (hourlineInterval === undefined || startMinus === undefined) {
+        throw new Error("invalid zoom level " + zoomLevel);
+    }
+
+    return nowInJerusalem
         .set({
             hour: nowInJerusalem.hour - (nowInJerusalem.hour % hourlineInterval),
             minute: 0,
@@ -35,12 +59,4 @@ export function alertGanttMinMaxLimits(nowInJerusalem: DateTime, zoomLevel: numb
             millisecond: 0
         })
         .minus({ hours: startMinus });
-    const minimumStartPosition = defaultViewStart.minus({ hours: 2 * 24 });
-    const maximumEndPosition = defaultViewStart.plus({ days: 10 });
-
-    return {
-        minimumStartPosition, 
-        maximumEndPosition,
-        defaultViewStart
-    };
 }

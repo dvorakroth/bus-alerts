@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AlertMinimal, AlertPeriodWithRouteChanges, USE_CASES } from '../protocol';
 import { DateTime } from 'luxon';
-import { JERUSALEM_TZ, dateRange, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
+import { JERUSALEM_TZ, dateRange, findClosestRoundHour, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
 import { GANTT_DEFAULT_START_MINUS, GANTT_DEFAULT_ZOOM_LEVEL, GANTT_HOURLINE_INTERVAL, GANTT_PIXELS_PER_HOUR, alertGanttMinMaxLimits } from '../bothSides';
@@ -56,30 +56,6 @@ export function AlertGantt({
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
 
-    const [prevGanttWidthSeconds, setPrevGanttWidthSeconds] = React.useState<number|undefined>(ganttWidthSeconds);
-    if (ganttWidthSeconds !== prevGanttWidthSeconds) {
-        setPrevGanttWidthSeconds(ganttWidthSeconds);
-
-        if (ganttWidthSeconds !== undefined) {
-            if (!viewportEnd) {
-                setViewportEnd(defaultViewEnd)
-            } else {
-                let aimingForStart = viewportStart;
-                let aimingForEnd = viewportStart.plus({seconds: ganttWidthSeconds});
-
-                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
-                    aimingForEnd = maximumEndPosition;
-                    aimingForStart = maximumEndPosition.minus({seconds: ganttWidthSeconds});
-                }
-
-                if (aimingForStart !== viewportStart) {
-                    setViewportStart(aimingForStart);
-                }
-                setViewportEnd(aimingForEnd);
-            }
-        }
-    }
-
     const viewportStartUnixtime = viewportStart.toSeconds();
     const viewportEndUnixtime = viewportEnd?.toSeconds();
 
@@ -93,6 +69,90 @@ export function AlertGantt({
             )],
         [viewportStartUnixtime, viewportEndUnixtime, periods]
     );
+
+    const [prevGanttWidthSeconds, setPrevGanttWidthSeconds] = React.useState<number|undefined>(ganttWidthSeconds);
+    if (ganttWidthSeconds !== prevGanttWidthSeconds) {
+        setPrevGanttWidthSeconds(ganttWidthSeconds);
+
+        if (ganttWidthSeconds !== undefined) {
+            if (!viewportEnd || viewportEndUnixtime === undefined) {
+                setViewportEnd(defaultViewEnd)
+            } else {
+                let pointToKeepInView: number|null = null;
+
+                const selectedPeriod = periodsInViewport?.find(p => p.originalIndex === selectedChangePeriodIdx);
+                const nowUnixtime = nowInJerusalem.toSeconds();
+                if (selectedPeriod) {
+                    // if the currently selected period was in view, keep it in view
+
+                    const startIsInView = selectedPeriod.start >= viewportStartUnixtime;
+                    const endIsInView = selectedPeriod.end <= viewportEndUnixtime;
+
+                    if (startIsInView && !endIsInView) {
+                        pointToKeepInView = selectedPeriod.start;
+                    } else if (!startIsInView && endIsInView) {
+                        pointToKeepInView = selectedPeriod.end;
+                    } else if (startIsInView && endIsInView) {
+                        // if a period was fully in view, the now-hourline might be inside of it
+                        if (selectedPeriod.start <= nowUnixtime && nowUnixtime <= selectedPeriod.end) {
+                            pointToKeepInView = nowUnixtime;
+                        } else {
+                            pointToKeepInView = Math.round((selectedPeriod.start + selectedPeriod.end) / 2);
+                        }
+                    } else {
+                        // the period is in view, but both its bounds are out of view,
+                        // so we should just.... do nothing lol; let the next two rules decide
+                    }
+                }
+                
+                if (pointToKeepInView === null) {
+                    if (viewportStartUnixtime <= nowUnixtime && nowUnixtime <= viewportEndUnixtime) {
+                        // keep the now-hourline visible if it was visible before
+                        pointToKeepInView = nowUnixtime;
+                    } else {
+                        // otherwise, just keep the center of the previous view
+                        pointToKeepInView = Math.round(
+                            (viewportStartUnixtime + viewportEndUnixtime) / 2
+                        );
+                    }
+                }
+                
+
+                let [aimingForStart, isBefore] = findClosestRoundHour(
+                    DateTime.fromSeconds(
+                        pointToKeepInView - Math.round(ganttWidthSeconds / 2),
+                        {zone: JERUSALEM_TZ}
+                    ),
+                    hourlineInterval
+                );
+                if (isBefore) {
+                    aimingForStart = aimingForStart.plus({ hours: startMinus });
+                } else {
+                    aimingForStart = aimingForStart.minus({ hours: startMinus });
+                }
+
+                let aimingForEnd = aimingForStart.plus({
+                    seconds: ganttWidthSeconds
+                });
+
+                // let aimingForStart = viewportStart;
+                // let aimingForEnd = viewportStart.plus({seconds: ganttWidthSeconds});
+
+                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
+                    aimingForEnd = maximumEndPosition;
+                    aimingForStart = maximumEndPosition.minus({seconds: ganttWidthSeconds});
+                }
+
+                if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
+                    aimingForStart = minimumStartPosition;
+                    aimingForEnd = minimumStartPosition.plus({seconds: ganttWidthSeconds});
+                }
+
+                setViewportStart(aimingForStart);
+                setViewportEnd(aimingForEnd);
+            }
+        }
+    }
 
     const orderOfAppearance = React.useMemo(
         () => {

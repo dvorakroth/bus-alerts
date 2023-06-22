@@ -116,3 +116,24 @@ export function findPreviousRoundHour(
 
     return d;
 }
+
+export function findClosestRoundHour(
+    start: DateTime,
+    modulo: number,
+    moduloEquals = 0
+): [DateTime, boolean] {
+    // sure, this could be done more efficiently, but where's the fun in that?
+
+    const before = findPreviousRoundHour(start, modulo, moduloEquals);
+    const after = findNextRoundHour(start, modulo, moduloEquals);
+
+    const startUnixtime = start.toSeconds();
+    const beforeDistance = Math.abs(startUnixtime - before.toSeconds());
+    const afterDistance = Math.abs(startUnixtime - after.toSeconds());
+
+    if (beforeDistance <= afterDistance) {
+        return [before, true];
+    } else {
+        return [after, false];
+    }
+}
