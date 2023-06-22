@@ -37,7 +37,7 @@ export class FuriousIndex<T> {
         for (let i = 0; i < objects.length; i++) {
             this.processedObjects[i] = {
                 index: i,
-                data: keys.map(({get}) => get(objects[i]))
+                data: keys.map(({get}) => get(objects[i]!))
             };
         }
     }
@@ -55,7 +55,10 @@ export class FuriousIndex<T> {
             let totalScore = 1;
 
             for (let keyIndex = 0; keyIndex < numKeys; keyIndex++) {
-                const { weight = 1, useExactSearch } = this.keys[keyIndex];
+                const keyDefinition = this.keys[keyIndex];
+                if (!keyDefinition) continue;
+
+                const { weight = 1, useExactSearch } = keyDefinition;
                 const relativeWeight = weight / this.totalKeyWeight;
                 const valueRaw = obj.data[keyIndex];
 
@@ -78,6 +81,7 @@ export class FuriousIndex<T> {
                     if (useExactSearch) {
                         for (let patIndex = 0; patIndex < patterns.length; patIndex++) {
                             const pattern = patterns[patIndex];
+                            if (!pattern) continue;
     
                             if (valueList[valueIndex] === pattern) {
                                 fieldScore = 0;
@@ -99,9 +103,9 @@ export class FuriousIndex<T> {
                         }
                     } else {
                         for (let patIndex = 0; patIndex < patterns.length; patIndex++) {
-                            const newResult = searchers[patIndex].searchIn(valueList[valueIndex]);
+                            const newResult = searchers[patIndex]?.searchIn(valueList[valueIndex] ?? "");
 
-                            if (newResult.isMatch && newResult.matchMask !== undefined) {
+                            if (newResult?.isMatch && newResult.matchMask !== undefined) {
                                 hasMatchByPattern[patIndex] = true;
                                 fieldScore = fieldScore == null ? newResult.score : Math.min(fieldScore, newResult.score);
 
@@ -138,13 +142,16 @@ export class FuriousIndex<T> {
 
             // so, did this object match at least SOMETHING against each pattern?
             const allPatternsMatched = patterns.reduce<boolean>((p, _, i) => !!(p && hasMatchByPattern[i]), true);
+            const originalObject = this.originalObjects[obj.index];
+            if (!originalObject) continue;
+
             if (allPatternsMatched) {
                 // yes!
                 result.push({
                     furiousSearchResult: true,
                     isMatch: true,
                     idx: obj.index,
-                    obj: this.originalObjects[obj.index],
+                    obj: originalObject,
                     score: totalScore,
                     matches: matches.map(matchesForKey =>
                         matchesForKey?.map?.(matchForValue => 
@@ -157,7 +164,7 @@ export class FuriousIndex<T> {
                     furiousSearchResult: true,
                     isMatch: false,
                     idx: obj.index,
-                    obj: this.originalObjects[obj.index],
+                    obj: originalObject,
                     score: Number.MAX_SAFE_INTEGER,
                     matches: null
                 });

@@ -58,7 +58,7 @@ export default function search(
       let charMatch = patternAlphabet[text.charAt(currentLocation)]
 
       // First pass: exact match
-      bitArr[j] = ((bitArr[j + 1] << 1) | 1) & charMatch
+      bitArr[j] = ((bitArr[j + 1] << 1) | 1) & (charMatch ?? 0)
 
       // Subsequent passes: fuzzy match
       if (i) {
