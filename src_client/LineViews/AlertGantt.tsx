@@ -56,21 +56,29 @@ export function AlertGantt({
     const [viewportStart, setViewportStart] = React.useState<DateTime>(defaultViewStart);
     const [viewportEnd, setViewportEnd] = React.useState<DateTime|undefined>(defaultViewEnd);
 
-    React.useEffect(
-        () => {
-            if (ganttWidthSeconds === undefined) return;
+    const [prevGanttWidthSeconds, setPrevGanttWidthSeconds] = React.useState<number|undefined>(ganttWidthSeconds);
+    if (ganttWidthSeconds !== prevGanttWidthSeconds) {
+        setPrevGanttWidthSeconds(ganttWidthSeconds);
 
-            if (!viewportEnd) setViewportEnd(defaultViewEnd)
-            else setViewportEnd(viewportStart.plus({seconds: ganttWidthSeconds}));
-        }, [ganttWidthSeconds]
-    );
+        if (ganttWidthSeconds !== undefined) {
+            if (!viewportEnd) {
+                setViewportEnd(defaultViewEnd)
+            } else {
+                let aimingForStart = viewportStart;
+                let aimingForEnd = viewportStart.plus({seconds: ganttWidthSeconds});
 
-    React.useEffect(
-        () => {
-            if (!viewportEnd) return;
+                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
+                    aimingForEnd = maximumEndPosition;
+                    aimingForStart = maximumEndPosition.minus({seconds: ganttWidthSeconds});
+                }
 
-        }, [zoomLevel]
-    )
+                if (aimingForStart !== viewportStart) {
+                    setViewportStart(aimingForStart);
+                }
+                setViewportEnd(aimingForEnd);
+            }
+        }
+    }
 
     const viewportStartUnixtime = viewportStart.toSeconds();
     const viewportEndUnixtime = viewportEnd?.toSeconds();
@@ -86,9 +94,7 @@ export function AlertGantt({
         [viewportStartUnixtime, viewportEndUnixtime, periods]
     );
 
-    const [orderOfAppearance, setOrderOfAppearance] = React.useState<AlertAppearance[]|undefined>(undefined);
-
-    React.useEffect(
+    const orderOfAppearance = React.useMemo(
         () => {
             if (!defaultViewEnd) return;
 
@@ -142,7 +148,7 @@ export function AlertGantt({
                         : 0;
                 });
             
-            setOrderOfAppearance(order);
+            return order;
         },
         [!defaultViewEnd, periods, alertMetadata]
     );
@@ -315,9 +321,8 @@ export function AlertGantt({
             //      (i.e. keep the center centered), or keep the currently
             //      selected period in the view? idk
 
-            // TODO if zooming out takes the viewportEnd past the maximum,
-            //      then set the view bounds to the maximum
-            //      (ditto past the minimum?)
+            // TODO if zooming out takes the viewportStart past the minimum,
+            //      then set the view bounds to the minimum
             setZoomLevel(1 - zoomLevel);
         }, [setZoomLevel, zoomLevel]
     );
