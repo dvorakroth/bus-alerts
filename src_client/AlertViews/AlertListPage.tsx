@@ -5,6 +5,7 @@ import AlertList, { ServiceAlertOrSearchResult } from "./AlertList";
 import { AlertsResponse, ServiceAlert } from "../protocol";
 import GeolocationButton from "../RandomComponents/GeolocationButton";
 import { ALERT_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC } from "../search_worker_data";
+import { TopTabItem, TopTabs } from "../RandomComponents/TopTabs";
 
 interface ServiceAlertsMainScreenProps {
     hasModal: boolean;
@@ -150,6 +151,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
     return <>
         <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
             <div className="search-bar">
+                <TopTabs selectedItem={TopTabItem.Alerts} />
                 <GeolocationButton onNewLocation={onNewLocation}/>
                 <input
                     type="text"

@@ -5,6 +5,7 @@ import LineList, { breakoutSearchableListItem, LineListItem } from './LineList';
 import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, DEFAULT_SORT_COMPARE_FUNC } from '../search_worker_data';
 import { LoadingOverlay } from '../AlertViews/AlertListPage';
 import GeolocationButton from '../RandomComponents/GeolocationButton';
+import { TopTabItem, TopTabs } from '../RandomComponents/TopTabs';
 
 export const LineListResponseContext = React.createContext<LinesListResponse|null>(null);
 
@@ -147,6 +148,7 @@ export default function LineListPage({hasModal}: Props) {
     return <LineListResponseContext.Provider value={data}>
         <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
             <div className="search-bar">
+                <TopTabs selectedItem={TopTabItem.Lines} />
                 <GeolocationButton onNewLocation={onNewLocation}/>
                 <input
                     type="text"
