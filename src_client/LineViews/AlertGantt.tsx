@@ -78,75 +78,19 @@ export function AlertGantt({
             if (!viewportEnd || viewportEndUnixtime === undefined) {
                 setViewportEnd(defaultViewEnd)
             } else {
-                let pointToKeepInView: number|null = null;
-
                 const selectedPeriod = periodsInViewport?.find(p => p.originalIndex === selectedChangePeriodIdx);
-                const nowUnixtime = nowInJerusalem.toSeconds();
-                if (selectedPeriod) {
-                    // if the currently selected period was in view, keep it in view
 
-                    const startIsInView = selectedPeriod.start >= viewportStartUnixtime;
-                    const endIsInView = selectedPeriod.end <= viewportEndUnixtime;
-
-                    if (startIsInView && !endIsInView) {
-                        pointToKeepInView = selectedPeriod.start;
-                    } else if (!startIsInView && endIsInView) {
-                        pointToKeepInView = selectedPeriod.end;
-                    } else if (startIsInView && endIsInView) {
-                        // if a period was fully in view, the now-hourline might be inside of it
-                        if (selectedPeriod.start <= nowUnixtime && nowUnixtime <= selectedPeriod.end) {
-                            pointToKeepInView = nowUnixtime;
-                        } else {
-                            pointToKeepInView = Math.round((selectedPeriod.start + selectedPeriod.end) / 2);
-                        }
-                    } else {
-                        // the period is in view, but both its bounds are out of view,
-                        // so we should just.... do nothing lol; let the next two rules decide
-                    }
-                }
-                
-                if (pointToKeepInView === null) {
-                    if (viewportStartUnixtime <= nowUnixtime && nowUnixtime <= viewportEndUnixtime) {
-                        // keep the now-hourline visible if it was visible before
-                        pointToKeepInView = nowUnixtime;
-                    } else {
-                        // otherwise, just keep the center of the previous view
-                        pointToKeepInView = Math.round(
-                            (viewportStartUnixtime + viewportEndUnixtime) / 2
-                        );
-                    }
-                }
-                
-
-                let [aimingForStart, isBefore] = findClosestRoundHour(
-                    DateTime.fromSeconds(
-                        pointToKeepInView - Math.round(ganttWidthSeconds / 2),
-                        {zone: JERUSALEM_TZ}
-                    ),
-                    hourlineInterval
+                const [aimingForStart, aimingForEnd] = viewForNewZoom(
+                    nowInJerusalem,
+                    selectedPeriod,
+                    viewportStartUnixtime,
+                    viewportEndUnixtime,
+                    minimumStartPosition,
+                    maximumEndPosition,
+                    ganttWidthSeconds,
+                    hourlineInterval,
+                    startMinus
                 );
-                if (isBefore) {
-                    aimingForStart = aimingForStart.plus({ hours: startMinus });
-                } else {
-                    aimingForStart = aimingForStart.minus({ hours: startMinus });
-                }
-
-                let aimingForEnd = aimingForStart.plus({
-                    seconds: ganttWidthSeconds
-                });
-
-                // let aimingForStart = viewportStart;
-                // let aimingForEnd = viewportStart.plus({seconds: ganttWidthSeconds});
-
-                if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
-                    aimingForEnd = maximumEndPosition;
-                    aimingForStart = maximumEndPosition.minus({seconds: ganttWidthSeconds});
-                }
-
-                if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
-                    aimingForStart = minimumStartPosition;
-                    aimingForEnd = minimumStartPosition.plus({seconds: ganttWidthSeconds});
-                }
 
                 setViewportStart(aimingForStart);
                 setViewportEnd(aimingForEnd);
@@ -376,13 +320,6 @@ export function AlertGantt({
 
     const toggleZoom = React.useCallback(
         () => {
-            // TODO uhhh,,, something about the positioning i guess?
-            //      i think this should follow either the center of the view,
-            //      (i.e. keep the center centered), or keep the currently
-            //      selected period in the view? idk
-
-            // TODO if zooming out takes the viewportStart past the minimum,
-            //      then set the view bounds to the minimum
             setZoomLevel(1 - zoomLevel);
         }, [setZoomLevel, zoomLevel]
     );
@@ -693,6 +630,89 @@ function viewForPeriod(
     if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
         aimingForEnd = maximumEndPosition;
         aimingForStart = aimingForEnd.minus({seconds: ganttWidthSeconds});
+    }
+
+    return [aimingForStart, aimingForEnd];
+}
+
+function viewForNewZoom(
+    nowInJerusalem: DateTime,
+    selectedPeriod: AlertPeriodWithRouteChanges|undefined,
+    viewportStartUnixtime: number,
+    viewportEndUnixtime: number,
+    minimumStartPosition: DateTime,
+    maximumEndPosition: DateTime,
+    ganttWidthSeconds: number,
+    hourlineInterval: number,
+    startMinus: number
+): [DateTime, DateTime] {
+    let pointToKeepInView: number|null = null;
+
+    const nowUnixtime = nowInJerusalem.toSeconds();
+    if (selectedPeriod) {
+        // if the currently selected period was in view, keep it in view
+
+        const startIsInView = selectedPeriod.start >= viewportStartUnixtime;
+        const endIsInView = selectedPeriod.end <= viewportEndUnixtime;
+
+        if (startIsInView && !endIsInView) {
+            pointToKeepInView = selectedPeriod.start;
+        } else if (!startIsInView && endIsInView) {
+            pointToKeepInView = selectedPeriod.end;
+        } else if (startIsInView && endIsInView) {
+            // if a period was fully in view, the now-hourline might be inside of it
+            if (selectedPeriod.start <= nowUnixtime && nowUnixtime <= selectedPeriod.end) {
+                pointToKeepInView = nowUnixtime;
+            } else {
+                pointToKeepInView = Math.round((selectedPeriod.start + selectedPeriod.end) / 2);
+            }
+        } else {
+            // the period is in view, but both its bounds are out of view,
+            // so we should just.... do nothing lol; let the next two rules decide
+        }
+    }
+    
+    if (pointToKeepInView === null) {
+        if (viewportStartUnixtime <= nowUnixtime && nowUnixtime <= viewportEndUnixtime) {
+            // keep the now-hourline visible if it was visible before
+            pointToKeepInView = nowUnixtime;
+        } else {
+            // otherwise, just keep the center of the previous view
+            pointToKeepInView = Math.round(
+                (viewportStartUnixtime + viewportEndUnixtime) / 2
+            );
+        }
+    }
+    
+
+    let [aimingForStart, isBefore] = findClosestRoundHour(
+        DateTime.fromSeconds(
+            pointToKeepInView - Math.round(ganttWidthSeconds / 2),
+            {zone: JERUSALEM_TZ}
+        ),
+        hourlineInterval
+    );
+    if (isBefore) {
+        aimingForStart = aimingForStart.plus({ hours: startMinus });
+    } else {
+        aimingForStart = aimingForStart.minus({ hours: startMinus });
+    }
+
+    let aimingForEnd = aimingForStart.plus({
+        seconds: ganttWidthSeconds
+    });
+
+    // let aimingForStart = viewportStart;
+    // let aimingForEnd = viewportStart.plus({seconds: ganttWidthSeconds});
+
+    if (aimingForEnd.toSeconds() > maximumEndPosition.toSeconds()) {
+        aimingForEnd = maximumEndPosition;
+        aimingForStart = maximumEndPosition.minus({seconds: ganttWidthSeconds});
+    }
+
+    if (aimingForStart.toSeconds() < minimumStartPosition.toSeconds()) {
+        aimingForStart = minimumStartPosition;
+        aimingForEnd = minimumStartPosition.plus({seconds: ganttWidthSeconds});
     }
 
     return [aimingForStart, aimingForEnd];
