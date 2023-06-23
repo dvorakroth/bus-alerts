@@ -489,6 +489,10 @@ hr {
         position: absolute;
         left: 5px;
         top: 5px;
+
+        &.skeleton {
+            width: 50px;
+        }
     }
 
     .destinations {
@@ -506,6 +510,17 @@ hr {
 
         .direction-separator {
             font-size: 150%;
+
+            &.skeleton {
+                display: block;
+                margin: 5px 0;
+                width: 20px;
+                height: 25px;
+            }
+        }
+
+        .skeleton-h1 {
+            margin: 0;
         }
     }
 
@@ -664,6 +679,14 @@ ul.secondary-cities {
 
     & > .count {
         font-size: 250%;
+    }
+
+    &.skeleton {
+        border-color: #ddd;
+        width: 60px;
+        height: 50px;
+
+        margin-bottom: 6px;
     }
 }
 

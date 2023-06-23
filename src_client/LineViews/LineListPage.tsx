@@ -42,7 +42,13 @@ export default function LineListPage({hasModal}: Props) {
 
             fetch(
                 '/api/all_lines?current_location=' + encodeURIComponent(currentLocationStr)
-            ).then(response => response.json()).then((data: LinesListResponse) => {
+            ).then(response => response.json())
+            // .then(response => {
+            //     return new Promise((resolve) => {
+            //         setTimeout(() => resolve(response), 10000)
+            //     })
+            // })
+            .then((data: LinesListResponse) => {
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
                     return;
@@ -182,8 +188,9 @@ export default function LineListPage({hasModal}: Props) {
                     lines={currentlyDisplayedData}
                     showDistance={showDistance}
                     noAlertsToday={noAlertsToday}
+                    isLoading={isLoading}
                 />
-                <LoadingOverlay shown={isLoading} />
+                {/* <LoadingOverlay shown={isLoading} /> */}
         </div>
     </LineListResponseContext.Provider>;
 

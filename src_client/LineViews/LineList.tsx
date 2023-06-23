@@ -13,6 +13,7 @@ import { MatchedString } from "../AlertViews/AlertSummary";
 import hazardImg from '../assets/hazard.svg';
 import cancelledstop from '../assets/cancelledstop.svg'
 import { DistanceTag } from "../RandomComponents/DistanceTag";
+import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -26,11 +27,21 @@ interface LineListProps {
     lines: LineListItem[];
     showDistance: boolean;
     noAlertsToday?: boolean;
+    isLoading: boolean;
 }
 
-export default function LineList({lines, showDistance, noAlertsToday}: LineListProps) {
+export default function LineList({
+    lines,
+    showDistance,
+    noAlertsToday,
+    isLoading
+}: LineListProps) {
     const rowRenderer = React.useCallback<ItemContent<LineListItem>>(
         (index) => {
+            if (isLoading) {
+                return <LineSummarySkeleton />;
+            }
+
             const searchResultOrLine = lines[index];
             if (!noAlertsToday && searchResultOrLine) {
                 const [line, searchResult] = breakoutSearchableListItem(searchResultOrLine);
@@ -49,7 +60,7 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
                 return <div className="list-end-gizmo"></div>;
             }
         },
-        [lines, noAlertsToday, showDistance]
+        [lines, noAlertsToday, showDistance, isLoading]
     );
 
     const virtuoso = React.useRef<VirtuosoHandle|null>(null);
@@ -87,7 +98,9 @@ export default function LineList({lines, showDistance, noAlertsToday}: LineListP
         [virtuoso, scrollerRef]
     );
 
-    const totalCount = noAlertsToday
+    const totalCount = isLoading
+        ? 4
+        : noAlertsToday
         ? 2
         : (lines.length && (lines.length + 1));
 
