@@ -61,11 +61,11 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
             fetch(
                 '/api/all_alerts?current_location=' + encodeURIComponent(currentLocationStr)
             ).then(response => response.json())
-            .then(response => {
-                return new Promise((resolve) => {
-                    setTimeout(() => resolve(response), 10000)
-                })
-            })
+            // .then(response => {
+            //     return new Promise((resolve) => {
+            //         setTimeout(() => resolve(response), 10000)
+            //     })
+            // })
             .then((data: AlertsResponse) => {
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
