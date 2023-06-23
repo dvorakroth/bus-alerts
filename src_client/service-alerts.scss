@@ -1334,7 +1334,7 @@ body.disable-momentum * {
     margin-bottom: 20px;
 
     .hints-container {
-        margin: 0 30px;
+        margin: 3px 30px;
         height: 20px;
 
         position: relative;
@@ -1357,6 +1357,28 @@ body.disable-momentum * {
 
         & > .hint-more-after {
             left: 0;
+        }
+
+        & > .zoom-button {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 25px;
+            height: 25px;
+
+            padding: 1px;
+
+            cursor: pointer;
+
+            & > img {
+                max-width: 100%;
+                max-height: 100%;
+            }
         }
     }
 }

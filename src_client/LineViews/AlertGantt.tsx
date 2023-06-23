@@ -6,6 +6,9 @@ import * as classnames from 'classnames';
 import useResizeObserver from 'use-resize-observer';
 import { GANTT_DEFAULT_START_MINUS, GANTT_DEFAULT_ZOOM_LEVEL, GANTT_HOURLINE_INTERVAL, GANTT_PIXELS_PER_HOUR, alertGanttMinMaxLimits } from '../bothSides';
 
+import magnifierPlusSvg from '../assets/magnifier-plus.svg';
+import magnifierMinusSvg from '../assets/magnifier-minus.svg';
+
 type AlertAppearance = {
     alertIdx: number;
     alert: AlertMinimal;
@@ -394,11 +397,13 @@ export function AlertGantt({
             {!hasAlertsBefore ? null
                 : <button className="hint-more-before" onClick={goToPreviousAlert}>→ יש עוד</button>
             }
+            <button className="zoom-button" onClick={toggleZoom}>
+                <img alt={zoomLevel === 0 ? "הגדלה" : "הקטנה"} src={zoomLevel === 0 ? magnifierPlusSvg : magnifierMinusSvg}/>
+            </button>
             {!hasAlertsAfter ? null
                 : <button className="hint-more-after" onClick={goToNextAlert}>יש עוד ←</button>
             }
         </div>
-        <button onClick={toggleZoom}>Zoom in/out lol</button> {/* TODO lol */}
     </div>
 }
 
