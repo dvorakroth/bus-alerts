@@ -349,6 +349,7 @@ interface RelevantStopsListProps {
     isRemoved: boolean;
     stopNameMatches?: FuriousSearchMatch[];
     stopCodeMatches?: FuriousSearchMatch[];
+    dontHideStops?: boolean;
 }
 
 export const RelevantStopsList = React.memo(
@@ -357,7 +358,8 @@ export const RelevantStopsList = React.memo(
             relevant_stops,
             isRemoved,
             stopNameMatches,
-            stopCodeMatches
+            stopCodeMatches,
+            dontHideStops
         }: RelevantStopsListProps
     ) => {
         const shownStops = [];
@@ -370,7 +372,7 @@ export const RelevantStopsList = React.memo(
             const nameMatches = stopNameMatches?.[i];
             const codeMatches = stopCodeMatches?.[i];
 
-            if (i < MAX_STOPS_IN_LIST || nameMatches?.length || codeMatches?.length) {
+            if (dontHideStops || i < MAX_STOPS_IN_LIST || nameMatches?.length || codeMatches?.length) {
                 shownStops.push({stop, nameMatches, codeMatches});
             } else {
                 hiddenStopCount += 1;

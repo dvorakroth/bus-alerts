@@ -589,11 +589,13 @@ function SingleAlertView(
                         <RelevantStopsList relevant_stops={alert.removed_stops}
                                            isRemoved={true}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
-                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]} />
+                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]}
+                                           dontHideStops={true} />
                         <RelevantStopsList relevant_stops={alert.added_stops}
                                            isRemoved={false}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
-                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
+                                           stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}
+                                           dontHideStops={true}  />
 
                         <h2>{DISCLAIMER_MOT_DESC}</h2>
                         <pre><MatchedString s={alert.description.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
