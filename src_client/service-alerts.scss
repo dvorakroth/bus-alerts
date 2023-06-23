@@ -1371,8 +1371,10 @@ body.disable-momentum * {
             width: 25px;
             height: 25px;
 
-            padding: 1px;
-
+            padding: 3px;
+            border-radius: 4px; // goddamn ios
+            border-width: 1px;
+            
             cursor: pointer;
 
             & > img {

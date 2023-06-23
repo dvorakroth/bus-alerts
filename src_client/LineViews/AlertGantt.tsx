@@ -395,13 +395,13 @@ export function AlertGantt({
         </div>
         <div className="hints-container">
             {!hasAlertsBefore ? null
-                : <button className="hint-more-before" onClick={goToPreviousAlert}>→ יש עוד</button>
+                : <button className="hint-more-before" onClick={goToPreviousAlert}>→ יש התראות</button>
             }
             <button className="zoom-button" onClick={toggleZoom}>
                 <img alt={zoomLevel === 0 ? "הגדלה" : "הקטנה"} src={zoomLevel === 0 ? magnifierPlusSvg : magnifierMinusSvg}/>
             </button>
             {!hasAlertsAfter ? null
-                : <button className="hint-more-after" onClick={goToNextAlert}>יש עוד ←</button>
+                : <button className="hint-more-after" onClick={goToNextAlert}>יש התראות ←</button>
             }
         </div>
     </div>
