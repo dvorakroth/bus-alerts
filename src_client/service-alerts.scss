@@ -254,6 +254,62 @@ hr {
     color: white;
 }
 
+.skeleton {
+    background: #ddd !important;
+    border-radius: 2px;
+
+    &.skeleton-h1 {
+        height: 26px;
+        width: 282px;
+        margin: 5px 0;
+    }
+
+    &.skeleton-h2 {
+        width: 120px;
+        height: 18px;
+        margin: 4px 0;
+    }
+}
+
+.shimmer {
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+        content: "";
+        position: absolute;
+        background: linear-gradient(
+            0.3turn,
+            #fff0,
+            #fff0,
+            #fff0,
+            #fff6,
+            #fff0,
+            #fff0,
+            #fff0
+        );
+        height: 100%;
+        width: 100%;
+        z-index: 999;
+
+        @media (prefers-reduced-motion: reduce) {
+            transform: translateX(30%);
+            animation: none !important;
+        }
+        animation: shimmer 2s infinite;
+    }
+}
+
+@keyframes shimmer {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}
+
 .no-alerts-today {
     padding: 20px 10px;
     text-align: center;
@@ -420,6 +476,11 @@ hr {
     
         color: #666;
         cursor: pointer;
+
+        &.skeleton {
+            width: 130px;
+            height: 18px;
+        }
     }
 }
 
@@ -543,6 +604,10 @@ ul.secondary-cities {
             height: 30px;
         }
     }
+
+    &.skeleton {
+        width: 80px;
+    }
 }
 
 // .alert-count-tag {
@@ -638,6 +703,10 @@ ul.secondary-cities {
             }
         }
     }
+
+    &.skeleton {
+        background: none !important;
+    }
 }
 
 .relevant-stops {
@@ -663,8 +732,29 @@ ul.secondary-cities {
             width: 20px;
             height: 20px;
         
-            background: url('/assets/sign505.svg') no-repeat;
+            background: url('/assets/sign505.svg') center/contain no-repeat;
             background-size: 20px;
+        }
+
+        &.skeleton {
+            background: none !important;
+
+            height: 25px;
+            display: flex;
+            align-items: center;
+
+            &::before {
+                background: #ddd;
+                border-radius: 2px;
+            }
+        }
+
+        &.skeleton > span {
+            display: inline-block;
+            width: 250px;
+            height: 15px;
+
+            background: #ddd;
         }
     }
 
@@ -698,6 +788,11 @@ ul.secondary-cities {
 
     background-color: #666;
     color: white;
+
+    &.skeleton {
+        height: 20px;
+        width: 120px;
+    }
 }
 
 $alert-color-red: maroon;
@@ -811,6 +906,14 @@ $alert-color-green: rgb(21, 92, 21);
 .last-end-time {
     color: #666;
     font-size: 90%;
+
+    &.skeleton {
+        display: block;
+        height: 15px;
+        width: 150px;
+
+        margin: 2px 0;
+    }
 }
 
 a.more-details:link,

@@ -7,6 +7,7 @@ import { ServiceAlert } from "../protocol";
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
 import { breakoutSearchableListItem } from "../LineViews/LineList";
+import { AlertSummarySkeleton } from "../RandomComponents/Skeletons";
 smoothscroll.polyfill();
 
 export type ServiceAlertOrSearchResult = ServiceAlert | FuriousSearchResult<ServiceAlert>;
@@ -15,11 +16,21 @@ interface AlertListProps {
     alerts: ServiceAlertOrSearchResult[];
     showDistance: boolean;
     noAlertsToday?: boolean;
+    isLoading: boolean;
 }
 
-export default function AlertList({alerts, showDistance, noAlertsToday}: AlertListProps) {
+export default function AlertList({
+    alerts,
+    showDistance,
+    noAlertsToday,
+    isLoading
+}: AlertListProps) {
     const rowRenderer = React.useCallback<ItemContent<ServiceAlertOrSearchResult>>(
         (index) => {
+            if (isLoading) {
+                return <AlertSummarySkeleton />;
+            }
+
             const searchResultOrAlert = alerts[index];
             if (!noAlertsToday && searchResultOrAlert) {
                 const [alert, searchResult] = breakoutSearchableListItem(searchResultOrAlert);
@@ -38,7 +49,7 @@ export default function AlertList({alerts, showDistance, noAlertsToday}: AlertLi
                 return <div className="list-end-gizmo"></div>;
             }
         },
-        [alerts, noAlertsToday, showDistance]
+        [alerts, noAlertsToday, showDistance, isLoading]
     );
 
     const virtuoso = React.useRef<VirtuosoHandle|null>(null);
@@ -76,7 +87,9 @@ export default function AlertList({alerts, showDistance, noAlertsToday}: AlertLi
         [virtuoso, scrollerRef]
     );
 
-    const totalCount = noAlertsToday
+    const totalCount = isLoading
+        ? 4
+        : noAlertsToday
         ? 2
         : (alerts.length && (alerts.length + 1));
 

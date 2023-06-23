@@ -60,7 +60,13 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
 
             fetch(
                 '/api/all_alerts?current_location=' + encodeURIComponent(currentLocationStr)
-            ).then(response => response.json()).then((data: AlertsResponse) => {
+            ).then(response => response.json())
+            .then(response => {
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve(response), 10000)
+                })
+            })
+            .then((data: AlertsResponse) => {
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
                     return;
@@ -181,8 +187,9 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                     alerts={currentlyDisplayedData}
                     showDistance={showDistance}
                     noAlertsToday={noAlertsToday}
+                    isLoading={isLoading}
                 />
-                <LoadingOverlay shown={isLoading} />
+                {/* <LoadingOverlay shown={isLoading} /> */}
         </div>
     </>;
 }
