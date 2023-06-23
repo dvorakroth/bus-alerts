@@ -118,7 +118,7 @@ h2 + ul {
         text-align: center;
         font-size: 15px;
         font-weight: bold;
-        color: white;
+        color: white !important;
         font-family: inherit;
 
         background: linear-gradient(
@@ -126,6 +126,8 @@ h2 + ul {
             #f70,
             rgb(207, 100, 0)
         );
+
+        user-select: none;
 
         &:first-child {
             border-top-right-radius: 5px;
@@ -149,7 +151,7 @@ h2 + ul {
                 #fff
             );
 
-            color: rgb(52, 52, 102);
+            color: rgb(52, 52, 102) !important;
         }
 
         &[aria-pressed=false] {
