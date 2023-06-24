@@ -29,10 +29,6 @@ export function AlertGantt({
     selectedChangePeriodIdx,
     onNewChangePeriodSelected
 }: AlertGanttProps) {
-    // TODO maybe remove the text on the alert items themselves?
-    //      the text is so Bad that most of the time it just says
-    //      something useless like "Tel Av..." or "Kiryat Ono, ..."
-
     const [zoomLevel, setZoomLevel] = React.useState(GANTT_DEFAULT_ZOOM_LEVEL);
     const hourlineInterval = GANTT_HOURLINE_INTERVAL[zoomLevel];
     const startMinus = GANTT_DEFAULT_START_MINUS[zoomLevel];

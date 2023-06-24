@@ -205,8 +205,8 @@ interface LineChooserProps {
     title?: string;
 }
 
-const CHOOSE_LINE_MAP_LABEL = "בחרו קו להצגת השינויים במפה:"; // TODO phrasing
-const CHOOSE_LINE_NONMAP_LABEL = "בחרו קו להצגת השינויים:"; // TODO phrasing???
+const CHOOSE_LINE_MAP_LABEL = "בחרו קו להצגת השינויים במפה:";
+const CHOOSE_LINE_NONMAP_LABEL = "בחרו קו להצגת השינויים:";
 
 function LineChooser(
     {
