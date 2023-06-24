@@ -351,30 +351,30 @@ export default function FullPageSingleLineView({isModal, hasModal}: Props) {
     const [isLoading, setIsLoading] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        if (!data) {
-            fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""))
-                .then(
-                    async (response) => {
-                        let data = null;
-                        try {
-                            data = await response.json();
-                        } catch(err) {
-                            console.error("Error while parsing response JSON: ", err);
-                        }
+        if (data) return;
 
-                        // await new Promise(r => setTimeout(r, 10000));
+        (async () => {
+            let response = null;
+            try {
+                response = await fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""));
+            } catch(err) {
+                console.error("Error while fetching single line details: ", err);
+            }
 
-                        setData(data);
-                        setIsLoading(false);
-                    },
-                    (error) => {
-                        console.error("Error while fetching single line details: ", error);
-                        setData(null);
-                        setIsLoading(false);
-                    }
-                )
-                ;
-        }
+            let data = null;
+            try {
+                if (response) {
+                    data = await response.json();
+                }
+            } catch(err) {
+                console.error("Error while parsing response JSON: ", err);
+            }
+
+            // await new Promise(r => setTimeout(r, 10000));
+
+            setData(data);
+            setIsLoading(false);
+        })();
     });
 
     return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} hasModal={!!hasModal} showDistance={false}/>;
