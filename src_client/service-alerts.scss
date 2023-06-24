@@ -268,11 +268,20 @@ hr {
         width: 120px;
         height: 18px;
         margin: 4px 0;
+
+        .direction-chooser-wrapper > & {
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+    }
+
+    &.skeleton-map {
+        height: 250px;
     }
 }
 
 .shimmer {
-    overflow: hidden;
+    overflow: hidden !important;
     position: relative;
 
     &::before {
@@ -1127,7 +1136,8 @@ a.more-details:active {
     //     background-color: #d8d8d8;
     // }
 
-    h2 ~ .agency-tag {
+    h2 ~ .agency-tag,
+    .skeleton-h2 ~ .agency-tag {
         width: 100%;
         justify-content: center;
     }
@@ -1217,6 +1227,21 @@ a.more-details:active {
             display: inline-block;
         }
     }
+
+    &.skeleton {
+        &, li {
+            background: none !important;
+        }
+
+        & span {
+            display: block;
+            height: 15px;
+            width: 100px;
+            margin: 3px 0;
+
+            background: #ddd;
+        }
+    }
 }
 
 .map-container,
@@ -1283,6 +1308,10 @@ a.more-details:active {
 
             border: 3px solid black;
             border-radius: 8px;
+        }
+
+        &.skeleton {
+            height: 20px;
         }
     }
 }

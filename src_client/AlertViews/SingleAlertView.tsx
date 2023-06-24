@@ -12,6 +12,7 @@ import { LoadingOverlay } from "./AlertListPage";
 import DirectionChooser from "../RandomComponents/DirectionChooser";
 import { LocationStateAlert } from "../LocationState";
 import { DepartureChangesView } from "../RandomComponents/DepartureChangesView";
+import { LineChooserAndMapSkeleton, SingleAlertViewSkeleton } from "../RandomComponents/Skeletons";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISMISS_BUTTON_LINE = "< חזרה לקו";
@@ -477,9 +478,15 @@ export function groupDepartureTimesByHour(times: string[]): JSX.Element {
     return <>{result}</>;
 }
 
+enum LoadingStatus {
+    LoadingAll,
+    LoadingChanges,
+    Loaded
+}
+
 interface SingleAlertViewProps {
     data: AlertsResponse|null;
-    isLoading: boolean;
+    loadingStatus: LoadingStatus;
     isModal: boolean;
     showDistance: boolean;
     matches?: FuriousSearchMatch[][];
@@ -508,7 +515,7 @@ function SingleAlertView(
     {
         data,
         isModal,
-        isLoading,
+        loadingStatus,
         showDistance,
         matches,
         backToLine
@@ -525,7 +532,10 @@ function SingleAlertView(
 
     const alert = data?.alerts?.[0];
 
-    const should_show_map = alert ? shouldShowMapForAlert(alert): false;
+    const should_show_map = 
+        loadingStatus === LoadingStatus.Loaded
+        &&
+        (alert ? shouldShowMapForAlert(alert): false);
     const should_show_departure_chgs = alert ? shouldShowDepartureChangesForAlert(alert) : false;
 
     return <div className={"single-alert-view" + (isModal ? " modal" : "")}>
@@ -542,9 +552,13 @@ function SingleAlertView(
             </div>
         </nav>
         <div className={"single-alert-content-container" /* i'll... explain later */}
-             style={isLoading ? {overflowY: 'hidden'} : {}}> 
+             style={loadingStatus === LoadingStatus.LoadingAll ? {overflowY: 'hidden'} : {}}> 
+            {!alert && loadingStatus === LoadingStatus.LoadingAll
+                ? <SingleAlertViewSkeleton />
+                : null
+            }
             {
-                data && data.alerts && !data.alerts.length && !isLoading
+                data && data.alerts && !data.alerts.length && loadingStatus === LoadingStatus.Loaded
                     ? <>
                         <div className="no-alerts-today">
                             <span>אולי היתה כאן התראה,</span>
@@ -564,7 +578,9 @@ function SingleAlertView(
                         <h1><MatchedString s={alert.header.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.HEADER_HE]?.[0]} /></h1>
                         <ActivePeriodsView active_periods={alert.active_periods.consolidated}/>
                         {
-                            should_show_map && data.route_changes && data.stops_for_map && data.map_bounding_box
+                            loadingStatus === LoadingStatus.LoadingChanges
+                                ? <LineChooserAndMapSkeleton />
+                                : should_show_map && data.route_changes && data.stops_for_map && data.map_bounding_box
                                 ? <LineChooserAndMap relevant_agencies={alert.relevant_agencies}
                                                      relevant_lines={alert.relevant_lines}
                                                      route_changes={data.route_changes}
@@ -601,7 +617,7 @@ function SingleAlertView(
                         <pre><MatchedString s={alert.description.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>
                 </div>
             }
-            <LoadingOverlay shown={isLoading} />
+            {/* <LoadingOverlay shown={isLoading} /> */}
         </div>
     </div>
 }
@@ -615,6 +631,11 @@ export function FullPageSingleAlert() {
         if (!data) {
             fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
                 .then((response) => response.json())
+                // .then(response => {
+                //     return new Promise((resolve) => {
+                //         setTimeout(() => resolve(response), 10000)
+                //     })
+                // })
                 .then((data: AlertsResponse) => {
                     setData(data);
                     setIsLoading(false);
@@ -622,7 +643,7 @@ export function FullPageSingleAlert() {
         }
     });
 
-    return <SingleAlertView data={data} isLoading={isLoading} isModal={false} showDistance={false}/>;
+    return <SingleAlertView data={data} loadingStatus={isLoading ? LoadingStatus.LoadingAll : LoadingStatus.Loaded} isModal={false} showDistance={false}/>;
 }
 
 export function ModalSingleAlert() {
@@ -634,7 +655,13 @@ export function ModalSingleAlert() {
 
     const hasRouteChanges = shouldShowMapForAlert(alert);
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(!alert || hasRouteChanges);
+    const [loadingStatus, setLoadingStatus] = React.useState<LoadingStatus>(
+        !alert
+            ? LoadingStatus.LoadingAll
+            : hasRouteChanges
+            ? LoadingStatus.LoadingChanges
+            : LoadingStatus.Loaded
+    );
     const [data, setData] = React.useState<AlertsResponse|null>(null);
 
     React.useEffect(() => {
@@ -643,16 +670,26 @@ export function ModalSingleAlert() {
         if (!alert) {
             fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
                 .then(response => response.json())
+                // .then(response => {
+                //     return new Promise((resolve) => {
+                //         setTimeout(() => resolve(response), 10000)
+                //     })
+                // })
                 .then((data: AlertsResponse) => {
                     setData(data);
-                    setIsLoading(false);
+                    setLoadingStatus(LoadingStatus.Loaded);
                 });
         } else if (alert && hasRouteChanges) {
             fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
                 .then((response) => response.json())
+                // .then(response => {
+                //     return new Promise((resolve) => {
+                //         setTimeout(() => resolve(response), 10000)
+                //     })
+                // })
                 .then((data: AlertsResponse) => {
                     setData(data);
-                    setIsLoading(false);
+                    setLoadingStatus(LoadingStatus.Loaded);
                 });
         }
     });
@@ -660,7 +697,7 @@ export function ModalSingleAlert() {
     const baseData = alert ? {alerts: [alert]} : {};
 
     return <SingleAlertView data={{...baseData, ...(data || {})}}
-                            isLoading={isLoading}
+                            loadingStatus={loadingStatus}
                             isModal={true}
                             showDistance={locationState?.showDistance ?? false}
                             matches={locationState?.matches}
