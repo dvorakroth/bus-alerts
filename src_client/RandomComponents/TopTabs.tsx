@@ -11,12 +11,12 @@ export interface TopTabsProps {
 }
 
 export function TopTabs({selectedItem}: TopTabsProps) {
-    return <div className="top-tabs" role="navigation">
+    return <div className="top-tabs" role="radiogroup">
         {/* TODO make the selected link unclickable? */}
-        <ReactRouterDOM.Link role="button" aria-pressed={selectedItem===TopTabItem.Lines} to="/lines">
+        <ReactRouterDOM.Link role="radio" aria-selected={selectedItem===TopTabItem.Lines} to="/lines">
             קווים
         </ReactRouterDOM.Link>
-        <ReactRouterDOM.Link role="button" aria-pressed={selectedItem===TopTabItem.Alerts} to="/alerts">
+        <ReactRouterDOM.Link role="radio" aria-selected={selectedItem===TopTabItem.Alerts} to="/alerts">
             התראות
         </ReactRouterDOM.Link>
     </div>;
