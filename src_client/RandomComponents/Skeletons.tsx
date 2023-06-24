@@ -93,3 +93,22 @@ export function LineChooserAndMapSkeleton() {
         <div className="skeleton skeleton-map"></div>
     </div>;
 }
+
+export function SingleLineViewSkeleton() {
+    return <div className="single-line-content shimmer">
+        <div className="destinations">
+            <div className="line-and-agency">
+                <div className="agency-tag skeleton"><span></span></div>
+                <div className="line-number line-number-bigger skeleton"></div>
+            </div>
+            <div className="direction-chooser-wrapper">
+                <ul className="direction-chooser">
+                    <li className="skeleton"></li>
+                    <li className="skeleton"></li>
+                </ul>
+            </div>
+        </div>
+        <div className="skeleton skeleton-h2"></div>
+        <div className="skeleton skeleton-map"></div>
+    </div>
+}

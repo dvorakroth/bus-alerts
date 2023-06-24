@@ -10,6 +10,7 @@ import { AlertGantt } from './AlertGantt';
 import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
 import * as classNames from 'classnames';
 import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
+import { SingleLineViewSkeleton } from '../RandomComponents/Skeletons';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -137,6 +138,11 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
         <div className={"single-alert-content-container" /* i'll... explain later */}
              style={isLoading ? {overflowY: 'hidden'} : {}}> 
             {
+                isLoading
+                    ? <SingleLineViewSkeleton />
+                    : null
+            }
+            {
                 (!line && !isLoading)
                     ? <>
                         <div className="no-alerts-today">
@@ -220,7 +226,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                     }
                 </div>
             }
-            <LoadingOverlay shown={isLoading} />
+            {/* <LoadingOverlay shown={isLoading} /> */}
         </div>
     </div>
 }
@@ -348,17 +354,19 @@ export default function FullPageSingleLineView({isModal, hasModal}: Props) {
         if (!data) {
             fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""))
                 .then(
-                    (response) => response.json().then(
-                        (data: SingleLineChanges) => {
-                            setData(data);
-                            setIsLoading(false);
-                        },
-                        (error) => {
-                            console.error("Error while parsing reponse JSON: ", error);
-                            setData(null);
-                            setIsLoading(false);
+                    async (response) => {
+                        let data = null;
+                        try {
+                            data = await response.json();
+                        } catch(err) {
+                            console.error("Error while parsing response JSON: ", err);
                         }
-                    ),
+
+                        // await new Promise(r => setTimeout(r, 10000));
+
+                        setData(data);
+                        setIsLoading(false);
+                    },
                     (error) => {
                         console.error("Error while fetching single line details: ", error);
                         setData(null);

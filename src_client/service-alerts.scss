@@ -1179,6 +1179,10 @@ a.more-details:active {
 
             > .agency-tag {
                 justify-content: center;
+
+                &.skeleton {
+                    width: auto;
+                }
             }
         }
     }
