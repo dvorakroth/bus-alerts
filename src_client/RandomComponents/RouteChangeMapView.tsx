@@ -336,7 +336,7 @@ export interface RouteChangesMapViewProps {
     selection: [string, string, number];
     map_bounding_box: MapBoundingBox;
     onSelectionMoveToBBox?: boolean;
-    polygon: [number, number][]|undefined;
+    polygon?: [number, number][]|undefined;
 }
 
 const FIT_BOUNDS_OPTIONS = {
