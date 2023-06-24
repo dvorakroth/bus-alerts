@@ -10,6 +10,34 @@ html {
 
 $font-stack: 'Assistant', sans-serif;
 
+@mixin dark($is-body: false) {
+    @if $is-body {
+        &.force-dark {
+            @content;
+        }
+    }
+    @else {
+        body.force-dark & {
+            @content;
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        @if $is-body {
+            &:not(.force-light) {
+                @content;
+            }
+        }
+        @else {
+            body:not(.force-light) & {
+                @content;
+            }
+        }
+    }
+}
+
+$dark-mode-text: #ddd;
+
 body {
     height: 100%;
     margin: 0;
@@ -22,11 +50,29 @@ body {
     line-height: 1.25;
 
     background: rgb(12, 36, 69); // for ios safari to show this color around the notch
+
+    @include dark(true) {
+        color: $dark-mode-text;
+    }
 }
 
 h1 + ul,
 h2 + ul {
     margin-top: 0;
+}
+
+a:link,
+a:hover {
+    @include dark {
+        color: rgb(38, 121, 194);
+    }
+}
+
+a:active,
+a:visited {
+    @include dark {
+        color: rgb(192, 55, 192);
+    }
 }
 
 #content {
@@ -36,6 +82,10 @@ h2 + ul {
     flex-direction: column;
 
     background-color: rgb(238, 238, 238);
+
+    @include dark {
+        background-color: rgb(16, 17, 26);
+    }
 }
 
 @mixin nav_light {
@@ -50,14 +100,14 @@ h2 + ul {
     a:link,
     a:visited {
         text-decoration: none;
-        color: white;
+        color: white !important;
         cursor: pointer;
     }
 
     a:hover,
     a:active {
         text-decoration: none;
-        color: #ccc;
+        color: #ccc !important;
     }
 
     
@@ -78,7 +128,7 @@ h2 + ul {
     @include nav_light;
 }
 
-.top-tabs {
+.search-bar-container .top-tabs {
     position: absolute;
     top: 2px;
     left: 1px;
@@ -118,7 +168,9 @@ h2 + ul {
         text-align: center;
         font-size: 15px;
         font-weight: bold;
-        color: white !important;
+        &, &:hover {
+            color: white !important;
+        }
         font-family: inherit;
 
         background: linear-gradient(
@@ -151,7 +203,9 @@ h2 + ul {
                 #fff
             );
 
-            color: rgb(52, 52, 102) !important;
+            &, &:hover {
+                color: rgb(52, 52, 102) !important;
+            }
         }
 
         &[aria-selected=false] {
@@ -175,6 +229,10 @@ hr {
     width: 100%;
     border: none;
     border-bottom: 1px solid #ddd;
+
+    @include dark {
+        border-color: #4b4b4b;
+    }
 }
 
 #search-by-location {
@@ -254,8 +312,19 @@ hr {
     color: white;
 }
 
+$skeleton-color-light: #ddd;
+$skeleton-color-dark: #444;
+
+@mixin skeleton-bg {
+    background: $skeleton-color-light !important;
+    
+    @include dark {
+        background: $skeleton-color-dark !important;
+    }
+}
+
 .skeleton {
-    background: #ddd !important;
+    @include skeleton-bg;
     border-radius: 2px;
 
     &.skeleton-h1 {
@@ -300,6 +369,19 @@ hr {
         height: 100%;
         width: 100%;
         z-index: 999;
+
+        @include dark {
+            background: linear-gradient(
+                0.3turn,
+                #0000,
+                #0000,
+                #0000,
+                #0006,
+                #0000,
+                #0000,
+                #0000
+            );
+        }
 
         @media (prefers-reduced-motion: reduce) {
             transform: translateX(30%);
@@ -449,6 +531,11 @@ hr {
     padding: 10px 10px 0 10px;
 }
 
+$alert-bg-light: #fff;
+$alert-border-light: rgb(218, 218, 218);
+$alert-bg-dark: #000;
+$alert-border-dark: #333;
+
 .line-summary,
 .alert-summary {
     position: relative;
@@ -457,12 +544,17 @@ hr {
     margin: 0 auto;
 
     box-sizing: border-box;
-    border: 1px solid rgb(218, 218, 218);
+    border: 1px solid $alert-border-light;
     border-radius: 6px;
     
     padding: 5px;
 
-    background-color: #fff;
+    background-color: $alert-bg-light;
+
+    @include dark {
+        background-color: $alert-bg-dark;
+        border-color: $alert-border-dark;
+    }
 
     h1 {
         font-size: 150%;
@@ -483,7 +575,6 @@ hr {
     
         text-align: left;
     
-        color: #666;
         cursor: pointer;
 
         &.skeleton {
@@ -587,6 +678,9 @@ ul.secondary-cities {
     }
 }
 
+$agency-tag-bg-light: #eaeaea;
+$agency-tag-bg-dark: #333;
+
 .agency-tag/*,
 .alert-count-tag*/ {
     display: inline-flex;
@@ -600,9 +694,20 @@ ul.secondary-cities {
 
     color: black;
 
-    background-color: #eaeaea;
+    background-color: $agency-tag-bg-light;
 
     align-items: center;
+
+    overflow: hidden;
+
+    @include dark {
+        background-color: $agency-tag-bg-dark;
+        color: $dark-mode-text;
+
+        & > img {
+            filter: drop-shadow(0px 0px 14px $agency-tag-bg-light);
+        }
+    }
 
     & > img ~ span {
         // margin-right: 7px;
@@ -691,11 +796,15 @@ ul.secondary-cities {
     }
 
     &.skeleton {
-        border-color: #ddd;
+        border-color: $skeleton-color-light;
         width: 60px;
         height: 50px;
 
         margin-bottom: 6px;
+
+        @include dark {
+            border-color: $skeleton-color-dark;
+        }
     }
 }
 
@@ -732,6 +841,10 @@ ul.secondary-cities {
                 left: -5px;
                 border: 3px solid black;
                 border-radius: 6px;
+
+                @include dark {
+                    border-color: $dark-mode-text;
+                }
             }
         }
     }
@@ -776,7 +889,7 @@ ul.secondary-cities {
             align-items: center;
 
             &::before {
-                background: #ddd;
+                @include skeleton-bg;
                 border-radius: 2px;
             }
         }
@@ -786,7 +899,7 @@ ul.secondary-cities {
             width: 250px;
             height: 15px;
 
-            background: #ddd;
+            @include skeleton-bg;
         }
     }
 
@@ -806,6 +919,11 @@ ul.secondary-cities {
 .distance-tag.distance-known {
     background-color: rgb(20, 197, 237);
     color: #233234;
+
+    @include dark {
+        background-color: #224670;
+        color: $dark-mode-text;
+    }
 }
 
 .relevant-tag,
@@ -939,6 +1057,10 @@ $alert-color-green: rgb(21, 92, 21);
     color: #666;
     font-size: 90%;
 
+    @include dark {
+        color: #999;
+    }
+
     &.skeleton {
         display: block;
         height: 15px;
@@ -953,12 +1075,20 @@ a.more-details:visited {
     text-decoration: none;
     color: #666;
     cursor: pointer;
+
+    @include dark {
+        color: #999;
+    }
 }
 
 a.more-details:hover,
 a.more-details:active {
     text-decoration: none;
     color: #999;
+
+    @include dark {
+        color: #666;
+    }
 }
 
 .list-end-gizmo {
@@ -1099,12 +1229,17 @@ a.more-details:active {
     margin: 10px auto;
 
     box-sizing: border-box;
-    border: 1px solid rgb(218, 218, 218);
+    border: 1px solid $alert-border-light;
     border-radius: 6px;
     
     padding: 5px;
 
-    background: white;
+    background-color: $alert-bg-light;
+
+    @include dark {
+        background-color: $alert-bg-dark;
+        border-color: $alert-border-dark;
+    }
 
     .standalone & {
         margin-bottom: env(safe-area-inset-bottom);
@@ -1245,7 +1380,7 @@ a.more-details:active {
             width: 100px;
             margin: 3px 0;
 
-            background: #ddd;
+            @include skeleton-bg;
         }
     }
 }
@@ -1296,6 +1431,11 @@ a.more-details:active {
         background: #ccc;
         cursor: pointer;
 
+        @include dark {
+            background-color: $agency-tag-bg-dark;
+            color: $dark-mode-text;
+        }
+
         & > img {
             position: relative;
             left: 3px;
@@ -1314,6 +1454,10 @@ a.more-details:active {
 
             border: 3px solid black;
             border-radius: 8px;
+
+            @include dark {
+                border-color: $dark-mode-text;
+            }
         }
 
         &.skeleton {
@@ -1434,6 +1578,10 @@ body.disable-momentum * {
         flex-grow: 1;
         position: relative;
         background: #fff9e8;
+
+        @include dark {
+            background: #10111a;
+        }
     }
 
     & > button.move-viewport {
@@ -1458,6 +1606,10 @@ body.disable-momentum * {
             right: 0;
 
             background: url(/assets/chevron-right.svg) no-repeat center/40%;
+
+            @include dark {
+                filter: invert(1);
+            }
         }
 
         &.forwards::before {
@@ -1552,8 +1704,16 @@ ul.alert-gantt-rows {
             text-overflow: ellipsis;
             white-space: nowrap;
 
+            @include dark {
+                background: rgb(173, 44, 44);
+            }
+
             &.less-important {
                 background: rgb(136, 193, 243);
+
+                @include dark {
+                    background: rgb(38, 38, 133);
+                }
             }
         }
     }
