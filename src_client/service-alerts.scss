@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@500;700&display=swap');
 
-// TODO dark mode
 // TODO embed the font so i don't have to get it from friggin google
 
 html {
@@ -679,7 +678,7 @@ ul.secondary-cities {
 }
 
 $agency-tag-bg-light: #eaeaea;
-$agency-tag-bg-dark: #333;
+$agency-tag-bg-dark: #444;
 
 .agency-tag/*,
 .alert-count-tag*/ {
@@ -704,9 +703,9 @@ $agency-tag-bg-dark: #333;
         background-color: $agency-tag-bg-dark;
         color: $dark-mode-text;
 
-        & > img {
-            filter: drop-shadow(0px 0px 14px $agency-tag-bg-light);
-        }
+        // & > img {
+            // filter: drop-shadow(0px 0px 14px $agency-tag-bg-light);
+        // }
     }
 
     & > img ~ span {
@@ -731,6 +730,10 @@ $agency-tag-bg-dark: #333;
 
         & > img {
             height: 30px;
+
+            // @include dark {
+                // filter: drop-shadow(0px 0px 10px $agency-tag-bg-light);
+            // }
         }
     }
 
@@ -877,8 +880,12 @@ $agency-tag-bg-dark: #333;
             width: 20px;
             height: 20px;
         
-            background: url('/assets/sign505.svg') center/contain no-repeat;
+            background: url('/assets/sign505-gentler-colors.svg') center/contain no-repeat;
             background-size: 20px;
+
+            @include dark {
+                filter: brightness(85%);
+            }
         }
 
         &.skeleton {
@@ -946,12 +953,17 @@ $agency-tag-bg-dark: #333;
 }
 
 $alert-color-red: maroon;
+$alert-color-red-darkmode: lighten($alert-color-red, 10%);
 $alert-color-orange: #e17f16;
 $alert-color-yellow: rgb(231,200,0);
 $alert-color-green: rgb(21, 92, 21);
+$alert-color-green-darkmode: lighten($alert-color-green, 10%);
 
 .alert-count-tag-today {
     border-color: $alert-color-red;
+    @include dark {
+        border-color: $alert-color-red-darkmode;
+    }
 }
 .alert-count-tag-tomorrow {
     border-color: $alert-color-orange;
@@ -961,10 +973,16 @@ $alert-color-green: rgb(21, 92, 21);
 }
 .alert-count-tag-none {
     border-color: $alert-color-green;
+    @include dark {
+        border-color: $alert-color-green-darkmode;
+    }
 }
 .relevant-tag-today {
     background-color: $alert-color-red;
     color: white;
+    @include dark {
+        background-color: $alert-color-red-darkmode;
+    }
 }
 
 .relevant-tag-tomorrow {
@@ -977,6 +995,9 @@ $alert-color-green: rgb(21, 92, 21);
 .relevant-tag-future {
     background-color:$alert-color-green;
     color: white;
+    @include dark {
+        background-color: $alert-color-green-darkmode;
+    }
 }
 
 .relevant-tag-expired,
@@ -1432,7 +1453,7 @@ a.more-details:active {
         cursor: pointer;
 
         @include dark {
-            background-color: $agency-tag-bg-dark;
+            background-color: darken($agency-tag-bg-dark, 8%);
             color: $dark-mode-text;
         }
 
