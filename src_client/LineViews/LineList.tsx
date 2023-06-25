@@ -11,9 +11,11 @@ import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { LineListResponseContext } from "./LineListPage";
 import { MatchedString } from "../AlertViews/AlertSummary";
 import hazardImg from '../assets/hazard.svg';
-import cancelledstop from '../assets/cancelledstop.svg'
+import cancelledstop from '../assets/cancelledstop.svg';
+import checkmarkImg from '../assets/checkmark.svg';
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
+import * as classNames from "classnames";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -161,7 +163,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                 </>
             }
 
-            {(matches?.[3]?.length || matches?.[4]?.length)
+            {(matches?.[3]?.length || matches?.[4]?.length || (!line.headsign_1?.includes("-") && !line.headsign_2?.includes("-")))
                 ? <>
                     <ul className="main-cities">
                         {line.main_cities.map(
@@ -186,39 +188,14 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
             }
             
         </div>
-        {/* {
-            !line.alert_titles?.length ? null : <>
-                <h2>התראות:</h2>
-                <ul className="active-alerts">
-                    {line.alert_titles.map(header => (<li>{header.he}</li>))}
-                </ul>
-            </>
-        } */}
-        {/* {
-            !line.removed_stops?.length ? null : <>
-                <h2>תחנות מבוטלות:</h2>
-                <ul className="relevant-stops">
-                    {line.removed_stops.map(([stopCode, stopName]) => <li>
-                        {stopCode} - {stopName}
-                    </li>)}
-                </ul>
-            </>
-        }
-        {
-            !line.added_stops?.length ? null : <>
-                <h2>תחנות חדשות:</h2>
-                <ul className="relevant-stops">
-                    {line.added_stops.map(([stopCode, stopName]) => <li>
-                        {stopCode} - {stopName}
-                    </li>)}
-                </ul>
-            </>
-        } */}
         <div className="alert-counters">
             <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
-                <span className="count">{line.num_alerts || 0}</span>
+                <span className={classNames("count", {"is-zero": !line.num_alerts})}>{line.num_alerts || "אין התראות"}</span>
                 <div className="icon-wrapper">
-                    <img src={hazardImg} alt="התראות במערכת" />
+                    {line.num_alerts
+                        ? <img src={hazardImg} alt="התראות במערכת" />
+                        : <img src={checkmarkImg} aria-hidden={true} />
+                    }
                 </div>
                 {/* <span className="label">התראות</span> */}
             </div>

@@ -796,6 +796,10 @@ $agency-tag-bg-dark: #666;
 
     & > .count {
         font-size: 160%;
+
+        &.is-zero {
+            font-size: 120%;
+        }
     }
 
     &.skeleton {
