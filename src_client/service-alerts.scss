@@ -35,7 +35,7 @@ $font-stack: 'Assistant', sans-serif;
     }
 }
 
-$dark-mode-text: #ddd;
+$dark-mode-text: #eee;
 
 body {
     height: 100%;
@@ -83,7 +83,7 @@ a:visited {
     background-color: rgb(238, 238, 238);
 
     @include dark {
-        background-color: rgb(16, 17, 26);
+        background-color: #000;
     }
 }
 
@@ -532,7 +532,7 @@ $skeleton-color-dark: #444;
 
 $alert-bg-light: #fff;
 $alert-border-light: rgb(218, 218, 218);
-$alert-bg-dark: #000;
+$alert-bg-dark: rgb(16, 17, 26);
 $alert-border-dark: #333;
 
 .line-summary,
@@ -678,7 +678,7 @@ ul.secondary-cities {
 }
 
 $agency-tag-bg-light: #eaeaea;
-$agency-tag-bg-dark: #444;
+$agency-tag-bg-dark: #666;
 
 .agency-tag/*,
 .alert-count-tag*/ {
@@ -758,7 +758,7 @@ $agency-tag-bg-dark: #444;
 }
 
 .alert-count-big {
-    min-width: 60px;
+    // min-width: 60px;
     display: flex;
 
     flex-direction: row-reverse;
@@ -766,14 +766,14 @@ $agency-tag-bg-dark: #444;
     justify-content: center;
     text-align: center;
 
-    padding: 0 5px 5px 5px;
-    border-radius: 10px;
-    border: 5px solid #777;
+    // padding: 0 5px 5px 5px;
+    // border-radius: 10px;
+    // border: 5px solid #777;
 
     & > .icon-wrapper {
         margin: 9px 2px 2px 8px;
         & > img {
-            width: 20px;
+            width: 30px;
         }
 
         // &.cancelled {
@@ -795,7 +795,7 @@ $agency-tag-bg-dark: #444;
     }
 
     & > .count {
-        font-size: 250%;
+        font-size: 160%;
     }
 
     &.skeleton {
@@ -961,9 +961,9 @@ $alert-color-green-darkmode: lighten($alert-color-green, 10%);
 
 .alert-count-tag-today {
     border-color: $alert-color-red;
-    @include dark {
-        border-color: $alert-color-red-darkmode;
-    }
+    // @include dark {
+    //     border-color: $alert-color-red-darkmode;
+    // }
 }
 .alert-count-tag-tomorrow {
     border-color: $alert-color-orange;
@@ -973,16 +973,16 @@ $alert-color-green-darkmode: lighten($alert-color-green, 10%);
 }
 .alert-count-tag-none {
     border-color: $alert-color-green;
-    @include dark {
-        border-color: $alert-color-green-darkmode;
-    }
+    // @include dark {
+    //     border-color: $alert-color-green-darkmode;
+    // }
 }
 .relevant-tag-today {
     background-color: $alert-color-red;
     color: white;
-    @include dark {
-        background-color: $alert-color-red-darkmode;
-    }
+    // @include dark {
+    //     background-color: $alert-color-red-darkmode;
+    // }
 }
 
 .relevant-tag-tomorrow {
@@ -1098,7 +1098,7 @@ a.more-details:visited {
     cursor: pointer;
 
     @include dark {
-        color: #999;
+        color: #bbb;
     }
 }
 
@@ -1108,7 +1108,7 @@ a.more-details:active {
     color: #999;
 
     @include dark {
-        color: #666;
+        color: #888;
     }
 }
 
@@ -1771,11 +1771,21 @@ ul.alert-gantt-rows {
 
         padding: 0;
 
+        @include dark {
+            background: #5558;
+            border-color: #555;
+        }
+
         &.selected {
             background: transparent;
             border-color: black;
 
             z-index: 2;
+
+            @include dark {
+                background: transparent;
+                border-color: white;
+            }
         }
 
         &:not(.selected) {
