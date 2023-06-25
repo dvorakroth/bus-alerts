@@ -7,7 +7,7 @@ export function AlertSummarySkeleton() {
         <div className="skeleton skeleton-h1"></div>
         <div className="skeleton skeleton-h2"></div>
         <div className="agency-tag skeleton"><span></span></div>
-        <ul className="relevant-lines skeleton">
+        <ul className="relevant-lines">
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>
@@ -64,7 +64,7 @@ export function SingleAlertViewSkeleton() {
         </ul>
         <div className="skeleton skeleton-h2"></div>
         <div className="agency-tag skeleton"><span></span></div>
-        <ul className="relevant-lines skeleton">
+        <ul className="relevant-lines">
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>
@@ -77,7 +77,7 @@ export function LineChooserAndMapSkeleton() {
     return <div className="shimmer">
         <div className="skeleton skeleton-h2"></div>
         <div className="agency-tag skeleton"><span></span></div>
-        <ul className="relevant-lines skeleton">
+        <ul className="relevant-lines">
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>
             <li className="line-number skeleton"></li>

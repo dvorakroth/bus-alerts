@@ -36,6 +36,10 @@ $font-stack: 'Assistant', sans-serif;
 }
 
 $dark-mode-text: #eee;
+$alert-bg-light: #fff;
+$alert-border-light: rgb(218, 218, 218);
+$alert-bg-dark: #1d1d1d; //rgb(16, 17, 26);
+$alert-border-dark: #333;
 
 body {
     height: 100%;
@@ -348,6 +352,11 @@ $skeleton-color-dark: #444;
     }
 }
 
+$shimmer-light-1: change-color($alert-bg-light, $alpha: 0);
+$shimmer-light-2: change-color($alert-bg-light, $alpha: 0.4);
+$shimmer-dark-1: change-color($alert-bg-dark, $alpha: 0);
+$shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
+
 .shimmer {
     overflow: hidden !important;
     position: relative;
@@ -357,13 +366,13 @@ $skeleton-color-dark: #444;
         position: absolute;
         background: linear-gradient(
             0.3turn,
-            #fff0,
-            #fff0,
-            #fff0,
-            #fff6,
-            #fff0,
-            #fff0,
-            #fff0
+            $shimmer-light-1,
+            $shimmer-light-1,
+            $shimmer-light-1,
+            $shimmer-light-2,
+            $shimmer-light-1,
+            $shimmer-light-1,
+            $shimmer-light-1
         );
         height: 100%;
         width: 100%;
@@ -372,13 +381,13 @@ $skeleton-color-dark: #444;
         @include dark {
             background: linear-gradient(
                 0.3turn,
-                #0000,
-                #0000,
-                #0000,
-                #0006,
-                #0000,
-                #0000,
-                #0000
+                $shimmer-dark-1,
+                $shimmer-dark-1,
+                $shimmer-dark-1,
+                $shimmer-dark-2,
+                $shimmer-dark-1,
+                $shimmer-dark-1,
+                $shimmer-dark-1
             );
         }
 
@@ -529,11 +538,6 @@ $skeleton-color-dark: #444;
 .alert-summary-wrapper {
     padding: 10px 10px 0 10px;
 }
-
-$alert-bg-light: #fff;
-$alert-border-light: rgb(218, 218, 218);
-$alert-bg-dark: #1d1d1d; //rgb(16, 17, 26);
-$alert-border-dark: #333;
 
 .line-summary,
 .alert-summary {
@@ -855,10 +859,6 @@ $agency-tag-bg-dark: #666;
             }
         }
     }
-
-    &.skeleton {
-        background: none !important;
-    }
 }
 
 .relevant-stops {
@@ -901,6 +901,7 @@ $agency-tag-bg-dark: #666;
 
             &::before {
                 @include skeleton-bg;
+                filter: none !important;
                 border-radius: 2px;
             }
         }
