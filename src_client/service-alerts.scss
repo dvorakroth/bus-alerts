@@ -594,7 +594,7 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
         top: 5px;
 
         &.skeleton {
-            width: 50px;
+            width: 43px;
         }
     }
 
@@ -623,6 +623,7 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
         }
 
         .skeleton-h1 {
+            width: 200px;
             margin: 0;
         }
     }
