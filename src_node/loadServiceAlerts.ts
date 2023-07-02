@@ -10,6 +10,7 @@ import url from 'url';
 import gtfsRealtimeBindings from "gtfs-realtime-bindings";
 import { loadIsraeliGtfsRt } from "./loaderUtils/loadServiceAlertsImpl.js";
 import { tryParseFilenameDate } from "./loaderUtils/parseGtfsRtFilename.js";
+import { nodePgConnectionStringKludge } from "./generalJunkyard.js";
 
 const {transit_realtime} = gtfsRealtimeBindings;
 
@@ -88,8 +89,8 @@ async function main() {
         new Uint8Array(rawData)
     );
 
-    const gtfsDb = new pg.Client(gtfsDbUrl);
-    const alertsDb = new pg.Client(alertsDbUrl);
+    const gtfsDb = new pg.Client(nodePgConnectionStringKludge(gtfsDbUrl, IS_PRODUCTION));
+    const alertsDb = new pg.Client(nodePgConnectionStringKludge(alertsDbUrl, IS_PRODUCTION));
 
     await gtfsDb.connect();
     try {

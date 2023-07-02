@@ -14,7 +14,7 @@ import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
 import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
 import { groupRoutes } from "./webstuff/routeGrouping.js";
-import { JERUSALEM_TZ } from "./generalJunkyard.js";
+import { JERUSALEM_TZ, nodePgConnectionStringKludge } from "./generalJunkyard.js";
 
 const doc = `Service Alerts App Web Server.
 
@@ -82,12 +82,8 @@ const port = config["service_alerts"]["web_port"];
  // db connection pools //
 /////////////////////////
 
-const gtfsDbPool = new pg.Pool({
-    connectionString: gtfsDbUrl
-});
-const alertsDbPool = new pg.Pool({
-    connectionString: alertsDbUrl
-});
+const gtfsDbPool = new pg.Pool(nodePgConnectionStringKludge(gtfsDbUrl, IS_PRODUCTION));
+const alertsDbPool = new pg.Pool(nodePgConnectionStringKludge(alertsDbUrl, IS_PRODUCTION));
 
 pg.types.setTypeParser(
     pg.types.builtins.TIMESTAMPTZ,

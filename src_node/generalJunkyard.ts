@@ -191,3 +191,20 @@ export async function asyncMap<S, T>(
 
     return result;
 }
+
+export function nodePgConnectionStringKludge(
+    connectionString: string,
+    IS_PRODUCTION: boolean
+) {
+    if (!IS_PRODUCTION) {
+        return {connectionString};
+    }
+
+    // when we're in production, we need to explicitly tell node-pg to connect
+    // using a unix domain socket or whatever that's called
+
+    const database = connectionString.substring(connectionString.lastIndexOf("/") + 1);
+    const host = "/var/run/postgresql";
+
+    return {database, host};
+}
