@@ -15,7 +15,7 @@ import cancelledstop from '../assets/cancelledstop.svg';
 import checkmarkImg from '../assets/checkmark.svg';
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
-import * as classNames from "classnames";
+import clsx from "clsx";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -190,7 +190,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
         </div>
         <div className="alert-counters">
             <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
-                <span className={classNames("count", {"is-zero": !line.num_alerts})}>{line.num_alerts || "אין התראות"}</span>
+                <span className={clsx("count", {"is-zero": !line.num_alerts})}>{line.num_alerts || "אין התראות"}</span>
                 <div className="icon-wrapper">
                     {line.num_alerts
                         ? <img src={hazardImg} alt="התראות במערכת" />

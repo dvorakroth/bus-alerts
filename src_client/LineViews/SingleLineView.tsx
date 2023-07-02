@@ -8,7 +8,7 @@ import DirectionChooser from '../RandomComponents/DirectionChooser';
 import { RouteChangesMapView } from '../RandomComponents/RouteChangeMapView';
 import { AlertGantt } from './AlertGantt';
 import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebrew } from '../junkyard/date_utils';
-import * as classNames from 'classnames';
+import clsx from 'clsx';
 import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
 import { SingleLineViewSkeleton } from '../RandomComponents/Skeletons';
 
@@ -127,7 +127,7 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
     const route_changes = selectedDirection?.time_sensitive_alerts;
     const selectedPeriod = route_changes?.periods?.[selectedChangePeriodIdx];
 
-    return <div className={classNames("single-alert-view", {modal: isModal}, {hidden: hasModal})}>
+    return <div className={clsx("single-alert-view", {modal: isModal}, {hidden: hasModal})}>
         <nav>
             <div className="nav-content">
                 {isModal

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { AlertMinimal, AlertPeriodWithRouteChanges, USE_CASES } from '../protocol';
 import { DateTime } from 'luxon';
 import { JERUSALEM_TZ, dateRange, findClosestRoundHour, findNextRoundHour, findPreviousRoundHour, short_date_hebrew, short_time_hebrew } from '../junkyard/date_utils';
-import * as classnames from 'classnames';
+import clsx from 'clsx';
 import useResizeObserver from 'use-resize-observer';
 import { GANTT_DEFAULT_START_MINUS, GANTT_DEFAULT_ZOOM_LEVEL, GANTT_HOURLINE_INTERVAL, GANTT_PIXELS_PER_HOUR, alertGanttMinMaxLimits } from '../bothSides';
 
@@ -369,7 +369,7 @@ export function AlertGantt({
                 <div className="alert-gantt-clickable-areas">
                     {!stillLoading && periodsInViewport.map(
                         ({start, end, originalIndex}) => <button
-                            className={classnames(
+                            className={clsx(
                                 "period",
                                 {"start-invisible": start < viewportStartUnixtime},
                                 {"end-invisible": end > viewportEndUnixtime},
@@ -428,7 +428,7 @@ function AlertGanttRow({
             ({start, end}, idx) => 
                 <div
                     key={idx}
-                    className={classnames(
+                    className={clsx(
                         "alert-gantt-item",
                         {"start-invisible": start < viewportStart},
                         {"end-invisible": end > viewportEnd},
