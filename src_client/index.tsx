@@ -36,8 +36,7 @@ function App() {
 
     return <>
         <Routes location={state?.backgroundLocation || location}>
-            {/* <Route index element={<LineListPage hasModal={!!state?.backgroundLocation} />} /> */}
-            <Route index element={<Navigate to="/alerts" replace={true} />}/>
+            <Route index element={<Navigate to="/lines" replace={true} />}/>
             
             <Route path="/line/:id" element={<FullPageSingleLineView isModal={false} hasModal={!!state?.backgroundLocation} />} />
             <Route path="/lines" element={<LineListPage hasModal={!!state?.backgroundLocation} />} />
@@ -45,6 +44,7 @@ function App() {
             <Route path="/alerts" element={<AlertListPage hasModal={!!state?.backgroundLocation}/>}/>
             <Route path="/alert/:id" element={<FullPageSingleAlert/>}/>
 
+            {/* TODO actual 404 page? */}
             <Route path="*" element={<Navigate to="/" replace={true} />}/>
         </Routes>
         {
