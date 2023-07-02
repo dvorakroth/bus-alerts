@@ -136,6 +136,17 @@ app.use((req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
 // actually server the api
 app.use("/api", apiRouter);
 
+if (!IS_PRODUCTION) {
+    // if we're not in production, also serve the compiled client code
+    app.use(express.static(path.join(__dirname, '../dist')));
+    app.use((req, res) => {
+        res.send(fs.readFileSync(
+            path.join(__dirname, "../dist/index.html"),
+            {encoding: "utf8"}
+        ));
+    })
+}
+
 // error handler because the default express error handler is kinda shit
 const errHandler: express.ErrorRequestHandler = (err, req, res, next) => {
     winston.error(err);
