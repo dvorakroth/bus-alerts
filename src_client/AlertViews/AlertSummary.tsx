@@ -1,13 +1,14 @@
 import { DateTime } from "luxon";
 // import Fuse from "../Fuse/src";
 import * as React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
 import { Agency, ServiceAlert } from "../protocol";
 import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { DistanceTag } from "../RandomComponents/DistanceTag";
+import clsx from "clsx";
 
 type ValueOf<T> = T[keyof T];
 
@@ -510,8 +511,28 @@ export function AlertSummary({
     const _last_end_time       = isoToLocal(last_end_time);
 
     const location = useLocation();
+    const navigate = useNavigate();
 
-    return <div className="alert-summary-wrapper"><div className="alert-summary">
+    const alertUrl = `/alert/${id}`;
+    const clickHandler = React.useCallback(
+        (event: React.MouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            navigate(alertUrl, {
+                state: {
+                    backgroundLocation: location,
+                    alert,
+                    showDistance,
+                    matches
+                }
+            });
+        }, [navigate, alertUrl, location, alert, showDistance, matches]
+    );
+
+    const hasMatchesInDescription = matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]?.length;
+
+    return <div className="alert-summary-wrapper"><div className="alert-summary" onClick={clickHandler}>
         {/* <p>{"use case: " + USE_CASES_REVERSE[alert.use_case]}</p> */}
         {/* {fuseResult ? <div>search score: {fuseResult.score}</div> : null} */}
         <RelevanceTag is_deleted={is_deleted} is_expired={is_expired} first_start_time={first_start_time} first_relevant_date={first_relevant_date} />
@@ -536,10 +557,8 @@ export function AlertSummary({
                            isRemoved={false}
                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
                            stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}  />
-        <Link className={"more-details" + (matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]?.length ? " search-match" : "")}
-              to={`/alert/${id}`}
-              state={{backgroundLocation: location, alert: alert, showDistance: showDistance, matches: matches}}>
+        <a href={alertUrl} onClick={clickHandler} className={clsx("more-details", {"search-match": hasMatchesInDescription})}>
             {MORE_DETAILS_STRING}
-        </Link>
+        </a>
     </div></div>;
 }

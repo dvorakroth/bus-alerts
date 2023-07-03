@@ -562,6 +562,10 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
         border-color: $alert-border-dark;
     }
 
+    &:not(.is-loading) {
+        cursor: pointer;
+    }
+
     h1 {
         font-size: 150%;
         font-weight: bold;
@@ -1498,7 +1502,7 @@ a.more-details:active {
 
 .search-match {
     background-color: rgb(255, 217, 0);
-    color: black;
+    color: black !important;
 }
 
 .departure-time-groups {

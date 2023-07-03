@@ -132,10 +132,27 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
     const serverResponse = React.useContext(LineListResponseContext);
 
     const location = ReactRouterDOM.useLocation();
+    const navigate = ReactRouterDOM.useNavigate();
+
+    const lineUrl = `/line/${line.pk}`;
+    const clickHandler = React.useCallback(
+        (event: React.MouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            navigate(lineUrl, {
+                state: {
+                    backgroundLocation: location,
+                    line,
+                    showDistance
+                }
+            });
+        }, [navigate, lineUrl, location, line, showDistance]
+    );
 
     if (!serverResponse) return <></>; // ??
 
-    return <div className="alert-summary-wrapper"><div className="line-summary">
+    return <div className="alert-summary-wrapper"><div className="line-summary" onClick={clickHandler}>
         {!line.num_relevant_today ? null
             : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
         }
@@ -215,11 +232,9 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
             }
             
         </div>
-        <ReactRouterDOM.Link className={"more-details"}
-              to={`/line/${line.pk}`}
-              state={{backgroundLocation: location, line, showDistance: showDistance}}>
+        <a href={lineUrl} className="more-details" onClick={clickHandler}>
              {"לחצו לפרטים נוספים >"}
-        </ReactRouterDOM.Link>
+        </a>
     </div></div>;
 }
 

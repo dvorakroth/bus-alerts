@@ -1,7 +1,7 @@
 import * as React from "react";
 
 export function AlertSummarySkeleton() {
-    return <div className="alert-summary-wrapper"><div className="alert-summary shimmer">
+    return <div className="alert-summary-wrapper"><div className="alert-summary shimmer is-loading">
         <span className="relevant-tag skeleton"></span>
         {/* <span className="last-end-time skeleton"></span> */}
         <div className="skeleton skeleton-h1"></div>
@@ -25,7 +25,7 @@ export function AlertSummarySkeleton() {
 }
 
 export function LineSummarySkeleton() {
-    return <div className="alert-summary-wrapper"><div className="line-summary shimmer">
+    return <div className="alert-summary-wrapper"><div className="line-summary shimmer is-loading">
         <div className="agency-tag skeleton"><span></span></div>
         <div className="destinations">
             <div className="line-number line-number-verybig skeleton"></div>
