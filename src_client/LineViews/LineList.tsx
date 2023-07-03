@@ -11,8 +11,9 @@ import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { LineListResponseContext } from "./LineListPage";
 import { MatchedString } from "../AlertViews/AlertSummary";
 import hazardImg from '../assets/hazard.svg';
-import cancelledstop from '../assets/cancelledstop.svg';
+import cancelledStopImg from '../assets/cancelledstop.svg';
 import checkmarkImg from '../assets/checkmark.svg';
+import calendarArrowImg from '../assets/calendar-arrow.svg';
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
 import clsx from "clsx";
@@ -228,8 +229,15 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                     }
                 </span>
                 <div className="icon-wrapper">
-                    {line.num_alerts
+                    {!line.num_removed_stops ? null
+                        : <img src={cancelledStopImg} alt="יש תחנות מבוטלות" title="יש תחנות מבוטלות" />
+                    }
+                    {line.num_relevant_right_now
                         ? <img src={hazardImg} alt="יש התראות" title="יש התראות" />
+                        : line.num_relevant_today
+                        ? <AnalogClock alt="יש התראות" title="יש התראות" hour={firstRelevantTimestamp!.hour} minute={firstRelevantTimestamp!.minute} />
+                        : line.num_alerts
+                        ? <><img src={calendarArrowImg} alt="יש התראות" title="יש התראות" /> {/* TODO image of a calendar */}</>
                         : <img src={checkmarkImg} aria-hidden={true} />
                     }
                 </div>
@@ -240,14 +248,14 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                 <span className="label">להיום</span>
             </div> */}
             {
-                !line.num_removed_stops ? null
-                    : <div className={"alert-count-big alert-count-tag-today"}>
-                        <span className="count">{line.num_removed_stops || 0}</span>
-                        <div className="icon-wrapper cancelled">
-                            <img src={cancelledstop} alt="תחנות מבוטלות" title="תחנות מבוטלות" />
-                        </div>
-                        {/* <span className="label">תחנות מבוטלות</span> */}
-                    </div>
+                // !line.num_removed_stops ? null
+                    // : <div className={"alert-count-big alert-count-tag-today"}>
+                        //{/* <span className="count">{line.num_removed_stops || 0}</span> */}
+                        // <div className="icon-wrapper cancelled">
+                        //     <img src={cancelledstop} alt="תחנות מבוטלות" title="תחנות מבוטלות" />
+                        // </div>
+                        //{/* <span className="label">תחנות מבוטלות</span> */}
+                    // </div>
             }
             
         </div>
@@ -255,6 +263,62 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
              {"לחצו לפרטים נוספים >"}
         </a>
     </div></div>;
+}
+
+interface AnalogClockProps {
+    alt?: string;
+    title?: string;
+    hour: number;
+    minute: number;
+}
+
+const TAU = Math.PI * 2;
+
+function AnalogClock({alt: altText, title: titleText, hour, minute}: AnalogClockProps) {
+    const clockSize = 24;
+    const strokeWidth = clockSize * 1 / 24;
+    const center = clockSize / 2;
+    // const radius = clockSize / 2 - strokeWidth;
+
+    const hourHandLength = clockSize * 5 / 24;
+    const minuteHandLength = clockSize * 7 / 24;
+    const hourMarkDistance = clockSize * 8 / 24;
+
+    const altProps = altText ? {"aria-label": altText} : {};
+
+    const hourAngle = TAU * ((hour + minute / 60) / 12);
+    const minuteAngle = TAU * (minute / 60);
+
+    const hourX = Math.cos(hourAngle - TAU / 4) * hourHandLength;
+    const hourY = Math.sin(hourAngle - TAU / 4) * hourHandLength;
+
+    const minuteX = Math.cos(minuteAngle - TAU / 4) * minuteHandLength;
+    const minuteY = Math.sin(minuteAngle - TAU / 4) * minuteHandLength;
+
+    const borderColor = "#000";
+    const rimColor = "#aaa";
+    const fillColor = "#fff";
+    const handsColor = "#000";
+    const centerColor = "#c11";
+
+    const hourMarks = [];
+    for (let h = 0; h < 12; h++) {
+        hourMarks.push({
+            cx: Math.cos(TAU * (h / 12) - TAU / 4) * hourMarkDistance + center,
+            cy: Math.sin(TAU * (h / 12) - TAU / 4) * hourMarkDistance + center,
+            r: strokeWidth
+        });
+    }
+
+    return <svg xmlns="http://www.w3.org/2000/svg" role="img" {...altProps} width={clockSize} height={clockSize}>
+        {titleText ? <title>{titleText}</title> : null}
+        <circle cx={center} cy={center} r={clockSize / 2} fill={borderColor} stroke="none" />
+        <circle cx={center} cy={center} r={clockSize / 2 - strokeWidth * 2} stroke={rimColor} strokeWidth={strokeWidth} fill={fillColor} />
+        {hourMarks.map((mark, idx) => <circle key={idx} {...mark} fill={rimColor} />)}
+        <line   x1={center} y1={center} x2={center + hourX}   y2={center + hourY} stroke={handsColor} strokeWidth={strokeWidth * 1.5} strokeLinecap="round" />
+        <line   x1={center} y1={center} x2={center + minuteX} y2={center + minuteY} stroke={handsColor} strokeWidth={strokeWidth * 1.5} strokeLinecap="round" />
+        <circle cx={center} cy={center} r={strokeWidth * 1.5} stroke="none" fill={centerColor} />
+    </svg>;
 }
 
 // interface AlertCountProps {

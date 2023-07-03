@@ -790,6 +790,9 @@ $agency-tag-bg-dark: #666;
 
     & > .icon-wrapper {
         margin: 9px 2px 2px 8px;
+        display: flex;
+        align-items: center;
+        
         & > img {
             width: 30px;
         }

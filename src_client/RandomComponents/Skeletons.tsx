@@ -34,8 +34,9 @@ export function LineSummarySkeleton() {
             <div className="skeleton skeleton-h1"></div>
         </div>
         <div className="alert-counters">
-            <div className="alert-count-big skeleton"></div>
-            <div className="alert-count-big skeleton"></div>
+            <div className="skeleton skeleton-h1"></div>
+            {/* <div className="alert-count-big skeleton"></div>
+            <div className="alert-count-big skeleton"></div> */}
         </div>
         <span className="more-details skeleton"></span>
     </div></div>;
