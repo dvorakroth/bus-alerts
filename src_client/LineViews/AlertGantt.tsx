@@ -394,7 +394,11 @@ export function AlertGantt({
                 : <button className="hint-more-before" onClick={goToPreviousAlert}>→ יש התראות</button>
             }
             <button className="zoom-button" onClick={toggleZoom}>
-                <img alt={zoomLevel === 0 ? "הגדלה" : "הקטנה"} src={zoomLevel === 0 ? magnifierPlusSvg : magnifierMinusSvg}/>
+                <img
+                    alt={zoomLevel === 0 ? "הגדלה" : "הקטנה"}
+                    title={zoomLevel === 0 ? "הגדלה" : "הקטנה"}
+                    src={zoomLevel === 0 ? magnifierPlusSvg : magnifierMinusSvg}
+                />
             </button>
             {!hasAlertsAfter ? null
                 : <button className="hint-more-after" onClick={goToNextAlert}>יש התראות ←</button>

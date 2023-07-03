@@ -210,7 +210,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                 <span className={clsx("count", {"is-zero": !line.num_alerts})}>{line.num_alerts || "אין התראות"}</span>
                 <div className="icon-wrapper">
                     {line.num_alerts
-                        ? <img src={hazardImg} alt="התראות במערכת" />
+                        ? <img src={hazardImg} alt="התראות במערכת" title="התראות במערכת" />
                         : <img src={checkmarkImg} aria-hidden={true} />
                     }
                 </div>
@@ -225,7 +225,7 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
                     : <div className={"alert-count-big alert-count-tag-today"}>
                         <span className="count">{line.num_removed_stops || 0}</span>
                         <div className="icon-wrapper cancelled">
-                            <img src={cancelledstop} alt="תחנות מבוטלות" />
+                            <img src={cancelledstop} alt="תחנות מבוטלות" title="תחנות מבוטלות" />
                         </div>
                         {/* <span className="label">תחנות מבוטלות</span> */}
                     </div>

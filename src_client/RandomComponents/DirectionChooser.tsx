@@ -76,7 +76,7 @@ const DirectionChooserDirection = React.memo(
             aria-selected={isSelected}
             onClick={onClick}
             className={isSelected ? "is-selected" : ""}>
-            {!has_alerts ? null : <img src={hazardSvg} alt="יש התראות" height="15" />}
+            {!has_alerts ? null : <img src={hazardSvg} alt="יש התראות" title="יש התראות" height="15" />}
             {direction_text(direction, is_circular, alt_name, dir_name)}
         </li>;
     }

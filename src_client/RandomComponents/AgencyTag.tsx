@@ -13,8 +13,18 @@ interface AgencyTagProps extends Agency {
 
 export const AgencyTag = React.memo(
     ({ agency_id, agency_name, matches, is_night_line, hideName }: AgencyTagProps) => <div className="agency-tag">
-        {!is_night_line ? null : <img className="night-line" src={nightLinesPng} alt="קו לילה" />}
-        <img src={imageNameForAgencyId(agency_id)} alt={hideName && agency_name || ""} />
+        {!is_night_line ? null
+            : <img
+                className="night-line"
+                src={nightLinesPng}
+                alt="קו לילה"
+                title="קו לילה"
+            />}
+        <img
+            src={imageNameForAgencyId(agency_id)}
+            alt={!hideName ? undefined : (agency_name || undefined)}
+            title={!hideName ? undefined : (agency_name || undefined)}
+        />
         {!agency_name || hideName
             ? null
             : <span><MatchedString s={agency_name} matches={matches} /></span>
