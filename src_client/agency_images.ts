@@ -54,6 +54,7 @@ const AGENCY_LOGOS: Record<string, string> = {
     34: agencyUrl_34,
     35: agencyUrl_35,
     37: agencyUrl_37,
+    38: agencyUrl_37, // Extra Jerusalem seems to have the same branding as regular Extra
 
     42: agencyUrl_42,
     44: agencyUrl_44,

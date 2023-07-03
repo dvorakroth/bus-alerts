@@ -139,7 +139,8 @@
     background: #097caa;
     @include white-text;
 }
-.line-number.operator-37 /* Extra */
+.line-number.operator-37, /* Extra */
+.line-number.operator-38 /* Extra Jerusalem */
 {
     @include bg-with-stripe(#00a2e2, #f58329);
     @include white-text;
