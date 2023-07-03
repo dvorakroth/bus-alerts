@@ -137,10 +137,11 @@ function alertSortingNple(alert: AlertForApi) {
     ] as const;
 }
 
-export function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|DateTime, null|DateTime] {
+export function alertFindNextRelevantDate(alert: AlertWithRelatedInDb, wholeTimestamp = false): [null|DateTime, null|DateTime] {
     if (alert.is_deleted || alert.is_expired) return [null, null];
 
-    const todayInJerusalem = DateTime.now().setZone(JERUSALEM_TZ).set({
+    const nowInJerusalem = DateTime.now().setZone(JERUSALEM_TZ);
+    const todayInJerusalem = nowInJerusalem.set({
         hour: 0,
         minute: 0,
         second: 0,
@@ -158,7 +159,7 @@ export function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|Da
 
     for (const [start, end] of activePeriodsParsed) {
         // make sure this period hasn't expired yet; if it has, ignore it
-        if (end && end.toSeconds() <= todayInJerusalem.toSeconds()) {
+        if (end && end.toSeconds() <= nowInJerusalem.toSeconds()) {
             continue;
         }
 
@@ -172,12 +173,14 @@ export function alertFindNextRelevantDate(alert: AlertWithRelatedInDb): [null|Da
         }
 
         // period is in the future
-        const startDay = start.set({
-            hour: 0,
-            minute: 0,
-            second: 0,
-            millisecond: 0
-        });
+        const startDay = wholeTimestamp
+            ? start
+            : start.set({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0
+            });
 
         if (!firstRelevantDate || startDay.toSeconds() < firstRelevantDate.toSeconds()) {
             firstRelevantDate = startDay;

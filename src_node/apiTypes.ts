@@ -84,7 +84,9 @@ export type ActualLineWithAlertCount =
     Omit<ActualLine, "all_directions_grouped">
     & {
         num_alerts: number;
-        first_relevant_date: DateTime|null;
+        // first_relevant_date: DateTime|null;
+        first_relevant_timestamp: DateTime|null;
+        num_relevant_right_now: number|null;
         num_relevant_today: number|null;
         num_removed_stops: number|null;
         all_directions_grouped: undefined;

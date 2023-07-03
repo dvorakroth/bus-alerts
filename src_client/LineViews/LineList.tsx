@@ -16,6 +16,8 @@ import checkmarkImg from '../assets/checkmark.svg';
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
 import clsx from "clsx";
+import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from "../junkyard/date_utils";
+import { DateTime } from "luxon";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
@@ -152,10 +154,17 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
 
     if (!serverResponse) return <></>; // ??
 
+    const firstRelevantTimestamp = line.first_relevant_timestamp
+        ? DateTime.fromISO(line.first_relevant_timestamp).setZone(JERUSALEM_TZ)
+        : null;
+
     return <div className="alert-summary-wrapper"><div className="line-summary" onClick={clickHandler}>
-        {!line.num_relevant_today ? null
-            : <div className="relevant-tag relevant-tag-today">התראות להיום!</div>
-        }
+        {/* {line.num_relevant_right_now
+            ? <div className="relevant-tag relevant-tag-today">התראות פעילות כרגע!</div>
+            : line.num_relevant_today
+            ? <div className="relevant-tag relevant-tag-tomorrow">התראות להיום!</div>
+            : null
+        } */}
         {line.distance === undefined ? null
             : <DistanceTag distance={line.distance} />
         }
@@ -207,10 +216,20 @@ function LineSummary({line, matches, showDistance}: LineSummaryProps) {
         </div>
         <div className="alert-counters">
             <div className={"alert-count-big alert-count-tag-" + (line.num_alerts ? "tomorrow" : "none")}>
-                <span className={clsx("count", {"is-zero": !line.num_alerts})}>{line.num_alerts || "אין התראות"}</span>
+                <span className={clsx("count", {"is-zero": !line.num_alerts})}>
+                    {
+                        line.num_relevant_right_now
+                            ? /*"" + line.num_relevant_right_now + ", " +*/ "כרגע"
+                            : line.num_relevant_today
+                            ? /*"" + line.num_relevant_today + ", " +*/ "משעה" + " " + short_time_hebrew(firstRelevantTimestamp!)
+                            : line.num_alerts
+                            ? /*"" + line.num_alerts + ", " +*/ "מיום" + " " + short_date_hebrew(firstRelevantTimestamp!)
+                            : "אין התראות"
+                    }
+                </span>
                 <div className="icon-wrapper">
                     {line.num_alerts
-                        ? <img src={hazardImg} alt="התראות במערכת" title="התראות במערכת" />
+                        ? <img src={hazardImg} alt="יש התראות" title="יש התראות" />
                         : <img src={checkmarkImg} aria-hidden={true} />
                     }
                 </div>

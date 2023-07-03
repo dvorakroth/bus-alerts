@@ -15,7 +15,7 @@ export async function getAllLines(
     groupedRoutes: GroupedRoutes
 ): Promise<AllLinesResponse> {
     const alerts = await alertsDbApi.getAlerts();
-    const firstRelevantDates: Record<string, DateTime> = {};
+    const firstRelevantTimestamps: Record<string, DateTime> = {};
 
     const linepkToAlertIds: Record<string, Set<string>> = {};
     const linepkToRemovedStopIds: Record<string, Set<string>> = {};
@@ -41,10 +41,10 @@ export async function getAllLines(
             continue;
         }
 
-        const [firstRelevantDate, _] = alertFindNextRelevantDate(alert);
-        if (!firstRelevantDate) continue;
+        const [firstRelevantTimestamp, _] = alertFindNextRelevantDate(alert, true);
+        if (!firstRelevantTimestamp) continue;
 
-        firstRelevantDates[alert.id] = firstRelevantDate;
+        firstRelevantTimestamps[alert.id] = firstRelevantTimestamp;
 
         for (const route_id of alert.relevant_route_ids) {
             const pk = groupedRoutes.actualLinesByRouteId[route_id];
@@ -80,18 +80,29 @@ export async function getAllLines(
         const withAlertCount = <ActualLineWithAlertCount>{
             ...actualLine,
             num_alerts: alertsForLine.size,
-            first_relevant_date: minimumDate(
+            first_relevant_timestamp: minimumDate(
                 (function *() {
                     for (const alertId of alertsForLine) {
-                        const frd = firstRelevantDates[alertId];
-                        if (!frd) continue;
-                        yield frd;
+                        const frts = firstRelevantTimestamps[alertId];
+                        if (!frts) continue;
+                        yield frts;
                     }
                 })()
             ),
+            num_relevant_right_now: [...alertsForLine].filter(
+                alertId => {
+                    const frts = firstRelevantTimestamps[alertId];
+                    return frts && frts.toSeconds() === todayInJerusalem.toSeconds()
+                }
+            ).length,
             num_relevant_today: [...alertsForLine].filter(
                 alertId => {
-                    const frd = firstRelevantDates[alertId];
+                    const frd = firstRelevantTimestamps[alertId]?.set({
+                        hour: 0,
+                        minute: 0,
+                        second: 0,
+                        millisecond: 0
+                    });
                     return frd && frd.toSeconds() === todayInJerusalem.toSeconds();
                 }
             ).length,
