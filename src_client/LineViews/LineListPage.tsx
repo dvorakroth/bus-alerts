@@ -177,7 +177,7 @@ export default function LineListPage({hasModal}: Props) {
         </div>
         {showFilterNotice && !hasModal
             ? <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
-                <span>מתאימים לחיפוש: {currentlyDisplayedData.length} קווים, מתוכם בעלי התראות: {numFilteredWithAlerts}</span>
+                <span className="filter-notice-content">מתאימים לחיפוש: {currentlyDisplayedData.length} קווים, מתוכם בעלי התראות: {numFilteredWithAlerts}</span>
             </div>
             : null
         }

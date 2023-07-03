@@ -179,7 +179,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
             </div>
         </div>
         <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>
-            <span>מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.alerts?.length ?? 0}</span>
+            <span className="filter-notice-content">מתאימות לחיפוש: {currentlyDisplayedData.length} התראות מתוך {data?.alerts?.length ?? 0}</span>
         </div>
         <hr className={(hasModal ? "hidden" : "")} />
         <div className={"alerts-list-container" + (hasModal ? " hidden" : "")}>
