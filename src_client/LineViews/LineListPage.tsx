@@ -39,9 +39,14 @@ export default function LineListPage({hasModal}: Props) {
             const currentLocationStr = currentLocation
                 ? currentLocation[0].toFixed(6) + '_' + currentLocation[1].toFixed(6)
                 : "";
+            
+            const currentLocationParam = currentLocationStr
+                ? "?current_location=" + encodeURIComponent(currentLocationStr)
+                : "";
+
 
             fetch(
-                '/api/all_lines?current_location=' + encodeURIComponent(currentLocationStr)
+                '/api/all_lines' + currentLocationParam
             ).then(response => response.json())
             // .then(response => {
             //     return new Promise((resolve) => {
