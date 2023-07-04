@@ -1,5 +1,15 @@
-import search, { SearchResult } from './search'
-import { MAX_BITS } from './constants'
+// this file is based on src/search/bitap/index.js in Fuse JS but simplified
+// and with type annotations added
+
+// see: https://github.com/krisk/Fuse
+
+// the original code was released under the apache2 license but this derivative
+// work is released into the public domain; for more details about that, see
+// the service-alerts project's LICENSE file
+
+
+
+import search, { SearchResult, MAX_BITS } from './search'
 
 interface PatternChunk {
     subpattern: string;

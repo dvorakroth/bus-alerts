@@ -1,5 +1,11 @@
-// loosely based on fuse index but greatly simplified
-// because my needs are extremely specific
+// this file is based on src/tools/FuseIndex.js in Fuse JS
+// but greatly simplified and with type annotations added
+
+// see: https://github.com/krisk/Fuse
+
+// the original code was released under the apache2 license but this derivative
+// work is released into the public domain; for more details about that, see
+// the service-alerts project's LICENSE file
 
 import BitapSearch from "./bitap";
 import convertMaskToIndices from "./bitap/convertMaskToIndices";
@@ -68,7 +74,7 @@ export class FuriousIndex<T> {
 
                 const matchesForKey = (matches[keyIndex] = matches[keyIndex] || []);
 
-                let fieldScore = null;
+                let fieldScore: number|null = null;
 
                 const valueList = Array.isArray(valueRaw) ? valueRaw : [valueRaw];
                 

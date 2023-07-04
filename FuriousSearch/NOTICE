@@ -1,0 +1,12 @@
+the code in this directory is all based on Fuse JS
+https://github.com/krisk/Fuse
+
+which was licensed under the apache 2 license (included here in the file named
+ LICENSE.Apache2.txt because i think i'm obligated to include it? idk)
+
+however since it is a derivative work (i greatly simplified the code, and added
+type annotations), then (i think?) i'm allowed to release it under whatever
+license i want(?) -- and i chose to release this entire project pretty much,
+into the public domain
+
+for more details about that, see the service-alerts project's licensing notes
