@@ -225,7 +225,8 @@ async function distanceToAlertCached(
 async function distanceToLineCached(
     line: ActualLineWithAlertCount,
     coord: [number, number],
-    allStops: Record<string, StopForMap>
+    allStops: Record<string, StopForMap>,
+    linesLocals: LinesLocals
 ) {
     const cacheKey = `line_${line.pk}____${JSON.stringify(coord)}`;
 
@@ -237,7 +238,8 @@ async function distanceToLineCached(
     result = await calculateDistanceToLine(
         line,
         {x: coordX, y: coordY},
-        allStops
+        allStops,
+        linesLocals.groupedRoutes
     );
 
     distancesCache.set(cacheKey, result);
@@ -294,7 +296,7 @@ async function getAllLinesCachedWithLocation(
     // should i cache this? idk, maybe
     const allStops = await dbAndLines.gtfsDbApi.getStopsForMap(
         result.lines_with_alert.flatMap(
-            line => line.all_stopids_distinct
+            line => dbAndLines.groupedRoutes.actualLinesDict[line.pk]?.all_stopids_distinct ?? []
         )
     );
 
@@ -303,7 +305,7 @@ async function getAllLinesCachedWithLocation(
     result.lines_with_alert = await asyncMap(
         result.lines_with_alert,
         async line => {
-            const distance = await distanceToLineCached(line, coord, allStops);
+            const distance = await distanceToLineCached(line, coord, allStops, dbAndLines);
 
             if (distance !== null) {
                 linePkToDistance[line.pk] = distance;

@@ -4,6 +4,7 @@ import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
 import { AlertSupplementalMetadata, GtfsDbApi } from "./gtfsDbApi.js";
 import { parseOldAramaicRegion } from "../loaderUtils/oldAramaic.js";
 import { inPlaceSortAndUnique } from "../generalJunkyard.js";
+import { GroupedRoutes } from "./routeGrouping.js";
 
 // israeli coordinate system
 proj4.defs("EPSG:2039","+proj=tmerc +lat_0=31.7343936111111 +lon_0=35.2045169444444 +k=1.0000067 +x_0=219529.584 +y_0=626907.39 +ellps=GRS80 +towgs84=23.772,17.49,17.859,0.3132,1.85274,-1.67299,-5.4262 +units=m +no_defs +type=crs");
@@ -94,11 +95,15 @@ export async function calculateDistanceToAlert(
 export async function calculateDistanceToLine(
     line: ActualLineWithAlertCount,
     currentLocation: CoordXY,
-    allStops: Record<string, StopForMap>
+    allStops: Record<string, StopForMap>,
+    groupedRoutes: GroupedRoutes
 ) {
     const currentLocationTransformed = COORD_TRANSFORMER.forward(currentLocation);
 
-    const allStopCoords = line.all_stopids_distinct.map(
+    const all_stopids_distinct = groupedRoutes.actualLinesDict[line.pk]?.all_stopids_distinct;
+    if (!all_stopids_distinct) return null;
+
+    const allStopCoords = all_stopids_distinct.map(
         stop_id => {
             const stop = allStops[stop_id];
             if (!stop) return null;

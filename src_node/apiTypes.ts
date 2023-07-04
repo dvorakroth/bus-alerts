@@ -81,7 +81,7 @@ export type Agency = {
 };
 
 export type ActualLineWithAlertCount = 
-    Omit<ActualLine, "all_directions_grouped">
+    Omit<ActualLine, "all_directions_grouped" | "all_stopids_distinct">
     & {
         num_alerts: number;
         // first_relevant_date: DateTime|null;
@@ -90,6 +90,7 @@ export type ActualLineWithAlertCount =
         num_relevant_today: number|null;
         num_removed_stops: number|null;
         all_directions_grouped: undefined;
+        all_stopids_distinct: undefined;
     }
     & {
         distance?: number;

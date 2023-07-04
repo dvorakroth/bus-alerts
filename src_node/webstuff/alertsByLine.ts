@@ -110,7 +110,8 @@ export async function getAllLines(
                 stop_id => actualLine.all_stopids_distinct.includes(stop_id)
             ).length,
 
-            all_directions_grouped: undefined
+            all_directions_grouped: undefined,
+            all_stopids_distinct: undefined
         };
 
         all_lines.push(withAlertCount);
