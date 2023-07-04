@@ -181,16 +181,10 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                     ref={searchInput}
                     onInput={onSearchInputChanged}
                 />
-                <span className="credit">מתוכנת כשירות לציבור מאת <a href="https://ish.works/" target="_blank">איש.וורקס</a></span>
-                {
-                // <div className="search-date-part">
-                //     <label className="search-date-label">
-                //         <input type="checkbox"/>
-                //         הגבלה לתאריך ספציפי:
-                //     </label>
-                //     <input type="date"/>
-                // </div>
-            }
+                <div className="bottom-links">
+                    <span className="credit">מתוכנת כשירות לציבור מאת <a href="https://ish.works/" target="_blank">איש.וורקס</a></span>
+                    <span className="privacy"><a href="/privacy.html" target="_blank">מדיניות פרטיות</a></span>
+                </div>
             </div>
         </div>
         <div className={"filter-notice" + ((showFilterNotice && !hasModal) ? " shown" : " hidden")}>

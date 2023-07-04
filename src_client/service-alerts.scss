@@ -293,9 +293,16 @@ hr {
     font-family: $font-stack;
 }
 
-.credit {
-    display: block;
-    text-align: left;
+.bottom-links {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+}
+
+.credit,
+.privacy {
+    // display: inline-block;
+    // text-align: left;
 
     // color: #eee;
     font-size: 80%;
