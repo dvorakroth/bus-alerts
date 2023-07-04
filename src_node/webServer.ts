@@ -42,14 +42,8 @@ winston.configure({
         winston.format.timestamp(),
         logFormat
     ),
-    transports: [
-        new winston.transports.Console(),
-        // TODO uh,,,, other stuff? idk ask elad lol
-    ],
-    exceptionHandlers: [
-        new winston.transports.Console()
-        // TODO same; ask elad
-    ]
+    transports: [new winston.transports.Console()],
+    exceptionHandlers: [new winston.transports.Console()]
 });
 
 
