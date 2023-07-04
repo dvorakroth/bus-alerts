@@ -56,14 +56,25 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
 
             const currentLocationStr = currentLocation
                 ? currentLocation[0].toFixed(6) + '_' + currentLocation[1].toFixed(6)
-                : "";
+                : null;
             
             const currentLocationParam = currentLocationStr
-                ? "?current_location=" + encodeURIComponent(currentLocationStr)
-                : "";
+                ? "current_location=" + encodeURIComponent(currentLocationStr)
+                : null;
+
+            const fetchOptions = currentLocationParam
+                ? {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: currentLocationParam
+                }
+                : { method: "GET" };
 
             fetch(
-                '/api/all_alerts' + currentLocationParam
+                '/api/all_alerts',
+                fetchOptions
             ).then(response => response.json())
             // .then(response => {
             //     return new Promise((resolve) => {

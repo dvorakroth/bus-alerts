@@ -14,8 +14,13 @@ import { calculateDistanceToAlert, calculateDistanceToLine } from "./webstuff/di
 
 export const apiRouter = express.Router();
 
-apiRouter.get("/all_alerts", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
-    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+apiRouter.use("/all_alerts", asyncHandler(async (req, res: express.Response<any, DbLocals>, next) => {
+    if (req.method !== "GET" && req.method !== "POST") {
+        next();
+        return;
+    }
+
+    const coord = tryParsingQueryCoordinate(req.body["current_location"] as string|undefined);
 
     const alertsAndMetadata = coord
         ? await getAllAlertsWithLocation(coord, res.locals)
@@ -39,16 +44,16 @@ apiRouter.get("/get_route_changes", asyncHandler(async (req, res: express.Respon
 
 apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
     const id = req.query["id"] as string|undefined;
-    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+    // const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
 
     if (!id) {
         res.sendStatus(StatusCodes.BAD_REQUEST);
         return;
     }
 
-    const alertsAndMetadata = coord
+    const alertsAndMetadata = /*coord
         ? await getSingleAlertWithLocation(id, coord, res.locals)
-        : await getSingleAlert(id, res.locals);
+        :*/ await getSingleAlert(id, res.locals);
     
     if (!alertsAndMetadata.alerts.length) {
         res.json({alerts: []});
@@ -74,8 +79,13 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
     res.json(result);
 }));
 
-apiRouter.get("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>) => {
-    const coord = tryParsingQueryCoordinate(req.query["current_location"] as string|undefined);
+apiRouter.use("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
+    if (req.method !== "GET" && req.method !== "POST") {
+        next();
+        return;
+    }
+    
+    const coord = tryParsingQueryCoordinate(req.body["current_location"] as string|undefined);
 
     const allLines = coord
         ? await getAllLinesCachedWithLocation(coord, res.locals)
@@ -149,21 +159,21 @@ async function getAllAlertsWithLocation(coord: [number, number], db: DbLocals) {
     return result;
 }
 
-async function getSingleAlertWithLocation(id: string, coord: [number, number], db: DbLocals) {
-    const cacheKey = JSON.stringify(coord) + "___/single_alert/" + id;
+// async function getSingleAlertWithLocation(id: string, coord: [number, number], db: DbLocals) {
+//     const cacheKey = JSON.stringify(coord) + "___/single_alert/" + id;
 
-    let result = alertsCache.get<SingleAlertResult>(cacheKey);
-    if (result) return result;
+//     let result = alertsCache.get<SingleAlertResult>(cacheKey);
+//     if (result) return result;
 
-    result = {
-        ...await getSingleAlert(id, db)
-    };
+//     result = {
+//         ...await getSingleAlert(id, db)
+//     };
 
-    await addDistanceToAlerts(result, coord, db);
-    alertsCache.set(cacheKey, result);
+//     await addDistanceToAlerts(result, coord, db);
+//     alertsCache.set(cacheKey, result);
 
-    return result;
-}
+//     return result;
+// }
 
 async function addDistanceToAlerts(result: AllAlertsResult, coord: [number, number], db: DbLocals) {
     // copy the array of alerts, and copy each alert in the array

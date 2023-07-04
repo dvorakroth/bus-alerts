@@ -118,6 +118,9 @@ const morganMiddleware = morgan(
 );
 app.use(morganMiddleware);
 
+// parse post data when we get any
+app.use(express.urlencoded({ extended: false }));
+
 // give all requests access to the db apis
 app.use((req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
     res.locals.alertsDbApi = new AlertsDbApi(alertsDbPool);

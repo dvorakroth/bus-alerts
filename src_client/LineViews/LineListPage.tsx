@@ -38,15 +38,25 @@ export default function LineListPage({hasModal}: Props) {
 
             const currentLocationStr = currentLocation
                 ? currentLocation[0].toFixed(6) + '_' + currentLocation[1].toFixed(6)
-                : "";
+                : null;
             
             const currentLocationParam = currentLocationStr
-                ? "?current_location=" + encodeURIComponent(currentLocationStr)
-                : "";
+                ? "current_location=" + encodeURIComponent(currentLocationStr)
+                : null;
 
+            const fetchOptions = currentLocationParam
+                ? {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: currentLocationParam
+                }
+                : { method: "GET" };
 
             fetch(
-                '/api/all_lines' + currentLocationParam
+                '/api/all_lines',
+                fetchOptions
             ).then(response => response.json())
             // .then(response => {
             //     return new Promise((resolve) => {
