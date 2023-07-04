@@ -94,7 +94,10 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                         const periods = dir?.time_sensitive_alerts?.periods;
 
                         if (periods?.length) {
-                            changesDict[dirIdx] = periods;
+                            changesDict[dirIdx] = periods.map(p => ({
+                                ...p,
+                                shape: dir.shape
+                            }));
                         } else {
                             changesDict[dirIdx] = [{
                                 shape: dir.shape,

@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, AddedRemovedDepartures, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
+import { ActualLineWithAlertCount, AddedRemovedDepartures, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, FlattenedLineDir, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
 import { AllAlertsResult, alertFindNextRelevantDate } from "./alerts.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
@@ -350,10 +350,10 @@ export async function getSingleLine(
                     ...period,
                     updated_stop_sequence: state.updatedStopSeq,
                     deleted_stop_ids: [...state.deletedStopIds],
-                    raw_stop_seq: state.rawStopSeq ?? [],
-                    shape: state.representativeTripId
+                    raw_stop_seq: undefined,// state.rawStopSeq ?? [],
+                    shape: undefined, /*state.representativeTripId
                         ? await gtfsDbApi.getShapePoints(state.representativeTripId)
-                        : null,
+                        : null,*/
                     departure_changes
                 });
             } else {
@@ -365,10 +365,10 @@ export async function getSingleLine(
                     ...period,
                     updated_stop_sequence: stopSeq.map(s => [s, false]),
                     deleted_stop_ids: [],
-                    raw_stop_seq: stopSeq,
-                    shape: representativeTripId
+                    raw_stop_seq: undefined, //stopSeq,
+                    shape: undefined, /*representativeTripId
                         ? await gtfsDbApi.getShapePoints(representativeTripId)
-                        : null,
+                        : null,*/
                     departure_changes,
                     has_no_route_changes: true
                 });
@@ -396,11 +396,11 @@ export async function getSingleLine(
         }
 
         for (const period of dir.time_sensitive_alerts?.periods ?? []) {
-            if (!period.shape?.length) {
-                period.shape = [...dir.shape];
-            }
+            // if (!period.shape?.length) {
+            //     period.shape = [...dir.shape];
+            // }
 
-            const bbox = calculateBoundingBoxForPeriod(period, all_stops);
+            const bbox = calculateBoundingBoxForPeriod(period, dir, all_stops);
             if (bbox) {
                 period.map_bounding_box = bbox;
             }
@@ -548,13 +548,14 @@ function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
 
 function calculateBoundingBoxForPeriod(
     period: AlertPeriodWithRouteChanges,
+    dir: FlattenedLineDir,
     all_stops: Record<string, StopForMap>
 ) {
     if (period.bitmask === 0) {
-        if (!period.raw_stop_seq?.length) return null;
+        if (!dir.stop_seq.length) return null;
 
         return boundingBoxForStops(
-            period.raw_stop_seq,
+            dir.stop_seq,
             all_stops
         );
     }
@@ -583,8 +584,8 @@ function calculateBoundingBoxForPeriod(
 
     if (relevantStopIds.size) {
         return boundingBoxForStops(relevantStopIds, all_stops);
-    } else if (period.raw_stop_seq?.length) {
-        return boundingBoxForStops(period.raw_stop_seq, all_stops);
+    } else if (dir.stop_seq.length) {
+        return boundingBoxForStops(dir.stop_seq, all_stops);
     } else {
         return null;
     }

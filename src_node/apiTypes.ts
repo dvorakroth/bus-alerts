@@ -133,11 +133,17 @@ export type RouteChangeMapData = {
     has_no_route_changes?: boolean;
 }
 
-export type AlertPeriodWithRouteChanges = AlertPeriod & RouteChangeMapData & {
-    departure_changes?: AddedRemovedDepartures|undefined;
-};
+export type AlertPeriodWithRouteChanges =
+    AlertPeriod &
+    Omit<RouteChangeMapData, "raw_stop_seq" | "shape"> &
+    {
+        departure_changes?: AddedRemovedDepartures|undefined;
 
-export type FlattnedLineDir = LineDir & {
+        raw_stop_seq: undefined;
+        shape: undefined;
+    };
+
+export type FlattenedLineDir = LineDir & {
     alt_id: string;
     stop_seq: string[];
     shape: null|([number, number][]); // [[lon, lat], [lon, lat], ...]
@@ -158,7 +164,7 @@ export type LineDetails = {
     headsign_1: string;
     headsign_2: string;
     is_night_line: boolean;
-    dirs_flattened: FlattnedLineDir[];
+    dirs_flattened: FlattenedLineDir[];
 };
 
 export type SingleLineChanges = {
