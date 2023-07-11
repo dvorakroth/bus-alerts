@@ -64,7 +64,7 @@ export async function getAllLines(
         }
     }
 
-    const todayInJerusalem = DateTime.now().setZone(JERUSALEM_TZ).set({
+    const todayInJerusalem = nowInJerusalem.set({
         hour: 0,
         minute: 0,
         second: 0,
@@ -92,7 +92,7 @@ export async function getAllLines(
             num_relevant_right_now: [...alertsForLine].filter(
                 alertId => {
                     const frts = firstRelevantTimestamps[alertId];
-                    return frts && frts.toSeconds() === todayInJerusalem.toSeconds()
+                    return frts && frts.toSeconds() <= nowInJerusalem.toSeconds()
                 }
             ).length,
             num_relevant_today: [...alertsForLine].filter(
