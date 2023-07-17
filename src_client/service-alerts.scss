@@ -40,6 +40,8 @@ $alert-bg-dark: #2b2b2b;
 $alert-border-dark: #484848;
 $agency-group-border-light: #bbb;
 $agency-group-border-dark: #666;
+$agency-tag-bg-light: #eaeaea;
+$agency-tag-bg-dark: #666;
 
 body {
     height: 100%;
@@ -615,6 +617,11 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
         left: 5px;
         top: 5px;
 
+        @include dark {
+            background-color: $agency-tag-bg-light;
+            color: #000;
+        }
+
         &.skeleton {
             width: 43px;
         }
@@ -703,9 +710,6 @@ ul.secondary-cities {
         margin: 0 4px 4px 0;
     }
 }
-
-$agency-tag-bg-light: #eaeaea;
-$agency-tag-bg-dark: #666;
 
 .agency-tag/*,
 .alert-count-tag*/ {
@@ -1362,6 +1366,11 @@ a.more-details:active {
 
             > .agency-tag {
                 justify-content: center;
+
+                @include dark {
+                    background-color: $agency-tag-bg-light;
+                    color: #000;
+                }
 
                 &.skeleton {
                     width: auto;
