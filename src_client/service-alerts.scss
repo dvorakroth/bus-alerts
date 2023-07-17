@@ -849,7 +849,7 @@ $agency-tag-bg-dark: #666;
     display: flex;
     flex-wrap: wrap;
 
-    margin: 3px 0 8px 0;
+    margin: 3px 0 5px 0;
     padding: 0;
 
     list-style-type: none;
@@ -864,7 +864,7 @@ $agency-tag-bg-dark: #666;
 
     &.interactive {
         gap: 8px;
-        margin: 8px 5px 10px 5px;
+        margin: 8px 5px 7px 5px;
         & > li {
             cursor: pointer;
             // overflow: visible;
@@ -1379,10 +1379,12 @@ a.more-details:active {
 }
 
 .agency-group {
-    flex-grow: 1;
+    &:not(:only-child) {
+        flex-grow: 1;
+    }
 
     border-radius: 4px;
-    padding: 4px;
+    padding: 4px 4px 0 4px;
     margin: 3px;
 
     border: 1px solid $agency-group-border-light;
@@ -1398,10 +1400,23 @@ a.more-details:active {
     // }
 
     & > .agency-tag {
+        // width: 100%;
+        // border-radius: 0;
         background: none;
+        padding-right: 0;
 
         @include dark {
             background: none;
+            // background: darken($agency-tag-bg-light, 15%);
+            // color: #000;
+        }
+
+        & > img {
+            @include dark {
+                padding: 4px;
+                border-radius: 4px;
+                background: $agency-tag-bg-light;
+            }
         }
     }
 }

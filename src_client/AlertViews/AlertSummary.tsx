@@ -216,9 +216,10 @@ export function RelevantLinesList(
     let lineGlobalIdx = 0;
 
     return <>
-            <h2>{RELEVANT_LINES_LABEL}</h2>
+        <h2>{RELEVANT_LINES_LABEL}</h2>
+        <div className="line-chooser">
             {relevant_agencies.map(({agency_name, agency_id}, agencyIdx) =>
-                <React.Fragment key={agency_id}>
+                <div className="agency-group" key={agency_id}>
                     <AgencyTag agency_name={agency_name}
                                agency_id={agency_id}
                                matches={agencyNameMatches?.[agencyIdx]} />
@@ -233,9 +234,10 @@ export function RelevantLinesList(
                             </li>;
                         })}
                     </ul>
-                </React.Fragment>
+                </div>
             )}
-        </>;
+        </div>
+    </>;
 }
 
 export const RelevantLinesOrAgencies = React.memo(
