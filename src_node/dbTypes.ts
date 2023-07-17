@@ -9,7 +9,8 @@ export enum AlertUseCase {
     StopsCancelled = 5,
     RouteChangesFlex = 6, // "stop-on-route"
     RouteChangesSimple = 7, // "routes-at-stop"
-    ScheduleChanges = 8 // "trips-of-route"
+    ScheduleChanges = 8, // "trips-of-route"
+    Route = 9 // new! added to spec at the end of 2022
 
     // i think the names i made up are better than the terrible mot ones
 }

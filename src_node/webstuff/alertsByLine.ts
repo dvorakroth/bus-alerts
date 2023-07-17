@@ -243,9 +243,9 @@ export async function getSingleLine(
     }
 
     for (const [flatDir, alertPairs] of zip(line_details.dirs_flattened, alerts_grouped)) {
-        const timeSensitiveAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
+        const nonExpiredNonDeletedAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
 
-        // at first, just get every alert's route_changes (but limited to each route_id) on its own
+        // at first, just get each route_id's alerts, separated into deleted and non-deleted
         for (const [alert, alertRaw] of alertPairs) {
             if (alert.is_expired) continue;
 
@@ -256,21 +256,18 @@ export async function getSingleLine(
                     use_case: alert.use_case
                 };
                 flatDir.deleted_alerts.push(alertMinimal)
-            } else if (
-                doesAlertHaveRouteChanges(alertRaw)
-                || alertRaw.use_case === AlertUseCase.ScheduleChanges
-            ) {
-                timeSensitiveAlerts.push([alert, alertRaw]);
+            } else {
+                nonExpiredNonDeletedAlerts.push([alert, alertRaw]);
             }
         }
 
-        if(!timeSensitiveAlerts.length) {
+        if(!nonExpiredNonDeletedAlerts.length) {
             continue;
         }
 
         flatDir.time_sensitive_alerts = {
             periods: [],
-            alert_metadata: alertPairs.map(
+            alert_metadata: nonExpiredNonDeletedAlerts.map(
                 ([{id, header, use_case}, _]) => ({id, header, use_case})
             )
         };
@@ -278,7 +275,7 @@ export async function getSingleLine(
         // now after we got all those alerts we can actually do the ~*~*MAGIC*~*~
 
         // divide the routeChangeAlerts active_periods.raw into a sequence of nicer periods
-        const alertPeriods = listOfAlertsToActivePeriodIntersectionsAndBitmasks(timeSensitiveAlerts);
+        const alertPeriods = listOfAlertsToActivePeriodIntersectionsAndBitmasks(nonExpiredNonDeletedAlerts);
 
         for (const period of alertPeriods) {
             const startDate = DateTime.fromSeconds(period.start, {zone: JERUSALEM_TZ}).set({
@@ -291,8 +288,8 @@ export async function getSingleLine(
             let state: ApplyAlertState|null = null;
             let departure_changes: AddedRemovedDepartures|undefined = undefined;
 
-            for (let i = 0; i < alertPairs.length; i++) {
-                const alertRaw = alertPairs[i]?.[1];
+            for (let i = 0; i < nonExpiredNonDeletedAlerts.length; i++) {
+                const alertRaw = nonExpiredNonDeletedAlerts[i]?.[1];
                 if (!alertRaw) continue;
 
                 const idxBitmask = (1 << i);

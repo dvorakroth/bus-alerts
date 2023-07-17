@@ -269,6 +269,7 @@ async function loadSingleEntity(
 
     const foundAgencyIds: string[] = [];
     const foundCityNames: string[] = [];
+    const foundRouteIds: string[] = [];
 
     if (useCase === null) {
         if (hasEnt) {
@@ -276,10 +277,14 @@ async function loadSingleEntity(
                 if (informedEntity.agencyId && informedEntity.agencyId !== "1") { // dear mot,\r\nface palm\r\nregards
                     foundAgencyIds.push(informedEntity.agencyId);
                 }
+
+                if (informedEntity.routeId) {
+                    foundRouteIds.push(informedEntity.routeId);
+                }
             }
         }
 
-        if (!foundAgencyIds.length && description.he) {
+        if (!foundAgencyIds.length && !foundRouteIds.length && description.he) {
             const i = description.he.indexOf(CITY_LIST_PREFIX);
 
             if (i >= 0) {
@@ -295,7 +300,12 @@ async function loadSingleEntity(
         }
     }
 
-    isNational = useCase === null && !foundAgencyIds.length && !foundCityNames.length && !oldAramaic;
+    isNational = 
+        useCase === null
+        && !foundAgencyIds.length
+        && !foundRouteIds.length
+        && !foundCityNames.length
+        && !oldAramaic;
 
     if (isNational) {
         useCase = AlertUseCase.National;
@@ -313,6 +323,12 @@ async function loadSingleEntity(
         relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
     }
 
+    if (!useCase && foundRouteIds.length) {
+        useCase = AlertUseCase.Route;
+        relevantRouteIds.push(...foundRouteIds);
+        relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+    }
+    
     if (!useCase && foundAgencyIds.length) {
         useCase = AlertUseCase.Agency;
         relevantAgencies.push(...foundAgencyIds);

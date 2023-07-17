@@ -45,7 +45,8 @@ export const USE_CASES = {
     "STOPS_CANCELLED": 5,
     "ROUTE_CHANGES_FLEX": 6,
     "ROUTE_CHANGES_SIMPLE": 7,
-    "SCHEDULE_CHANGES": 8
+    "SCHEDULE_CHANGES": 8,
+    "ROUTE": 9
 } as const;
 
 export const USE_CASES_REVERSE = {
@@ -56,5 +57,6 @@ export const USE_CASES_REVERSE = {
     5: "STOPS_CANCELLED",
     6: "ROUTE_CHANGES_FLEX",
     7: "ROUTE_CHANGES_SIMPLE",
-    8: "SCHEDULE_CHANGES"
+    8: "SCHEDULE_CHANGES",
+    9: "ROUTE"
 }

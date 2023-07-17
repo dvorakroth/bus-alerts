@@ -436,7 +436,7 @@ function AlertGanttRow({
                         "alert-gantt-item",
                         {"start-invisible": start < viewportStart},
                         {"end-invisible": end > viewportEnd},
-                        {"less-important": alert.use_case === USE_CASES.SCHEDULE_CHANGES}
+                        {"less-important": isAlertLessImportant(alert)}
                     )}
                     style={{
                         right: rightPercentageForUnixtime(start, viewportStart, viewportEnd),
@@ -446,6 +446,11 @@ function AlertGanttRow({
                 </div>
         )}
     </li>;
+}
+
+function isAlertLessImportant({use_case}: AlertMinimal) {
+    return use_case === USE_CASES.SCHEDULE_CHANGES
+        || use_case === USE_CASES.ROUTE;
 }
 
 interface NowHourlineProps {
