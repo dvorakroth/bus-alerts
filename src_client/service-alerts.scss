@@ -38,6 +38,8 @@ $alert-bg-light: #fff;
 $alert-border-light: rgb(218, 218, 218);
 $alert-bg-dark: #2b2b2b;
 $alert-border-dark: #484848;
+$agency-group-border-light: #bbb;
+$agency-group-border-dark: #666;
 
 body {
     height: 100%;
@@ -1304,7 +1306,7 @@ a.more-details:active {
 
     h2 {
         font-size: 120%;
-        margin: 0;
+        margin: 0 0 3px 0;
     }
 
     pre {
@@ -1322,12 +1324,6 @@ a.more-details:active {
     // .agency-tag {
     //     background-color: #d8d8d8;
     // }
-
-    h2 ~ .agency-tag,
-    .skeleton-h2 ~ .agency-tag {
-        width: 100%;
-        justify-content: center;
-    }
 
     > .destinations {
         margin-bottom: 10px;
@@ -1371,6 +1367,41 @@ a.more-details:active {
                     width: auto;
                 }
             }
+        }
+    }
+}
+
+.line-chooser {
+    display: flex;
+    flex-wrap: wrap;
+
+    margin-bottom: 18px;
+}
+
+.agency-group {
+    flex-grow: 1;
+
+    border-radius: 4px;
+    padding: 4px;
+    margin: 3px;
+
+    border: 1px solid $agency-group-border-light;
+
+    @include dark {
+        border-color: $agency-group-border-dark;
+    }
+
+    // background: $agency-tag-bg-light;
+
+    // @include dark {
+    //     background: $agency-tag-bg-dark;
+    // }
+
+    & > .agency-tag {
+        background: none;
+
+        @include dark {
+            background: none;
         }
     }
 }

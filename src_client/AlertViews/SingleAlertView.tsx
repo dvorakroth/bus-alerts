@@ -244,10 +244,11 @@ function LineChooser(
 
     let lineGlobalIdx = 0;
 
-    return <div role="radiogroup" aria-labelledby="choose-line-label">
-            { title ? <h2 id="choose-line-label">{title}</h2> : null }
+    return <>
+        { title ? <h2 id="choose-line-label">{title}</h2> : null }
+        <div className="line-chooser" role="radiogroup" aria-labelledby="choose-line-label">
             {relevant_agencies.map(({agency_name, agency_id}, agencyIdx) =>
-                <React.Fragment key={agency_id}>
+                <div className="agency-group" key={agency_id}>
                     <AgencyTag agency_name={agency_name}
                                agency_id={agency_id}
                                matches={agencyNameMatches?.[agencyIdx]} />
@@ -263,9 +264,10 @@ function LineChooser(
                                                    matches={lineNumberMatches?.[lineGlobalIdx - 1]} />;
                         })}
                     </ul>
-                </React.Fragment>
+                </div>
             )}
-        </div>;
+        </div>
+    </>;
 }
 
 interface LineChooserAndMapProps extends RelevantLinesListProps {
