@@ -1,11 +1,11 @@
 import * as ReactRouterDOM from 'react-router-dom';
-import { FuriousSearchMatch } from '../FuriousSearch/furiousindex';
+import { FurrySearchMatch } from 'furry-text-search';
 import { ServiceAlert } from './protocol';
 
 export type LocationStateAlert = {
     alert?: ServiceAlert,
     showDistance?: boolean,
-    matches: FuriousSearchMatch[][],
+    matches: FurrySearchMatch[][],
     backToLine?: {
         line_number: string;
         agency_id: string;
