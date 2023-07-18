@@ -1,12 +1,12 @@
 import * as React from "react";
-import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
+import { FurrySearchMatch } from "furry-text-search";
 import { Agency } from "../protocol";
 import { imageNameForAgencyId } from "../agency_images";
 import { MatchedString, areMatchesEqual } from "../AlertViews/AlertSummary";
 import nightLinesPng from "../assets/agency_logos/night_lines.png";
 
 interface AgencyTagProps extends Agency {
-    matches?: FuriousSearchMatch;
+    matches?: FurrySearchMatch;
     is_night_line?: boolean;
     hideName?: boolean;
 }

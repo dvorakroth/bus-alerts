@@ -1,6 +1,6 @@
 // import Fuse from "../Fuse/src";
 import * as React from "react";
-import { FuriousIndex } from "../../FuriousSearch/furiousindex";
+import { FurryIndex } from "furry-text-search";
 import AlertList, { ServiceAlertOrSearchResult } from "./AlertList";
 import { AlertsResponse, ServiceAlert } from "../protocol";
 import GeolocationButton from "../RandomComponents/GeolocationButton";
@@ -20,7 +20,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
     const [currentlyDisplayedData, setCurrentlyDisplayedData] = React.useState<ServiceAlertOrSearchResult[]>([]);
 
     // const searchWorker = React.useRef<Worker>(null);
-    const searchIndex = React.useRef<FuriousIndex<ServiceAlert>|null>(null);
+    const searchIndex = React.useRef<FurryIndex<ServiceAlert>|null>(null);
     const searchInput = React.useRef<HTMLInputElement|null>(null);
     const currentRefresh = React.useRef<number>(0); // to make sure we only display the freshest data
     const currentSearch  = React.useRef<number>(0); // ...and searches!
@@ -91,7 +91,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                 //     msg: "newdata",
                 //     alerts: data?.alerts
                 // });
-                searchIndex.current = new FuriousIndex<ServiceAlert>(data.alerts ?? [], ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
+                searchIndex.current = new FurryIndex<ServiceAlert>(data.alerts ?? [], ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
                 setData(data);
                 setIsLoading(false);
                 setShowDistance(!!currentLocationStr);

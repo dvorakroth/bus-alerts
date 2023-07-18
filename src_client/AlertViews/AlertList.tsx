@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
-import { FuriousSearchResult } from "../../FuriousSearch/furiousindex";
+import { FurrySearchResult } from "furry-text-search";
 import { AlertSummary } from "./AlertSummary";
 import { ServiceAlert } from "../protocol";
 
@@ -10,7 +10,7 @@ import { breakoutSearchableListItem } from "../LineViews/LineList";
 import { AlertSummarySkeleton } from "../RandomComponents/Skeletons";
 smoothscroll.polyfill();
 
-export type ServiceAlertOrSearchResult = ServiceAlert | FuriousSearchResult<ServiceAlert>;
+export type ServiceAlertOrSearchResult = ServiceAlert | FurrySearchResult<ServiceAlert>;
 
 interface AlertListProps {
     alerts: ServiceAlertOrSearchResult[];

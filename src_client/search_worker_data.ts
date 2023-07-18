@@ -1,4 +1,4 @@
-import { FuriousKeyDefinition, FuriousSortFunc } from "../FuriousSearch/furiousindex";
+import { FurryKeyDefinition, FurrySortFunc } from "furry-text-search";
 import { ActualLine, Agency, ServiceAlert } from "./protocol";
 
 // export type SearchWorkerMessageNewData = {
@@ -18,7 +18,7 @@ import { ActualLine, Agency, ServiceAlert } from "./protocol";
 
 // export type SearchWorkerResponse = {
 //     id: number,
-//     results: FuriousSearchResult<ServiceAlert>[]
+//     results: FurrySearchResult<ServiceAlert>[]
 // }
 
 // export function isNewData(obj: SearchWorkerRequest): obj is SearchWorkerMessageNewData {
@@ -48,7 +48,7 @@ export const ALERT_SEARCH_KEY_INDICES = {
     REMOVED_STOP_CODE: 7
 };
 
-export const LINE_SEARCH_KEYS = (all_agencies: Record<string, Agency>): FuriousKeyDefinition<ActualLine>[] => [
+export const LINE_SEARCH_KEYS = (all_agencies: Record<string, Agency>): FurryKeyDefinition<ActualLine>[] => [
     {
         get: a => a.route_short_name,
         weight: 1
@@ -75,7 +75,7 @@ export const LINE_SEARCH_KEYS = (all_agencies: Record<string, Agency>): FuriousK
     }
 ];
 
-export const ALERT_SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
+export const ALERT_SEARCH_KEYS: FurryKeyDefinition<ServiceAlert>[] = [
     {
         // "name": "header.he",
         "get": (a) => a.header.he ?? "",
@@ -126,14 +126,14 @@ export const ALERT_SEARCH_KEYS: FuriousKeyDefinition<ServiceAlert>[] = [
     }
 ];
 
-export const DEFAULT_SORT_COMPARE_FUNC: FuriousSortFunc<any> = (a, b) => {
+export const DEFAULT_SORT_COMPARE_FUNC: FurrySortFunc<any> = (a, b) => {
     if (a.score === b.score)
         return a.idx - b.idx;
     else
         return a.score - b.score;
 }
 
-export const ALERT_SORT_COMPARE_FUNC: FuriousSortFunc<ServiceAlert> = (a, b) => {
+export const ALERT_SORT_COMPARE_FUNC: FurrySortFunc<ServiceAlert> = (a, b) => {
     const aDeleted = a.obj.is_deleted || a.obj.is_expired;
     const bDeleted = b.obj.is_deleted || b.obj.is_expired;
 

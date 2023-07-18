@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { FuriousIndex } from '../../FuriousSearch/furiousindex';
+import { FurryIndex } from 'furry-text-search';
 import { ActualLine, LinesListResponse } from '../protocol';
 import LineList, { breakoutSearchableListItem, LineListItem } from './LineList';
 import { LINE_SEARCH_KEYS, SEARCH_THRESHOLD, DEFAULT_SORT_COMPARE_FUNC } from '../search_worker_data';
@@ -21,7 +21,7 @@ export default function LineListPage({hasModal}: Props) {
     const [searchString, setSearchString] = React.useState<string|null>(null);
     const [currentlyDisplayedData, setCurrentlyDisplayedData] = React.useState<LineListItem[]>([]);
 
-    const searchIndex = React.useRef<FuriousIndex<ActualLine>|null>(null);
+    const searchIndex = React.useRef<FurryIndex<ActualLine>|null>(null);
     const searchInput = React.useRef<HTMLInputElement|null>(null);
     const currentRefresh = React.useRef<number>(0); // to make sure we only display the freshest data
     const currentSearch  = React.useRef<number>(0); // ...and searches!
@@ -74,7 +74,7 @@ export default function LineListPage({hasModal}: Props) {
                 //     msg: "newdata",
                 //     alerts: data?.alerts
                 // });
-                searchIndex.current = new FuriousIndex<ActualLine>(
+                searchIndex.current = new FurryIndex<ActualLine>(
                     data.all_lines,
                     LINE_SEARCH_KEYS(data.all_agencies),
                     DEFAULT_SORT_COMPARE_FUNC

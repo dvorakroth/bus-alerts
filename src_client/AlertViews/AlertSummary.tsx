@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 // import Fuse from "../Fuse/src";
 import * as React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
+import { FurrySearchMatch } from "furry-text-search";
 import { Agency, ServiceAlert } from "../protocol";
 import { DOW_SHORT, isoToLocal, JERUSALEM_TZ, short_datetime_hebrew, short_date_hebrew } from "../junkyard/date_utils";
 import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
@@ -166,7 +166,7 @@ const MORE_DETAILS_STRING     = "לחצו לפרטים נוספים >";
 
 interface RelevantAgenciesListProps {
     relevant_agencies: Agency[]; // list of agency_ids
-    agencyNameMatches?: FuriousSearchMatch[];
+    agencyNameMatches?: FurrySearchMatch[];
 }
 
 function RelevantAgenciesList({relevant_agencies, agencyNameMatches}: RelevantAgenciesListProps) {
@@ -189,8 +189,8 @@ function RelevantAgenciesList({relevant_agencies, agencyNameMatches}: RelevantAg
 export interface RelevantLinesListProps {
     relevant_lines: Record<string, string[]>;
     relevant_agencies: Agency[];
-    agencyNameMatches?: FuriousSearchMatch[];
-    lineNumberMatches?: FuriousSearchMatch[];
+    agencyNameMatches?: FurrySearchMatch[];
+    lineNumberMatches?: FurrySearchMatch[];
 }
 
 export function RelevantLinesList(
@@ -293,7 +293,7 @@ export const RelevantLinesOrAgencies = React.memo(
     }
 );
 
-function areMatchListsEqual(a: FuriousSearchMatch[]|undefined, b: FuriousSearchMatch[]|undefined) {
+function areMatchListsEqual(a: FurrySearchMatch[]|undefined, b: FurrySearchMatch[]|undefined) {
     if (a === b || (!a && !b)) {
         return true;
     }
@@ -319,7 +319,7 @@ function areMatchListsEqual(a: FuriousSearchMatch[]|undefined, b: FuriousSearchM
     return true;
 }
 
-export function areMatchesEqual(a: FuriousSearchMatch|undefined, b: FuriousSearchMatch|undefined) {
+export function areMatchesEqual(a: FurrySearchMatch|undefined, b: FurrySearchMatch|undefined) {
     if (a === b || (!a && !b)) {
         return true;
     }
@@ -350,8 +350,8 @@ const MAX_STOPS_IN_LIST = 7; // chosen arbitrarily sunglasses emoji
 interface RelevantStopsListProps {
     relevant_stops: [string, string][];
     isRemoved: boolean;
-    stopNameMatches?: FuriousSearchMatch[];
-    stopCodeMatches?: FuriousSearchMatch[];
+    stopNameMatches?: FurrySearchMatch[];
+    stopCodeMatches?: FurrySearchMatch[];
     dontHideStops?: boolean;
 }
 
@@ -430,7 +430,7 @@ export const RelevantStopsList = React.memo(
 
 interface MatchedStringProps {
     s: string;
-    matches?: FuriousSearchMatch;
+    matches?: FurrySearchMatch;
 }
 
 export const MatchedString = React.memo(
@@ -480,7 +480,7 @@ export const MatchedString = React.memo(
 
 export interface AlertSummaryProps {
     alert: ServiceAlert;
-    matches?: FuriousSearchMatch[][]|null;
+    matches?: FurrySearchMatch[][]|null;
     showDistance: boolean;
 }
 

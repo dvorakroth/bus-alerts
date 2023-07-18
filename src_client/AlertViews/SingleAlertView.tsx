@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as ReactRouter from "react-router-dom";
-import { FuriousSearchMatch } from "../../FuriousSearch/furiousindex";
+import { FurrySearchMatch } from "furry-text-search";
 import { areMatchesEqual, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
@@ -162,7 +162,7 @@ interface LineChooserLineNumberProps {
     line_number: string;
     isSelected: boolean;
     onLineClick: (agency_id: string, line_number: string, event: React.MouseEvent) => void;
-    matches?: FuriousSearchMatch;
+    matches?: FurrySearchMatch;
 }
 
 const LineChooserLineNumber = React.memo(
@@ -200,8 +200,8 @@ interface LineChooserProps {
     relevant_lines: Record<string, string[]>;
     relevant_agencies: Agency[];
     onNewSelection: null|((agency_id: string, line_number: string, event: React.MouseEvent) => void);
-    agencyNameMatches?: FuriousSearchMatch[];
-    lineNumberMatches?: FuriousSearchMatch[];
+    agencyNameMatches?: FurrySearchMatch[];
+    lineNumberMatches?: FurrySearchMatch[];
     title?: string;
 }
 
@@ -491,7 +491,7 @@ interface SingleAlertViewProps {
     loadingStatus: LoadingStatus;
     isModal: boolean;
     showDistance: boolean;
-    matches?: FuriousSearchMatch[][];
+    matches?: FurrySearchMatch[][];
     backToLine?: {
         line_number: string;
         agency_id: string;

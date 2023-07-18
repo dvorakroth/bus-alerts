@@ -2,7 +2,7 @@ import * as React from "react";
 import * as ReactRouterDOM from "react-router-dom"; 
 
 import { Virtuoso, ItemContent, VirtuosoHandle } from "react-virtuoso";
-import { FuriousSearchMatch, FuriousSearchResult, isFuriousSearchResult } from "../../FuriousSearch/furiousindex";
+import { FurrySearchMatch, FurrySearchResult, isFurrySearchResult } from "furry-text-search";
 import { ActualLine } from "../protocol";
 
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
@@ -21,9 +21,9 @@ import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from "../junkyard/
 import { DateTime } from "luxon";
 smoothscroll.polyfill();
 
-export type LineListItem = ActualLine | FuriousSearchResult<ActualLine>;
-export function breakoutSearchableListItem<T>(l: T | FuriousSearchResult<T>): [T, FuriousSearchResult<T>|null] {
-    return isFuriousSearchResult<T>(l)
+export type LineListItem = ActualLine | FurrySearchResult<ActualLine>;
+export function breakoutSearchableListItem<T>(l: T | FurrySearchResult<T>): [T, FurrySearchResult<T>|null] {
+    return isFurrySearchResult<T>(l)
         ? [l.obj, l]
         : [l, null];
 }
@@ -127,7 +127,7 @@ export default function LineList({
 
 interface LineSummaryProps {
     line: ActualLine;
-    matches: FuriousSearchMatch[][];
+    matches: FurrySearchMatch[][];
     showDistance: boolean;
 }
 
