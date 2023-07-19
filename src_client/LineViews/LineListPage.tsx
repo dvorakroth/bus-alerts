@@ -180,7 +180,7 @@ export default function LineListPage({hasModal}: Props) {
                 />
                 <div className="bottom-links">
                     <span className="credit">מתוכנת כשירות לציבור מאת <a href="https://ish.works/" target="_blank">איש.וורקס</a></span>
-                    <span className="privacy"><a href="/privacy.html" target="_blank">מדיניות פרטיות</a></span>
+                    <span className="privacy"><a href="/legal.html" target="_blank">משפטים ופרטיות</a></span>
                 </div>
             </div>
         </div>

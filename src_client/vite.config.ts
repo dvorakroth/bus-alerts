@@ -30,7 +30,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
-        privacy: path.resolve(__dirname, 'privacy.html')
+        legal: path.resolve(__dirname, 'legal.html')
       }
     }
   }
