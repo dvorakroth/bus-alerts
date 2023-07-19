@@ -7,7 +7,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
       proxy: {
-        // '/api': 'http://127.0.0.1:8080' // proxy api requests to cherrypy during dev
         "/api": "http://127.0.0.1:8888" // proxy api requests to node server during dev
       }
   },
