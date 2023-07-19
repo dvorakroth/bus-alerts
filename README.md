@@ -5,7 +5,7 @@ See real-time service alerts for Israeli public transit! Visit [bus-alerts.com](
 
 This is a Hebrew-language website/webapp written in Typescript, PostgreSQL, HTML, JSX and SASS, designed to read in GTFS and GTFS-RT data from the Israeli Ministry of Transportation, and hopefully output it in a readable, usable format.
 
-This project was greated after the Israeli MoT created its own weird-ass extensions to the GTFS-RT format that so far no major transit app has implemented any support for.
+This project was greated after the Israeli MoT created [its own weird-ass extensions to the GTFS-RT format](https://www.gov.il/he/departments/general/special_notices_to_developers) that so far no major transit app has implemented any support for.
 
 This project is in the public domain, see [LICENSE](./LICENSE) for more details. Feel free to fork it, extend it, add to it, run your own instance of it, whatever! For the love of friggin' G-d this data needs to be accessible to public transit users!
 
