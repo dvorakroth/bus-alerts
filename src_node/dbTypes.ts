@@ -103,9 +103,10 @@ type BaseAlertInDb = BaseAlert & {
         use_case: AlertUseCase.ScheduleChanges,
         schedule_changes: DepartureChanges
     } | {
-        use_case: AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple|AlertUseCase.StopsCancelled,
+        use_case: AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple,
         schedule_changes: RouteChanges
     } | {
+        use_case: Exclude<AlertUseCase, AlertUseCase.ScheduleChanges|AlertUseCase.RouteChangesFlex|AlertUseCase.RouteChangesSimple>,
         schedule_changes: null
     }
 );
