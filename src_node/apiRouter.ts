@@ -11,6 +11,9 @@ import winston from "winston";
 import { getAllLines, getSingleLine, sortLinesWithAlerts } from "./webstuff/alertsByLine.js";
 import { asyncMap } from "./generalJunkyard.js";
 import { calculateDistanceToAlert, calculateDistanceToLine } from "./webstuff/distances.js";
+import gtfsRealtimeBindings from "gtfs-realtime-bindings";
+
+const { transit_realtime } = gtfsRealtimeBindings;
 
 export const apiRouter = express.Router();
 
@@ -78,6 +81,27 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
     
     res.json(result);
 }));
+
+apiRouter.get("/json/alert/:alertId", asyncHandler(async (req, res: express.Response<any, DbLocals>) => {
+    const alertId = req.params["alertId"] as string|undefined;
+    if (!alertId) {
+        res.sendStatus(StatusCodes.BAD_REQUEST);
+        return;
+    }
+
+    const alertRawData = await res.locals.alertsDbApi.getSingleAlertRawData(alertId);
+    if (!alertRawData) {
+        res.sendStatus(StatusCodes.NOT_FOUND);
+        return;
+    }
+
+    const feedMessage = transit_realtime.FeedEntity.decode(alertRawData);
+
+    // not using res.json() here because i want it pretty printed for my own
+    // perverse enjoyment
+    res.set('Content-Type', 'application/json');
+    res.send(JSON.stringify(feedMessage, null, 4));
+}))
 
 apiRouter.use("/all_lines", asyncHandler(async (req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
     if (req.method !== "GET" && req.method !== "POST") {

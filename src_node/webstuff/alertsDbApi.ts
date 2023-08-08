@@ -65,4 +65,13 @@ export class AlertsDbApi {
 
         return res.rows;
     }
+
+    async getSingleAlertRawData(alertId: string): Promise<Buffer|null> {
+        const res = await this.alertsDbPool.query<{raw_data: Buffer}>(
+            `SELECT raw_data FROM alert WHERE id=$1::varchar;`,
+            [alertId]
+        );
+
+        return res.rows[0]?.raw_data ?? null;
+    }
 }
