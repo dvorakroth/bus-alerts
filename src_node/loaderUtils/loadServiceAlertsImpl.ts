@@ -122,8 +122,30 @@ async function loadSingleEntity(
     let originalSelector: OriginalSelector = {};
     let isNational = false;
 
-    const hasEnt = (alert.informedEntity?.length ?? 0) > 0;
-    const firstEnt = alert.informedEntity?.[0];
+    let hasRouteAndStopEnt = false;
+    let hasStopEnt = false;
+    let hasTripEnt = false;
+    // let hasRouteEnt = false;
+    // let hasAgencyEnt = false;
+    const foundAgencyIds: string[] = [];
+    const foundRouteIds: string[] = [];
+
+    for (const informedEntity of alert.informedEntity ?? []) {
+        if (informedEntity.routeId && informedEntity.stopId) {
+            hasRouteAndStopEnt = true;
+            foundRouteIds.push(informedEntity.routeId);
+        } else if (informedEntity.agencyId && informedEntity.agencyId !== "1") {
+            // hasAgencyEnt = true;
+            foundAgencyIds.push(informedEntity.agencyId);
+        } else if (informedEntity.stopId) {
+            hasStopEnt = true;
+        } else if (informedEntity.trip) {
+            hasTripEnt = true;
+        } else if (informedEntity.routeId) {
+            // hasRouteEnt = true;
+            foundRouteIds.push(informedEntity.routeId);
+        }
+    }
 
     const relevantAgencies: string[] = [];
     const relevantRouteIds: string[] = [];
@@ -132,86 +154,118 @@ async function loadSingleEntity(
     let routeChanges: RouteChanges|null = null;
     let departureChanges: DepartureChanges|null = null;
 
-    const hasOarRouteId = oldAramaic && oldAramaic.startsWith("route_id=");
+    // const hasOarRouteId = oldAramaic && oldAramaic.startsWith("route_id=");
 
-    if (hasOarRouteId || firstEnt?.stopId) {
-        if (!hasOarRouteId && !firstEnt?.routeId) {
-            // no old aramaic, no route_id -- only stop_id
-            useCase = AlertUseCase.StopsCancelled;
+    if (hasRouteAndStopEnt) {
+        // has entities containing both route_id and stop_id
+        const routeStopPairs: [string, string][] = [];
+        routeChanges = {};
+        if (routeChanges === null) {
+            throw "???"; //shouldn't happen; this is just here to typescript doesn't yell at me
+        }
 
-            const stop_ids = (alert.informedEntity?.map(e => e.stopId).filter(s => !!s) ?? []) as string[];
-
-            originalSelector = {
-                stop_ids
-            };
-
-            removedStopIds.push(...stop_ids);
-            relevantRouteIds.push(...await fetchAllRouteIdsAtStopsInDateranges(
-                gtfsDb,
-                removedStopIds,
-                activePeriods
-            ));
-            relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
-        } else {
-            // route_id and stop_id
-            const routeStopPairs: [string, string][] = [];
-            routeChanges = {};
-            if (routeChanges === null) {
-                throw "???"; //shouldn't happen; this is just here to typescript doesn't yell at me
+        for (const informedEntity of alert.informedEntity ?? []) {
+            if (!informedEntity.stopId) {
+                continue; // this actually happened once and bugged the api server's code -_-
             }
 
-            for (const informedEntity of alert.informedEntity ?? []) {
-                if (!informedEntity.stopId || !informedEntity.routeId) {
-                    continue; // this actually happened once and bugged the api server's code -_-
-                }
+            const routeIds = informedEntity.routeId
+                ? [informedEntity.routeId]
+                : await fetchAllRouteIdsAtStopsInDateranges(
+                    gtfsDb,
+                    [informedEntity.stopId],
+                    activePeriods//,
+                    //foundAgencyIds
+                );
+            
+            // if (!informedEntity.routeId/* && !foundAgencyIds.length*/) {
+            //     // if we just did a fetchAllRouteIdsAtStopsInDateranges call
+            //     // but we didn't restrict it by agency_id,
+            //     // then restrict it by route_id instead? :|
 
+            //     // maybe we should do this as a restriction by the agencies
+            //     // of the routes we DID see? idk man this protocol is a
+            //     // hellish mess
+
+            //     for (let i = 0; i < routeIds.length; i++) {
+            //         const routeId = routeIds[i];
+            //         if (!routeId) continue;
+
+            //         if (!foundRouteIds.includes(routeId)) {
+            //             routeIds.splice(i, 1);
+            //             // don't increment since we just deleted the current index
+            //             // but we can't not-increment so instead we decrement
+            //             // before the for loop increments lol
+            //             --i;
+            //         }
+            //     }
+            // }
+
+            for (const routeId of routeIds) {
                 removedStopIds.push(informedEntity.stopId);
-                routeStopPairs.push([informedEntity.routeId, informedEntity.stopId]);
+                routeStopPairs.push([routeId, informedEntity.stopId]);
 
-                if (!routeChanges.hasOwnProperty(informedEntity.routeId)) {
-                    routeChanges[informedEntity.routeId] = [];
-                    relevantRouteIds.push(informedEntity.routeId);
+                if (!routeChanges.hasOwnProperty(routeId)) {
+                    routeChanges[routeId] = [];
+                    relevantRouteIds.push(routeId);
                 }
 
-                routeChanges[informedEntity.routeId]?.push({
+                routeChanges[routeId]?.push({
                     removed_stop_id: informedEntity.stopId
                 });
             }
-
-            if (!oldAramaic) {
-                useCase = AlertUseCase.RouteChangesSimple;
-                originalSelector = {route_stop_pairs: routeStopPairs};
-            } else {
-                useCase = AlertUseCase.RouteChangesFlex;
-                originalSelector = {
-                    route_stop_pairs: routeStopPairs,
-                    old_aramaic: oldAramaic
-                };
-                const oarAdditions = parseOldAramaicRoutechgs(oldAramaic);
-
-                // merge the schedule changes we got from old aramaic text
-                // into the schedule changes we got from informedEntity[]
-                for (const [routeId, additions] of Object.entries(oarAdditions)) {
-                    if (!routeChanges.hasOwnProperty(routeId)) {
-                        routeChanges[routeId] = additions;
-                        relevantRouteIds.push(routeId);
-                    } else {
-                        // put additions before removals because the additions
-                        // can be relative to a stop that gets removed
-                        // and i wanna be good to future me and avoid these bugs(?)
-                        routeChanges[routeId]?.splice(0, 0, ...additions);
-                    }
-
-                    addedStopIds.push(...additions.map(a => a.added_stop_id));
-                }
-            }
-
-            inPlaceSortAndUnique(removedStopIds);
-            inPlaceSortAndUnique(addedStopIds);
-            inPlaceSortAndUnique(relevantRouteIds);
-            relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
         }
-    } else if (firstEnt?.trip?.tripId) {
+
+        if (!oldAramaic) {
+            useCase = AlertUseCase.RouteChangesSimple;
+            originalSelector = {route_stop_pairs: routeStopPairs};
+        } else {
+            useCase = AlertUseCase.RouteChangesFlex;
+            originalSelector = {
+                route_stop_pairs: routeStopPairs,
+                old_aramaic: oldAramaic
+            };
+            const oarAdditions = parseOldAramaicRoutechgs(oldAramaic);
+
+            // merge the schedule changes we got from old aramaic text
+            // into the schedule changes we got from informedEntity[]
+            for (const [routeId, additions] of Object.entries(oarAdditions)) {
+                if (!routeChanges.hasOwnProperty(routeId)) {
+                    routeChanges[routeId] = additions;
+                    relevantRouteIds.push(routeId);
+                } else {
+                    // put additions before removals because the additions
+                    // can be relative to a stop that gets removed
+                    // and i wanna be good to future me and avoid these bugs(?)
+                    routeChanges[routeId]?.splice(0, 0, ...additions);
+                }
+
+                addedStopIds.push(...additions.map(a => a.added_stop_id));
+            }
+        }
+
+        inPlaceSortAndUnique(removedStopIds);
+        inPlaceSortAndUnique(addedStopIds);
+        inPlaceSortAndUnique(relevantRouteIds);
+        relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+    } else if (hasStopEnt) {
+        // no informedEntities with route_id+stop_id, but still some with just a stop_id
+        useCase = AlertUseCase.StopsCancelled;
+
+        const stop_ids = (alert.informedEntity?.map(e => e.stopId).filter(s => !!s) ?? []) as string[];
+
+        originalSelector = {
+            stop_ids
+        };
+
+        removedStopIds.push(...stop_ids);
+        relevantRouteIds.push(...await fetchAllRouteIdsAtStopsInDateranges(
+            gtfsDb,
+            removedStopIds,
+            activePeriods
+        ));
+        relevantAgencies.push(...await fetchUniqueAgenciesForRoutes(gtfsDb, relevantRouteIds));
+    } else if (hasTripEnt) {
         useCase = AlertUseCase.ScheduleChanges;
 
         const trips: TripSelector[] = [];
@@ -267,23 +321,9 @@ async function loadSingleEntity(
         originalSelector = {trips};
     }
 
-    const foundAgencyIds: string[] = [];
     const foundCityNames: string[] = [];
-    const foundRouteIds: string[] = [];
 
     if (useCase === null) {
-        if (hasEnt) {
-            for (const informedEntity of alert.informedEntity ?? []) {
-                if (informedEntity.agencyId && informedEntity.agencyId !== "1") { // dear mot,\r\nface palm\r\nregards
-                    foundAgencyIds.push(informedEntity.agencyId);
-                }
-
-                if (informedEntity.routeId) {
-                    foundRouteIds.push(informedEntity.routeId);
-                }
-            }
-        }
-
         if (!foundAgencyIds.length && !foundRouteIds.length && description.he) {
             const i = description.he.indexOf(CITY_LIST_PREFIX);
 
@@ -389,7 +429,8 @@ async function markAlertsDeletedIfNotInList(
 async function fetchAllRouteIdsAtStopsInDateranges(
     gtfsDb: pg.Client,
     stopIds: string[],
-    activePeriods: [number|null, number|null][]
+    activePeriods: [number|null, number|null][],
+    restrictAgencyIds?: string[]
 ): Promise<string[]> {
     if (!stopIds.length || !activePeriods.length) {
         return [];
@@ -397,7 +438,8 @@ async function fetchAllRouteIdsAtStopsInDateranges(
 
     const {queryText, queryValues} = generateQuery__fetchAllRouteIdsAtStopsInDateranges(
         stopIds,
-        activePeriods
+        activePeriods,
+        restrictAgencyIds
     );
 
     winston.debug('fetchAllRouteIdsAtStopsInDateranges');
@@ -412,20 +454,28 @@ async function fetchAllRouteIdsAtStopsInDateranges(
 
 export function generateQuery__fetchAllRouteIdsAtStopsInDateranges(
     stopIds: string[],
-    activePeriods: [number|null, number|null][]
+    activePeriods: [number|null, number|null][],
+    restrictAgencyIds?: string[]
 ): {queryText: string, queryValues: [string[], ...string[]]} {
     // i fear the day when i need to maintain this function haha upside down smiley emoji
     // (NOTE 2023-06-09 13:36 haha i need to not just *maintain* this, but REWRITE IT in typescript haha upside down smiley emoji)
     // (NOTE 2023-06-09 14:53 fuck me haha)
+    // (NOTE 2023-08-08 20:54 godfuckingdammit)
 
     let paramCounter = 0;
     let queryText = `
-        SELECT DISTINCT route_id FROM trips
+        SELECT DISTINCT trips.route_id FROM trips
         INNER JOIN stoptimes_int ON trips.trip_id = stoptimes_int.trip_id
         INNER JOIN calendar ON trips.service_id = calendar.service_id
+        ${restrictAgencyIds?.length ? 'INNER JOIN routes ON trips.route_id = routes.route_id' : ''}
         WHERE stoptimes_int.stop_id = ANY($${++paramCounter}::varchar[])
+        ${restrictAgencyIds?.length ? `AND routes.agency_id = ANY($${++paramCounter}::varchar[])` : ''}
     `;
     const queryValues: [string[], ...string[]] = [stopIds];
+    
+    if (restrictAgencyIds?.length) {
+        queryValues.push(restrictAgencyIds);
+    }
 
     const allPeriodConditions: string[] = [];
     const allPeriodValues: string[] = [];
