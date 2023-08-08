@@ -72,7 +72,11 @@ h2 + ul {
 }
 
 a:link,
-a:hover {
+a:hover,
+.fake-link {
+    color: rgb(0, 102, 204);
+    text-decoration: underline;
+
     @include dark {
         color: rgb(38, 121, 194);
     }
@@ -80,6 +84,9 @@ a:hover {
 
 a:active,
 a:visited {
+    color: rgb(85, 26, 139);
+    text-decoration: underline;
+    
     @include dark {
         color: rgb(192, 55, 192);
     }
@@ -897,7 +904,7 @@ ul.secondary-cities {
 
     list-style-type: none;
 
-    & > li:not(.hidden-count) {
+    & > li:not(.hidden-count:not(.interactive)) {
         position: relative;
     
         line-height: 25px;
@@ -920,6 +927,24 @@ ul.secondary-cities {
             @include dark {
                 filter: brightness(85%);
             }
+        }
+
+        &.interactive {
+            cursor: pointer;
+            user-select: none;
+
+            // font-size: 80%;
+            font-weight: bold;
+        }
+
+        &.hidden-count.interactive::before {
+            background: none;
+            content: "🞀";
+            text-align: center;
+        }
+
+        &.hidden-count.interactive.is-open::before {
+            content: "🞁";
         }
 
         &.skeleton {
@@ -945,7 +970,7 @@ ul.secondary-cities {
         }
     }
 
-    & > li.hidden-count {
+    & > li.hidden-count:not(.interactive) {
         line-height: 25px;
         margin-right: 5px;
         font-size: 80%;

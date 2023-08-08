@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ReactRouter from "react-router-dom";
 import { FurrySearchMatch } from "furry-text-search";
-import { areMatchesEqual, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies, RelevantStopsList } from "./AlertSummary";
+import { areMatchesEqual, MatchedString, RelevanceTag, RelevantLinesListProps, RelevantLinesOrAgencies } from "./AlertSummary";
+import { RelevantStopsList } from "./RelevantStopsList";
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { PrettyActivePeriod, ActiveTime, Agency, MapBoundingBox, ConsolidatedActivePeriod, DateOrDateRange, DepartureChangeDetail, RouteChangeForApi, AlertsResponse, ServiceAlert, SimpleActivePeriod, StopForMap, USE_CASES } from "../protocol";
@@ -608,12 +609,12 @@ function SingleAlertView(
                                            isRemoved={true}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_NAME]}
                                            stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.REMOVED_STOP_CODE]}
-                                           dontHideStops={true} />
+                                           isInteractive={true} />
                         <RelevantStopsList relevant_stops={alert.added_stops}
                                            isRemoved={false}
                                            stopNameMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_NAME]}
                                            stopCodeMatches={matches?.[ALERT_SEARCH_KEY_INDICES.ADDED_STOP_CODE]}
-                                           dontHideStops={true}  />
+                                           isInteractive={true}  />
 
                         <h2>{DISCLAIMER_MOT_DESC}</h2>
                         <pre><MatchedString s={alert.description.he ?? ""} matches={matches?.[ALERT_SEARCH_KEY_INDICES.DESCRIPTION_HE]?.[0]} /></pre>

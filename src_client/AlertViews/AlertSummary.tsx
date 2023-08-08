@@ -9,6 +9,7 @@ import { ALERT_SEARCH_KEY_INDICES } from "../search_worker_data";
 import { AgencyTag } from "../RandomComponents/AgencyTag";
 import { DistanceTag } from "../RandomComponents/DistanceTag";
 import clsx from "clsx";
+import { RelevantStopsList } from "./RelevantStopsList";
 
 type ValueOf<T> = T[keyof T];
 
@@ -103,8 +104,6 @@ export const RelevanceTag = React.memo(
 const RELEVANT_UNTIL          = "רלוונטית עד:";
 const RELEVANT_AGENCIES_LABEL = "חברות מפעילות:";
 const RELEVANT_LINES_LABEL    = "קווים מושפעים:";
-const REMOVED_STOPS_LABEL     = "תחנות מבוטלות:";
-const ADDED_STOPS_LABEL       = "תחנות חדשות:";
 const MORE_DETAILS_STRING     = "לחצו לפרטים נוספים >";
 
 // const TEST_AGENCIES = [
@@ -293,7 +292,7 @@ export const RelevantLinesOrAgencies = React.memo(
     }
 );
 
-function areMatchListsEqual(a: FurrySearchMatch[]|undefined, b: FurrySearchMatch[]|undefined) {
+export function areMatchListsEqual(a: FurrySearchMatch[]|undefined, b: FurrySearchMatch[]|undefined) {
     if (a === b || (!a && !b)) {
         return true;
     }
@@ -344,89 +343,6 @@ export function areMatchesEqual(a: FurrySearchMatch|undefined, b: FurrySearchMat
 
     return true;
 }
-
-const MAX_STOPS_IN_LIST = 7; // chosen arbitrarily sunglasses emoji
-
-interface RelevantStopsListProps {
-    relevant_stops: [string, string][];
-    isRemoved: boolean;
-    stopNameMatches?: FurrySearchMatch[];
-    stopCodeMatches?: FurrySearchMatch[];
-    dontHideStops?: boolean;
-}
-
-export const RelevantStopsList = React.memo(
-    (
-        {
-            relevant_stops,
-            isRemoved,
-            stopNameMatches,
-            stopCodeMatches,
-            dontHideStops
-        }: RelevantStopsListProps
-    ) => {
-        const shownStops = [];
-        let hiddenStopCount = 0;
-
-        for (let i = 0; i < relevant_stops.length; i++) {
-            const stop = relevant_stops[i];
-            if (!stop) continue;
-
-            const nameMatches = stopNameMatches?.[i];
-            const codeMatches = stopCodeMatches?.[i];
-
-            if (dontHideStops || i < MAX_STOPS_IN_LIST || nameMatches?.length || codeMatches?.length) {
-                shownStops.push({stop, nameMatches, codeMatches});
-            } else {
-                hiddenStopCount += 1;
-            }
-        }
-
-        return (relevant_stops.length > 0)
-            ? <>
-                <h2>{isRemoved ? REMOVED_STOPS_LABEL : ADDED_STOPS_LABEL}</h2>
-                <ul className="relevant-stops">
-                    {shownStops.map(
-                        ({stop: [stop_code, stop_name], nameMatches, codeMatches}) => 
-                            <li key={stop_code}>
-                                    <MatchedString s={stop_code} matches={codeMatches} />
-                                    &nbsp;-&nbsp;
-                                    <MatchedString s={stop_name} matches={nameMatches} />
-                            </li>
-                    )}
-                    {
-                        !hiddenStopCount ? null
-                            : <li className="hidden-count">
-                                {hiddenStopCount === 1
-                                    ? `(ועוד תחנה 1 נוספת...)`
-                                    : `(ועוד ${hiddenStopCount} תחנות נוספות...)`
-                                }
-                            </li>
-                    }
-                </ul>
-            </>
-            : null
-    },
-    (oldProps, newProps) => {
-        if (oldProps.isRemoved !== newProps.isRemoved) {
-            return false;
-        }
-
-        if (oldProps.relevant_stops !== newProps.relevant_stops) {
-            return false;
-        }
-
-        if (!areMatchListsEqual(oldProps.stopCodeMatches, newProps.stopCodeMatches)) {
-            return false;
-        }
-
-        if (!areMatchListsEqual(oldProps.stopNameMatches, newProps.stopNameMatches)) {
-            return false;
-        }
-
-        return true;
-    }
-);
 
 interface MatchedStringProps {
     s: string;
