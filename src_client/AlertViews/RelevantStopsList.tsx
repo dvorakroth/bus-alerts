@@ -6,7 +6,7 @@ import clsx from "clsx";
 const MAX_STOPS_IN_LIST = 7; // chosen arbitrarily sunglasses emoji
 
 const REMOVED_STOPS_LABEL = "תחנות מבוטלות:";
-const ADDED_STOPS_LABEL   = "תחנות חדשות:";
+const ADDED_STOPS_LABEL   = "תחנות חלופיות:";
 
 interface RelevantStopsListProps {
     relevant_stops: [string, string][];
