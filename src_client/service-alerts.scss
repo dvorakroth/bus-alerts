@@ -938,13 +938,17 @@ ul.secondary-cities {
         }
 
         &.hidden-count.interactive::before {
-            background: none;
-            content: "🞀";
-            text-align: center;
+            content: "";
+            background: url(assets/expand-arrow-up.svg) center/contain no-repeat;
+            transform: rotate(-.25turn);
+
+            @include dark {
+                filter: invert(93%);
+            }
         }
 
         &.hidden-count.interactive.is-open::before {
-            content: "🞁";
+            transform: none;
         }
 
         &.skeleton {
