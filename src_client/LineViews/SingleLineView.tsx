@@ -11,6 +11,7 @@ import { JERUSALEM_TZ, short_date_hebrew, short_datetime_hebrew, short_time_hebr
 import clsx from 'clsx';
 import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
 import { SingleLineViewSkeleton } from '../RandomComponents/Skeletons';
+import { enumerate } from '../junkyard/iter_utils';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -34,18 +35,38 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
 
     React.useEffect(
         () => {
-            const firstDirectionIdxWithChanges = Math.max(
-                data?.line_details?.dirs_flattened?.findIndex(
-                    dir => dir.time_sensitive_alerts?.periods?.some(p => p.bitmask !== 0)
-                ) ?? 0,
-                0
-            );
+            let firstDirectionIdxWithChanges: number|null = null;
+            let firstDirectionIdxWithChangesNow: number|null = null;
 
+            for (const [dirIdx, dir] of enumerate(data?.line_details?.dirs_flattened ?? [])) {
+                if (firstDirectionIdxWithChanges === null) {
+                    const hasAnyChanges = dir.time_sensitive_alerts?.periods?.some(p => p.bitmask !== 0);
 
-            const direction = data?.line_details?.dirs_flattened?.[firstDirectionIdxWithChanges];
+                    if (hasAnyChanges) {
+                        firstDirectionIdxWithChanges = dirIdx;
+                    }
+                }
+
+                if (firstDirectionIdxWithChangesNow === null) {
+                    const periods = dir.time_sensitive_alerts?.periods;
+                    if (!periods) continue;
+
+                    const nowPeriodIdx = findNowPeriod(periods);
+                    if (nowPeriodIdx < 0) continue;
+
+                    if (periods[nowPeriodIdx]?.bitmask) {
+                        firstDirectionIdxWithChangesNow = dirIdx;
+                        break;
+                    }
+                }
+            }
+
+            const directionToSelect = firstDirectionIdxWithChangesNow ?? firstDirectionIdxWithChanges ?? 0;
+
+            const direction = data?.line_details?.dirs_flattened?.[directionToSelect];
             const nowPeriodIdx = Math.max(0, findNowPeriod(direction?.time_sensitive_alerts?.periods ?? []));
 
-            setSelectedDirectionIdx(firstDirectionIdxWithChanges);
+            setSelectedDirectionIdx(directionToSelect);
             setSelectedChangePeriodIdx(nowPeriodIdx);
         },
         [data]
