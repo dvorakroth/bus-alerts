@@ -6,11 +6,11 @@ import { Agency, RouteMetadata, StopForMap, StopMetadata } from "../apiTypes.js"
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
-    //timedOps: boolean;
+    timedOps: boolean;
 
-    constructor(gtfsDbPool: pg.Pool/*, timedOps?: boolean*/) {
+    constructor(gtfsDbPool: pg.Pool, timedOps?: boolean) {
         this.gtfsDbPool = gtfsDbPool;
-        // this.timedOps = !!timedOps;
+        this.timedOps = !!timedOps;
     }
 
     async getRelatedMetadataForAlerts(alerts: AlertWithRelatedInDb[]) {
@@ -18,24 +18,29 @@ export class GtfsDbApi {
         const routeIds = [];
         const stopIds = [];
 
+        if (this.timedOps) console.time("getRelatedMetadataForAlerts > for loop");
         for (const alert of alerts) {
             agencyIds.push(...alert.relevant_agencies);
             routeIds.push(...alert.relevant_route_ids);
             stopIds.push(...alert.added_stop_ids, ...alert.removed_stop_ids);
         }
+        if (this.timedOps) console.timeEnd("getRelatedMetadataForAlerts > for loop");
 
         return await this.getRelatedMetadata(
             copySortAndUnique(agencyIds),
             copySortAndUnique(routeIds),
-            copySortAndUnique(stopIds)
+            copySortAndUnique(stopIds),
+            true
         );
     }
 
     async getRelatedMetadata(
         agencyIds: string[],
         routeIds: string[],
-        stopIds: string[]
+        stopIds: string[],
+        includePopularity?: boolean
     ) {
+        if (this.timedOps) console.time("GtfsDbApi.getRelatedMetadata");
         const agencies: Record<string, Agency> = {};
         const routes: Record<string, Route> = {};
         const stops: Record<string, Stop> = {};
@@ -282,6 +287,7 @@ export class GtfsDbApi {
     }
 
     async getStopsSortedByPopularity(stopIds: string[]) {
+        if (this.timedOps) console.time("GtfsDbApi.getStopsSortedByPopularity");
         const res = await this.gtfsDbPool.query<{stop_code: string, stop_name: string}, [string[]]>(
             `
                 SELECT
@@ -297,9 +303,13 @@ export class GtfsDbApi {
             [stopIds]
         );
 
-        return res.rows.map<[string, string]>(
+        const result = res.rows.map<[string, string]>(
             ({stop_code, stop_name}) => [stop_code, stop_name]
         );
+
+        if (this.timedOps) console.timeEnd("GtfsDbApi.getStopsSortedByPopularity");
+        return result;
+    }
     }
 }
 

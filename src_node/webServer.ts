@@ -67,6 +67,7 @@ const configPath = commandlineOptions["--config"] || path.join(__dirname, "confi
 const config = ini.parse(fs.readFileSync(configPath, "utf-8"));
 const gtfsDbUrl = config["psql"]["dsn"];
 const alertsDbUrl = config["psql"]["alerts_db"];
+const timedOps = !!config["debug"]?.["timed_operations"];
 
 // const host = config["service_alerts"]["web_host"];
 const port = config["service_alerts"]["web_port"];
@@ -84,8 +85,8 @@ pg.types.setTypeParser(
     (isoStr) => DateTime.fromSQL(isoStr).setZone(JERUSALEM_TZ)
 );
 
-const gtfsDbApi = new GtfsDbApi(gtfsDbPool/*, !IS_PRODUCTION*/);
-const alertsDbApi = new AlertsDbApi(alertsDbPool, !IS_PRODUCTION);
+const gtfsDbApi = new GtfsDbApi(gtfsDbPool, timedOps);
+const alertsDbApi = new AlertsDbApi(alertsDbPool, timedOps);
 
 
   ////////////////////////////////////
