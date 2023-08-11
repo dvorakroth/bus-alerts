@@ -60,6 +60,8 @@ pushd ${DIR}
     psql $POSTGRES_DSN -c "\\copy trip_id_to_date from 'TripIdToDate.txt' with csv header quote ''"
     popd
     psql $POSTGRES_DSN -c "UPDATE translations SET translation='Jerusalem' WHERE trans_id='ירושלים' AND lang='EN';"
+    echo -n "creating stop_popularity table:    "
+    psql $POSTGRES_DSN -f stop_popularity.sql
     rm -fr "$TEMP_DIR"
 popd
 
