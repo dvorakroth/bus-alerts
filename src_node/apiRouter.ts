@@ -26,8 +26,8 @@ apiRouter.use("/all_alerts", asyncHandler(async (req, res: express.Response<any,
     const coord = tryParsingQueryCoordinate(req.body["current_location"] as string|undefined);
 
     const alertsAndMetadata = coord
-        ? await getAllAlertsWithLocation(coord, res.locals)
-        : await getAllAlerts(res.locals);
+        ? await getAllAlertsWithLocationCached(coord, res.locals)
+        : await getAllAlertsCached(res.locals);
 
     res.json({
         alerts: alertsAndMetadata.alerts
@@ -56,7 +56,7 @@ apiRouter.get("/single_alert", asyncHandler(async (req, res: express.Response<an
 
     const alertsAndMetadata = /*coord
         ? await getSingleAlertWithLocation(id, coord, res.locals)
-        :*/ await getSingleAlert(id, res.locals);
+        :*/ await getSingleAlertCached(id, res.locals);
     
     if (!alertsAndMetadata.alerts.length) {
         res.json({alerts: []});
@@ -135,7 +135,7 @@ type SingleAlertResult = AllAlertsResult | (AllAlertsResult & RouteChangesRespon
 
 const alertsCache = new NodeCache({ stdTTL: 600, checkperiod: 620, useClones: false });
 
-async function getAllAlerts(db: DbLocals) {
+async function getAllAlertsCached(db: DbLocals) {
     const cacheKey = "/allAlerts";
 
     let result = alertsCache.get<AllAlertsResult>(cacheKey);
@@ -148,7 +148,7 @@ async function getAllAlerts(db: DbLocals) {
     return result;
 }
 
-async function getSingleAlert(id: string, db: DbLocals) {
+async function getSingleAlertCached(id: string, db: DbLocals) {
     const cacheKey = "/single_alert/" + id;
 
     let result = alertsCache.get<SingleAlertResult>(cacheKey);
@@ -166,14 +166,14 @@ async function getSingleAlert(id: string, db: DbLocals) {
     return result;
 }
 
-async function getAllAlertsWithLocation(coord: [number, number], db: DbLocals) {
+async function getAllAlertsWithLocationCached(coord: [number, number], db: DbLocals) {
     const cacheKey = "/allAlerts___" + JSON.stringify(coord);
 
     let result = alertsCache.get<AllAlertsResult>(cacheKey);
     if (result) return result;
 
     result = {
-        ...await getAllAlerts(db)
+        ...await getAllAlertsCached(db)
     };
 
     await addDistanceToAlerts(result, coord, db);
