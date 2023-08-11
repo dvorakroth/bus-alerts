@@ -310,7 +310,6 @@ export class GtfsDbApi {
         if (this.timedOps) console.timeEnd("GtfsDbApi.getStopsSortedByPopularity");
         return result;
     }
-    }
 }
 
 type Route = {
