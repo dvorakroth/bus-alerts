@@ -6,9 +6,11 @@ import { Agency, RouteMetadata, StopForMap, StopMetadata } from "../apiTypes.js"
 
 export class GtfsDbApi {
     gtfsDbPool: pg.Pool;
+    //timedOps: boolean;
 
-    constructor(gtfsDbPool: pg.Pool) {
+    constructor(gtfsDbPool: pg.Pool/*, timedOps?: boolean*/) {
         this.gtfsDbPool = gtfsDbPool;
+        // this.timedOps = !!timedOps;
     }
 
     async getRelatedMetadataForAlerts(alerts: AlertWithRelatedInDb[]) {

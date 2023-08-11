@@ -392,12 +392,15 @@ async function getSingleLineCached(id: string, dbAndLines: DbLocals&LinesLocals)
     let result = linesCache.get<SingleLineChanges|null>(cacheKey);
     if (result !== undefined) return result;
 
+    if (dbAndLines.alertsDbApi.timedOps) console.time("getSingleLine");
     result = await getSingleLine(
         id,
-        await getAllAlerts(dbAndLines),
         dbAndLines.groupedRoutes,
+        dbAndLines.alertsDbApi,
         dbAndLines.gtfsDbApi
     );
+    if (dbAndLines.alertsDbApi.timedOps) console.timeEnd("getSingleLine");
+
     linesCache.set(cacheKey, result);
 
     return result;

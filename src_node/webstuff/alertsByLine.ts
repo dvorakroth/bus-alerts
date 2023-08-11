@@ -1,7 +1,7 @@
 import { DateTime } from "luxon";
-import { ActualLineWithAlertCount, AddedRemovedDepartures, Agency, AlertForApi, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, FlattenedLineDir, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
+import { ActualLineWithAlertCount, AddedRemovedDepartures, Agency, AlertPeriod, AlertPeriodWithRouteChanges, AllLinesResponse, FlattenedLineDir, LineDetails, SingleLineChanges, StopForMap } from "../apiTypes.js";
 import { AlertUseCase, AlertWithRelatedInDb } from "../dbTypes.js";
-import { AllAlertsResult, alertFindNextRelevantDate } from "./alerts.js";
+import { alertFindNextRelevantDate } from "./alerts.js";
 import { AlertsDbApi } from "./alertsDbApi.js";
 import { GroupedRoutes } from "./routeGrouping.js";
 import winston from "winston";
@@ -157,8 +157,8 @@ function lineWithAlertSortingNple(
 
 export async function getSingleLine(
     linePk: string,
-    allAlerts: AllAlertsResult,
     groupedRoutes: GroupedRoutes,
+    alertsDbApi: AlertsDbApi,
     gtfsDbApi: GtfsDbApi
 ): Promise<SingleLineChanges|null> {
     const actualLine = groupedRoutes.actualLinesDict[linePk];
@@ -225,39 +225,31 @@ export async function getSingleLine(
     }
 
     // collect alerts for each direction in dirs_flattened
-    const alerts_grouped: [AlertForApi, AlertWithRelatedInDb][][] = [];
+    const allAlertsRaw = await alertsDbApi.getAlerts();
 
     for (const flatDir of line_details.dirs_flattened) {
-        const alertsForThisDirection: [AlertForApi, AlertWithRelatedInDb][] = [];
-
-        for (const alert of allAlerts.alerts) {
-            if (alert.is_expired) continue;
-
-            const alertRaw = allAlerts.rawAlertsById[alert.id];
-            if (!alertRaw?.relevant_route_ids?.includes(flatDir.route_id)) continue;
-
-            alertsForThisDirection.push([alert, alertRaw]);
-        }
-
-        alerts_grouped.push(alertsForThisDirection);
-    }
-
-    for (const [flatDir, alertPairs] of zip(line_details.dirs_flattened, alerts_grouped)) {
-        const nonExpiredNonDeletedAlerts: [AlertForApi, AlertWithRelatedInDb][] = [];
+        const alerts = allAlertsRaw.filter(
+            alertRaw => 
+                !alertRaw.is_expired
+                &&
+                alertRaw.relevant_route_ids.includes(flatDir.route_id)
+        );
 
         // at first, just get each route_id's alerts, separated into deleted and non-deleted
-        for (const [alert, alertRaw] of alertPairs) {
-            if (alert.is_expired) continue;
+        const nonExpiredNonDeletedAlerts: AlertWithRelatedInDb[] = [];
 
-            if (alert.is_deleted) {
+        for (const alertRaw of alerts) {
+            if (alertRaw.is_expired) continue;
+
+            if (alertRaw.is_deleted) {
                 const alertMinimal = {
-                    id: alert.id,
-                    header: alert.header,
-                    use_case: alert.use_case
+                    id: alertRaw.id,
+                    header: alertRaw.header,
+                    use_case: alertRaw.use_case
                 };
                 flatDir.deleted_alerts.push(alertMinimal)
             } else {
-                nonExpiredNonDeletedAlerts.push([alert, alertRaw]);
+                nonExpiredNonDeletedAlerts.push(alertRaw);
             }
         }
 
@@ -268,7 +260,7 @@ export async function getSingleLine(
         flatDir.time_sensitive_alerts = {
             periods: [],
             alert_metadata: nonExpiredNonDeletedAlerts.map(
-                ([{id, header, use_case}, _]) => ({id, header, use_case})
+                ({id, header, use_case}) => ({id, header, use_case})
             )
         };
 
@@ -289,7 +281,7 @@ export async function getSingleLine(
             let departure_changes: AddedRemovedDepartures|undefined = undefined;
 
             for (let i = 0; i < nonExpiredNonDeletedAlerts.length; i++) {
-                const alertRaw = nonExpiredNonDeletedAlerts[i]?.[1];
+                const alertRaw = nonExpiredNonDeletedAlerts[i];
                 if (!alertRaw) continue;
 
                 const idxBitmask = (1 << i);
@@ -441,12 +433,12 @@ export async function getSingleLine(
 const NEBULOUS_DISTANT_FUTURE = DateTime.fromISO("2200-01-01T00:00:00.000Z").toSeconds();
 
 function listOfAlertsToActivePeriodIntersectionsAndBitmasks(
-    alertPairs: [AlertForApi, AlertWithRelatedInDb][]
+    alerts: AlertWithRelatedInDb[]
 ) {
     const allActivePeriodBoundaires: {timestamp: number, alertIdx: number, isEnd: boolean}[] = [];
 
-    for (let i = 0; i < alertPairs.length; i++) {
-        const rawActivePeriods = alertPairs[i]?.[0]?.active_periods.raw;
+    for (let i = 0; i < alerts.length; i++) {
+        const rawActivePeriods = alerts[i]?.active_periods.raw;
         if (!rawActivePeriods) continue;
 
         for (const [start, end] of rawActivePeriods) {

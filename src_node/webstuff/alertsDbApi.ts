@@ -3,12 +3,15 @@ import { AlertWithRelatedInDb } from "../dbTypes.js";
 
 export class AlertsDbApi {
     alertsDbPool: pg.Pool;
+    timedOps: boolean;
 
-    constructor(alertsDbPool: pg.Pool) {
+    constructor(alertsDbPool: pg.Pool, timedOps?: boolean) {
         this.alertsDbPool = alertsDbPool;
+        this.timedOps = !!timedOps;
     }
 
     async getSingleAlert(id: string): Promise<AlertWithRelatedInDb|null> {
+        if (this.timedOps) console.time("AlertsDbApi.getSingleAlert");
         const res = await this.alertsDbPool.query<AlertWithRelatedInDb, [string]>(
             `
                 SELECT
@@ -34,11 +37,13 @@ export class AlertsDbApi {
             `,
             [id]
         );
+        if (this.timedOps) console.timeEnd("AlertsDbApi.getSingleAlert");
 
         return res.rows[0] ?? null;
     }
 
     async getAlerts(): Promise<AlertWithRelatedInDb[]> {
+        if (this.timedOps) console.time("AlertsDbApi.getAlerts");
         const res = await this.alertsDbPool.query<AlertWithRelatedInDb>(
             `
                 SELECT
@@ -62,6 +67,7 @@ export class AlertsDbApi {
                 WHERE NOT (is_deleted AND is_expired);
             `
         );
+        if (this.timedOps) console.timeEnd("AlertsDbApi.getAlerts");
 
         return res.rows;
     }

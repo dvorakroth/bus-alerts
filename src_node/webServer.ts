@@ -84,6 +84,9 @@ pg.types.setTypeParser(
     (isoStr) => DateTime.fromSQL(isoStr).setZone(JERUSALEM_TZ)
 );
 
+const gtfsDbApi = new GtfsDbApi(gtfsDbPool/*, !IS_PRODUCTION*/);
+const alertsDbApi = new AlertsDbApi(alertsDbPool, !IS_PRODUCTION);
+
 
   ////////////////////////////////////
  // create the "actual lines" list //
@@ -123,8 +126,8 @@ app.use(express.urlencoded({ extended: false }));
 
 // give all requests access to the db apis
 app.use((req, res: express.Response<any, DbLocals&LinesLocals>, next) => {
-    res.locals.alertsDbApi = new AlertsDbApi(alertsDbPool);
-    res.locals.gtfsDbApi = new GtfsDbApi(gtfsDbPool);
+    res.locals.alertsDbApi = alertsDbApi;
+    res.locals.gtfsDbApi = gtfsDbApi;
     res.locals.groupedRoutes = groupedRoutes;
 
     next();
