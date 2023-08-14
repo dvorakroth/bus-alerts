@@ -21,6 +21,20 @@
 -- lines are indicated by route_type=0 (TRAM). we can just safely(?) ignore all
 -- of these inconvenient lines for now, since none of them ever have any
 -- service alerts given in the gtfs-rt feed anyway.
+--
+-- route_desc
+-- ----------
+--
+-- the israeli ministry of transportation uses gtfs' route_desc field in the
+-- following extremely creative way:
+-- *ahem*
+-- they use it to store the line's internal bureaucratic IDs
+-- and they do it in a way where they're separated by dashes
+--
+-- clever, i know;;;,,
+--
+-- so at this juncture we also separate these out into individual fields so
+-- it'll be easier to group by them later on
 
 SELECT split_part(route_desc, '-', 1) AS mot_license_id,
        split_part(route_desc, '-', 2) AS mot_direction_id,
