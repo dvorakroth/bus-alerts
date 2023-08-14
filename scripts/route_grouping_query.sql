@@ -15,14 +15,26 @@
 -- inconvenient for my purposes
 -- ----------------------------
 --
--- chief among these are student lines, and train lines. student lines are
--- indicated on the israeli gtfs by setting route_color to 'FF9933', and train
--- lines are indicated both by route_type=2 (TRAIN) and by agency_id='2' (which
--- is rakevet israel's agency_id). there might be some amorphous distant future
--- where there's other train agencies around, but i can't plan for it any more
--- than i can change the political situation by voting lol so i'll check for...
--- *flips coin* agency_id and maybe i'll revise this decision in the future and
--- curse myself for having decided it!
+-- chief among these are student lines, train lines, and light rail lines.
+-- student lines are indicated on the israeli gtfs by setting route_color to
+-- 'FF9933', train lines are indicated by route_type=2 (TRAIN), and light rail
+-- lines are indicated by route_type=0 (TRAM). we can just safely(?) ignore all
+-- of these inconvenient lines for now, since none of them ever have any
+-- service alerts given in the gtfs-rt feed anyway.
+--
+-- route_desc
+-- ----------
+--
+-- the israeli ministry of transportation uses gtfs' route_desc field in the
+-- following extremely creative way:
+-- *ahem*
+-- they use it to store the line's internal bureaucratic IDs
+-- and they do it in a way where they're separated by dashes
+--
+-- clever, i know;;;,,
+--
+-- so at this juncture we also separate these out into individual fields so
+-- it'll be easier to group by them later on
 
 SELECT split_part(route_desc, '-', 1) AS mot_license_id,
        split_part(route_desc, '-', 2) AS mot_direction_id,
@@ -37,7 +49,8 @@ SELECT split_part(route_desc, '-', 1) AS mot_license_id,
        routes.*
 INTO TEMP TABLE tmp__routes
 FROM routes
-WHERE agency_id != '2'
+WHERE route_type != 2
+    AND route_type != 0
     AND (route_color IS NULL OR route_color != 'FF9933');
 
 ALTER TABLE tmp__routes ADD PRIMARY KEY (route_id);
@@ -206,6 +219,7 @@ ADD PRIMARY KEY (mot_license_id, route_short_name, mot_alternative_id);
 
 
 -- aaand another level up
+DROP TABLE IF EXISTS actual_lines;
 
 SELECT mot_license_id,
        route_short_name,
@@ -221,13 +235,13 @@ SELECT mot_license_id,
            ORDER BY mot_alternative_id ASC
         ) AS all_directions_grouped,
        NULL::JSON AS all_stopids_distinct
-INTO TEMP TABLE tmp__actual_lines
+INTO TABLE actual_lines
 FROM tmp__actual_line_alts
 GROUP BY mot_license_id, route_short_name;
 
-ALTER TABLE tmp__actual_lines ADD PRIMARY KEY (mot_license_id, route_short_name);
+ALTER TABLE actual_lines ADD PRIMARY KEY (mot_license_id, route_short_name);
 
-UPDATE tmp__actual_lines
+UPDATE actual_lines
 SET agency_id = (
         SELECT r.agency_id
         FROM routes r
@@ -272,7 +286,7 @@ SET agency_id = (
 -- it's actually bad data; so i'll need to check if the line is
 -- REALLY circular (ugh; sounds complicated) and if it isn't, then
 -- headsign_2 should be set to #>> '{1, 0}' instead
-UPDATE tmp__actual_lines
+UPDATE actual_lines
 SET headsign_2 = (
         CASE
             WHEN (all_directions_grouped #>> '{0, directions, 0, is_circular}')::BOOLEAN THEN

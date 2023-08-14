@@ -1,8 +1,7 @@
-import fs from "fs";
 import pg from "pg";
 import { Agency } from "../apiTypes.js";
 import { GtfsDbApi } from "./gtfsDbApi.js";
-import { ActualLine, tmp__actual_lines_Row } from "../dbTypes.js";
+import { ActualLine, actual_lines_Row } from "../dbTypes.js";
 
 export type GroupedRoutes = {
     allAgencies: Record<string, Agency>;
@@ -11,8 +10,7 @@ export type GroupedRoutes = {
     actualLinesByRouteId: Record<string, string>;
 };
 
-export async function groupRoutes(
-    routeGroupingScriptPath: string,
+export async function getGroupedRoutes(
     gtfsDbPool: pg.Pool
 ): Promise<GroupedRoutes> {
     const allAgencies = await new GtfsDbApi(gtfsDbPool).getAllAgencies();
@@ -20,28 +18,13 @@ export async function groupRoutes(
     const actualLinesDict: Record<string, ActualLine> = {};
     const actualLinesByRouteId: Record<string, string> = {};
 
-    // this feels so dirty lmao
-    const sqlScript = fs.readFileSync(routeGroupingScriptPath, {encoding: "utf-8"});
-    
-    let conn: pg.PoolClient|null = null;
-    let rows: tmp__actual_lines_Row[]|null = null;
+    const res = await gtfsDbPool.query<actual_lines_Row>(
+        `SELECT *
+        FROM actual_lines
+        ORDER BY route_short_name, agency_id, mot_license_id;`
+    );
 
-    try {
-        conn = await gtfsDbPool.connect();
-
-        await conn.query(sqlScript); // like bestie WHAT
-        const res = await conn.query<tmp__actual_lines_Row>(
-            `SELECT *
-            FROM tmp__actual_lines
-            ORDER BY route_short_name, agency_id, mot_license_id;`
-        );
-
-        rows = res.rows;
-    } finally {
-        if (conn) conn.release(true);
-    }
-
-    for (const row of rows) {
+    for (const row of res.rows) {
         const actualLine = <ActualLine>{
             ...row,
             headsign_1: row.headsign_1?.replace("_", " - ") ?? null,
