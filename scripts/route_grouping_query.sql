@@ -219,6 +219,7 @@ ADD PRIMARY KEY (mot_license_id, route_short_name, mot_alternative_id);
 
 
 -- aaand another level up
+DROP TABLE IF EXISTS actual_lines;
 
 SELECT mot_license_id,
        route_short_name,

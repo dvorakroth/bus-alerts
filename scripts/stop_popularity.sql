@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS stop_popularity;
+
 CREATE TABLE stop_popularity AS
     SELECT
         stop_code,
