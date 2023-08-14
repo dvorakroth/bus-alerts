@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS stop_popularity;
+DROP TABLE IF EXISTS stops_trip_count;
 
-CREATE TABLE stop_popularity AS
+CREATE TABLE stops_trip_count AS
     SELECT
         stop_code,
         (ARRAY_AGG(stop_name))[1] AS stop_name,
@@ -10,5 +10,5 @@ CREATE TABLE stop_popularity AS
     ON stoptimes.stop_id = stops.stop_id
     GROUP BY stop_code;
 
-ALTER TABLE stop_popularity
-    ADD CONSTRAINT stop_popularity_pkey PRIMARY KEY (stop_code);
+ALTER TABLE stops_trip_count
+    ADD CONSTRAINT stops_trip_count_pkey PRIMARY KEY (stop_code);

@@ -287,17 +287,16 @@ export class GtfsDbApi {
         return arrayToDict(res.rows, r => r.agency_id);
     }
 
-    async getStopsSortedByPopularity(stopCodes: string[]) {
+    async getStopsSortedByTripCount(stopCodes: string[]) {
         if (this.timedOps) console.time("GtfsDbApi.getStopsSortedByPopularity");
         const res = await this.gtfsDbPool.query<{stop_code: string, stop_name: string}, [string[]]>(
             `
                 SELECT
                     stop_code,
-                    stop_name,
-                    stop_popularity
-                FROM stop_popularity
+                    stop_name
+                FROM stops_trip_count
                 WHERE stop_code = ANY($1::varchar[])
-                ORDER BY stop_popularity DESC;
+                ORDER BY num_trips DESC;
             `,
             [stopCodes]
         );

@@ -29,10 +29,10 @@ export async function enrichAlerts(
             stop_id => metadata.stops[stop_id]?.stop_code ?? ""
         );
 
-        const added_stops = await gtfsDbApi.getStopsSortedByPopularity(
+        const added_stops = await gtfsDbApi.getStopsSortedByTripCount(
             added_stop_codes
         );
-        const removed_stops = await gtfsDbApi.getStopsSortedByPopularity(
+        const removed_stops = await gtfsDbApi.getStopsSortedByTripCount(
             removed_stop_codes
         );
         const relevant_lines_sets: Record<string, Set<string>> = {};
