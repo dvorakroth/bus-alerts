@@ -72,7 +72,13 @@ export async function getRouteChanges(
         const routeMetadata = (await gtfsDbApi.getRouteMetadata([route_id]))[route_id];
 
         if (!routeMetadata) {
-            throw new Error("Couldn't find details for route with id " + route_id);
+            continue; // if the route doesn't exist then skip it
+
+            // like, optimally i'd want the ministry of transportation to, yknow,
+            // validate their own data???? and uh,,, NOT send nonexistent route_ids?????????????
+
+            // but yeah
+            // apparently they don't validate shit lol
         }
 
         const to_text = await getHeadsign(representativeTripId, rawStopSeq, gtfsDbApi);
@@ -207,7 +213,9 @@ export async function applyAlertToRoute(
         }
 
         if (!representativeTripId) {
-            throw new Error(`Could not find a representative trip id for route ${route_id} on date ${representativeDate?.toFormat('yyyy-MM-dd')}`);
+            // throw new Error(`Could not find a representative trip id for route ${route_id} on date ${representativeDate?.toFormat('yyyy-MM-dd')}`);
+            // 2023-08-14 lol this just happened and caused the server to error out lol
+            return null;
         }
 
         if (!rawStopSeq) {
