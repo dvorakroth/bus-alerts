@@ -15,14 +15,12 @@
 -- inconvenient for my purposes
 -- ----------------------------
 --
--- chief among these are student lines, and train lines. student lines are
--- indicated on the israeli gtfs by setting route_color to 'FF9933', and train
--- lines are indicated both by route_type=2 (TRAIN) and by agency_id='2' (which
--- is rakevet israel's agency_id). there might be some amorphous distant future
--- where there's other train agencies around, but i can't plan for it any more
--- than i can change the political situation by voting lol so i'll check for...
--- *flips coin* agency_id and maybe i'll revise this decision in the future and
--- curse myself for having decided it!
+-- chief among these are student lines, train lines, and light rail lines.
+-- student lines are indicated on the israeli gtfs by setting route_color to
+-- 'FF9933', train lines are indicated by route_type=2 (TRAIN), and light rail
+-- lines are indicated by route_type=0 (TRAM). we can just safely(?) ignore all
+-- of these inconvenient lines for now, since none of them ever have any
+-- service alerts given in the gtfs-rt feed anyway.
 
 SELECT split_part(route_desc, '-', 1) AS mot_license_id,
        split_part(route_desc, '-', 2) AS mot_direction_id,
@@ -37,7 +35,8 @@ SELECT split_part(route_desc, '-', 1) AS mot_license_id,
        routes.*
 INTO TEMP TABLE tmp__routes
 FROM routes
-WHERE agency_id != '2'
+WHERE route_type != 2
+    AND route_type != 0
     AND (route_color IS NULL OR route_color != 'FF9933');
 
 ALTER TABLE tmp__routes ADD PRIMARY KEY (route_id);
