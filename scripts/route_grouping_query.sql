@@ -221,13 +221,13 @@ SELECT mot_license_id,
            ORDER BY mot_alternative_id ASC
         ) AS all_directions_grouped,
        NULL::JSON AS all_stopids_distinct
-INTO TEMP TABLE tmp__actual_lines
+INTO TABLE actual_lines
 FROM tmp__actual_line_alts
 GROUP BY mot_license_id, route_short_name;
 
-ALTER TABLE tmp__actual_lines ADD PRIMARY KEY (mot_license_id, route_short_name);
+ALTER TABLE actual_lines ADD PRIMARY KEY (mot_license_id, route_short_name);
 
-UPDATE tmp__actual_lines
+UPDATE actual_lines
 SET agency_id = (
         SELECT r.agency_id
         FROM routes r
@@ -272,7 +272,7 @@ SET agency_id = (
 -- it's actually bad data; so i'll need to check if the line is
 -- REALLY circular (ugh; sounds complicated) and if it isn't, then
 -- headsign_2 should be set to #>> '{1, 0}' instead
-UPDATE tmp__actual_lines
+UPDATE actual_lines
 SET headsign_2 = (
         CASE
             WHEN (all_directions_grouped #>> '{0, directions, 0, is_circular}')::BOOLEAN THEN
