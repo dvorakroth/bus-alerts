@@ -8,6 +8,8 @@ import { ServiceAlert } from "../protocol";
 import * as smoothscroll from 'smoothscroll-polyfill'; 
 import { breakoutSearchableListItem } from "../LineViews/LineList";
 import { AlertSummarySkeleton } from "../RandomComponents/Skeletons";
+import { AlertListLoadingStatus } from "./AlertListPage";
+import { ServerErrorMessage } from "../RandomComponents/ServerErrorMessage";
 smoothscroll.polyfill();
 
 export type ServiceAlertOrSearchResult = ServiceAlert | FurrySearchResult<ServiceAlert>;
@@ -16,15 +18,18 @@ interface AlertListProps {
     alerts: ServiceAlertOrSearchResult[];
     showDistance: boolean;
     noAlertsToday?: boolean;
-    isLoading: boolean;
+    loadingStatus: AlertListLoadingStatus;
 }
 
 export default function AlertList({
     alerts,
     showDistance,
     noAlertsToday,
-    isLoading
+    loadingStatus
 }: AlertListProps) {
+    const isLoading = loadingStatus === AlertListLoadingStatus.Loading;
+    const isError = loadingStatus === AlertListLoadingStatus.ServerError;
+
     const rowRenderer = React.useCallback<ItemContent<ServiceAlertOrSearchResult>>(
         (index) => {
             if (isLoading) {
@@ -38,13 +43,19 @@ export default function AlertList({
                 return <AlertSummary alert={alert}
                                     matches={searchResult?.matches}
                                     showDistance={showDistance} />
-            } else if (noAlertsToday && index == 0) {
+            } else if (noAlertsToday && index === 0) {
                 return <div className="no-alerts-today">
                     <span>אין התראות היום</span>
                     <span className="snarky-comment">(או שיש באג באתר? לכו תדעו 🙃)</span>
                 </div>;
+            } else if (isError && index === 0) {
+                return <div className="no-alerts-today">
+                    <ServerErrorMessage />
+                </div>
             } else if (
-                (noAlertsToday && index == 1) || (!noAlertsToday && index >= alerts.length)
+                (noAlertsToday && index === 1)
+                || (!noAlertsToday && index >= alerts.length)
+                || (isError && index === 1)
             ) {
                 return <div className="list-end-gizmo"></div>;
             }
@@ -89,7 +100,7 @@ export default function AlertList({
 
     const totalCount = isLoading
         ? 4
-        : noAlertsToday
+        : (noAlertsToday || isError)
         ? 2
         : (alerts.length && (alerts.length + 1));
 

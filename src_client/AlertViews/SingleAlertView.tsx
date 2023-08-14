@@ -14,6 +14,7 @@ import DirectionChooser from "../RandomComponents/DirectionChooser";
 import { LocationStateAlert } from "../LocationState";
 import { DepartureChangesView } from "../RandomComponents/DepartureChangesView";
 import { LineChooserAndMapSkeleton, SingleAlertViewSkeleton } from "../RandomComponents/Skeletons";
+import { ServerErrorMessage } from "../RandomComponents/ServerErrorMessage";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISMISS_BUTTON_LINE = "< חזרה לקו";
@@ -484,7 +485,8 @@ export function groupDepartureTimesByHour(times: string[]): JSX.Element {
 enum LoadingStatus {
     LoadingAll,
     LoadingChanges,
-    Loaded
+    Loaded,
+    ServerError
 }
 
 interface SingleAlertViewProps {
@@ -561,6 +563,16 @@ function SingleAlertView(
                 : null
             }
             {
+                loadingStatus === LoadingStatus.ServerError
+                    ? <>
+                        <div className="no-alerts-today">
+                            <ServerErrorMessage />
+                        </div>
+                        <div className="list-end-gizmo"></div>
+                    </>
+                    : null
+            }
+            {
                 data && data.alerts && !data.alerts.length && loadingStatus === LoadingStatus.Loaded
                     ? <>
                         <div className="no-alerts-today">
@@ -628,25 +640,25 @@ function SingleAlertView(
 export function FullPageSingleAlert() {
     const params = ReactRouter.useParams<"id">();
     const [data, setData] = React.useState<AlertsResponse|null>(null);
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [loadingStatus, setLoadingStatus] = React.useState<LoadingStatus>(LoadingStatus.LoadingAll);
 
     React.useEffect(() => {
-        if (!data) {
-            fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
-                .then((response) => response.json())
-                // .then(response => {
-                //     return new Promise((resolve) => {
-                //         setTimeout(() => resolve(response), 10000)
-                //     })
-                // })
-                .then((data: AlertsResponse) => {
-                    setData(data);
-                    setIsLoading(false);
-                });
+        if (data) {
+            return;
         }
+
+        (async () => {
+            const response = await fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
+            // await new Promise(resolve => setTimeout(resolve, 10000));
+            const data = (await response.json()) as AlertsResponse;            
+            setData(data);
+            setLoadingStatus(LoadingStatus.Loaded);
+        })().catch(() => {
+            setLoadingStatus(LoadingStatus.ServerError);
+        });
     });
 
-    return <SingleAlertView data={data} loadingStatus={isLoading ? LoadingStatus.LoadingAll : LoadingStatus.Loaded} isModal={false} showDistance={false}/>;
+    return <SingleAlertView data={data} loadingStatus={loadingStatus} isModal={false} showDistance={false}/>;
 }
 
 export function ModalSingleAlert() {
@@ -670,31 +682,18 @@ export function ModalSingleAlert() {
     React.useEffect(() => {
         if (data) return;
 
-        if (!alert) {
-            fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
-                .then(response => response.json())
-                // .then(response => {
-                //     return new Promise((resolve) => {
-                //         setTimeout(() => resolve(response), 10000)
-                //     })
-                // })
-                .then((data: AlertsResponse) => {
-                    setData(data);
-                    setLoadingStatus(LoadingStatus.Loaded);
-                });
-        } else if (alert && hasRouteChanges) {
-            fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
-                .then((response) => response.json())
-                // .then(response => {
-                //     return new Promise((resolve) => {
-                //         setTimeout(() => resolve(response), 10000)
-                //     })
-                // })
-                .then((data: AlertsResponse) => {
-                    setData(data);
-                    setLoadingStatus(LoadingStatus.Loaded);
-                });
-        }
+        (async () => {
+            const response = alert
+                ? await fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
+                : await fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""));
+            // await new Promise(resolve => setTimeout(resolve, 10000));
+
+            const data = (await response.json()) as AlertsResponse;
+            setData(data);
+            setLoadingStatus(LoadingStatus.Loaded);
+        })().catch(() => {
+            setLoadingStatus(LoadingStatus.ServerError);
+        });
     });
 
     const baseData = alert ? {alerts: [alert]} : {};

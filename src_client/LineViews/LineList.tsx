@@ -8,7 +8,7 @@ import { ActualLine } from "../protocol";
 // oy vey ios AND mac safari as of 2022-01-22 don't support this!!!! aaaaaAAAAaaAAaAAAAA
 import * as smoothscroll from 'smoothscroll-polyfill'; 
 import { AgencyTag } from "../RandomComponents/AgencyTag";
-import { LineListResponseContext } from "./LineListPage";
+import { LineListLoadingStatus, LineListResponseContext } from "./LineListPage";
 import { MatchedString } from "../AlertViews/AlertSummary";
 import hazardImg from '../assets/hazard.svg';
 import cancelledStopImg from '../assets/cancelledstop.svg';
@@ -19,6 +19,7 @@ import { LineSummarySkeleton } from "../RandomComponents/Skeletons";
 import clsx from "clsx";
 import { JERUSALEM_TZ, short_date_hebrew, short_time_hebrew } from "../junkyard/date_utils";
 import { DateTime } from "luxon";
+import { ServerErrorMessage } from "../RandomComponents/ServerErrorMessage";
 smoothscroll.polyfill();
 
 export type LineListItem = ActualLine | FurrySearchResult<ActualLine>;
@@ -32,15 +33,18 @@ interface LineListProps {
     lines: LineListItem[];
     showDistance: boolean;
     noAlertsToday?: boolean;
-    isLoading: boolean;
+    loadingStatus: LineListLoadingStatus;
 }
 
 export default function LineList({
     lines,
     showDistance,
     noAlertsToday,
-    isLoading
+    loadingStatus
 }: LineListProps) {
+    const isLoading = loadingStatus === LineListLoadingStatus.Loading;
+    const isError = loadingStatus === LineListLoadingStatus.ServerError;
+
     const rowRenderer = React.useCallback<ItemContent<LineListItem>>(
         (index) => {
             if (isLoading) {
@@ -54,13 +58,19 @@ export default function LineList({
                 return <LineSummary line={line}
                                     matches={searchResult?.matches ?? []}
                                     showDistance={showDistance} />
-            } else if (noAlertsToday && index == 0) {
+            } else if (noAlertsToday && index === 0) {
                 return <div className="no-alerts-today">
                     <span>אין התראות היום</span>
                     <span className="snarky-comment">(או שיש באג באתר? לכו תדעו 🙃)</span>
                 </div>;
+            } else if (isError && index === 0) {
+                return <div className="no-alerts-today">
+                    <ServerErrorMessage />
+                </div>
             } else if (
-                (noAlertsToday && index == 1) || (!noAlertsToday && index >= lines.length)
+                (noAlertsToday && index === 1)
+                || (isError && index === 1)
+                || (!noAlertsToday && index >= lines.length)
             ) {
                 return <div className="list-end-gizmo"></div>;
             }
@@ -105,7 +115,7 @@ export default function LineList({
 
     const totalCount = isLoading
         ? 4
-        : noAlertsToday
+        : noAlertsToday || isError
         ? 2
         : (lines.length && (lines.length + 1));
 

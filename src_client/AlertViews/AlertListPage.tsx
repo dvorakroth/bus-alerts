@@ -7,12 +7,18 @@ import GeolocationButton from "../RandomComponents/GeolocationButton";
 import { ALERT_SEARCH_KEYS, SEARCH_THRESHOLD, ALERT_SORT_COMPARE_FUNC } from "../search_worker_data";
 import { TopTabItem, TopTabs } from "../RandomComponents/TopTabs";
 
+export enum AlertListLoadingStatus {
+    Loading,
+    Loaded,
+    ServerError
+}
+
 interface ServiceAlertsMainScreenProps {
     hasModal: boolean;
 };
 
 export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) {
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [loadingStatus, setLoadingStatus] = React.useState<AlertListLoadingStatus>(AlertListLoadingStatus.Loading);
     const [data, setData] = React.useState<AlertsResponse|null>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
     const [currentLocation, setCurrentLocation] = React.useState<[number, number]|null>(null);
@@ -50,8 +56,8 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
             const id = ++currentRefresh.current;
             ++currentSearch.current;
 
-            if (!isLoading) {
-                setIsLoading(true);
+            if (loadingStatus !== AlertListLoadingStatus.Loading) {
+                setLoadingStatus(AlertListLoadingStatus.Loading);
             }
 
             const currentLocationStr = currentLocation
@@ -72,16 +78,13 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                 }
                 : { method: "GET" };
 
-            fetch(
-                '/api/all_alerts',
-                fetchOptions
-            ).then(response => response.json())
-            // .then(response => {
-            //     return new Promise((resolve) => {
-            //         setTimeout(() => resolve(response), 10000)
-            //     })
-            // })
-            .then((data: AlertsResponse) => {
+            (async () => {
+                const response = await fetch(
+                    '/api/all_alerts',
+                    fetchOptions
+                );
+                // await new Promise(resolve => setTimeout(resolve, 10000));
+                const data = (await response.json()) as AlertsResponse;
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
                     return;
@@ -93,8 +96,10 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                 // });
                 searchIndex.current = new FurryIndex<ServiceAlert>(data.alerts ?? [], ALERT_SEARCH_KEYS, ALERT_SORT_COMPARE_FUNC);
                 setData(data);
-                setIsLoading(false);
+                setLoadingStatus(AlertListLoadingStatus.Loaded);
                 setShowDistance(!!currentLocationStr);
+            })().catch(() => {
+                setLoadingStatus(AlertListLoadingStatus.ServerError);
             });
         },
         [currentLocation]
@@ -167,7 +172,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
     )
 
     const showFilterNotice = currentlyDisplayedData !== data?.alerts && searchString;
-    const noAlertsToday = !data?.alerts?.length && !isLoading;
+    const noAlertsToday = !data?.alerts?.length && loadingStatus === AlertListLoadingStatus.Loaded;
 
     return <>
         <div className={"search-bar-container" + (hasModal ? " hidden" : "")}>
@@ -196,7 +201,7 @@ export default function AlertListPage({hasModal}: ServiceAlertsMainScreenProps) 
                     alerts={currentlyDisplayedData}
                     showDistance={showDistance}
                     noAlertsToday={noAlertsToday}
-                    isLoading={isLoading}
+                    loadingStatus={loadingStatus}
                 />
                 {/* <LoadingOverlay shown={isLoading} /> */}
         </div>

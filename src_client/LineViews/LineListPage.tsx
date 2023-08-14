@@ -9,12 +9,18 @@ import { TopTabItem, TopTabs } from '../RandomComponents/TopTabs';
 
 export const LineListResponseContext = React.createContext<LinesListResponse|null>(null);
 
+export enum LineListLoadingStatus {
+    Loading,
+    Loaded,
+    ServerError
+}
+
 interface Props {
     hasModal: boolean;
 }
 
 export default function LineListPage({hasModal}: Props) {
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [loadingStatus, setLoadingStatus] = React.useState<LineListLoadingStatus>(LineListLoadingStatus.Loading);
     const [data, setData] = React.useState<LinesListResponse|null>(null);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
     const [currentLocation, setCurrentLocation] = React.useState<[number, number]|null>(null);
@@ -32,8 +38,8 @@ export default function LineListPage({hasModal}: Props) {
             const id = ++currentRefresh.current;
             ++currentSearch.current;
 
-            if (!isLoading) {
-                setIsLoading(true);
+            if (loadingStatus !== LineListLoadingStatus.Loading) {
+                setLoadingStatus(LineListLoadingStatus.Loading);
             }
 
             const currentLocationStr = currentLocation
@@ -54,16 +60,14 @@ export default function LineListPage({hasModal}: Props) {
                 }
                 : { method: "GET" };
 
-            fetch(
-                '/api/all_lines',
-                fetchOptions
-            ).then(response => response.json())
-            // .then(response => {
-            //     return new Promise((resolve) => {
-            //         setTimeout(() => resolve(response), 10000)
-            //     })
-            // })
-            .then((data: LinesListResponse) => {
+            (async () => {
+                const response = await fetch(
+                    '/api/all_lines',
+                    fetchOptions
+                );
+                // await new Promise(resolve => setTimeout(resolve, 10000));
+                const data = (await response.json()) as LinesListResponse;
+
                 if (currentRefresh.current !== id) {
                     console.info('ignoring request #' + id + ' (waiting for #' + currentRefresh.current + ')');
                     return;
@@ -80,8 +84,10 @@ export default function LineListPage({hasModal}: Props) {
                     DEFAULT_SORT_COMPARE_FUNC
                 );
                 setData(data);
-                setIsLoading(false);
+                setLoadingStatus(LineListLoadingStatus.Loaded);
                 setShowDistance(!!currentLocationStr);
+            })().catch(() => {
+                setLoadingStatus(LineListLoadingStatus.ServerError);
             });
         },
         [currentLocation]
@@ -148,7 +154,9 @@ export default function LineListPage({hasModal}: Props) {
             0
         )
         : null;
-    const noAlertsToday = !data?.lines_with_alert.length && !isLoading && !showFilterNotice;
+    const noAlertsToday = !data?.lines_with_alert.length
+        && loadingStatus === LineListLoadingStatus.Loaded
+        && !showFilterNotice;
 
     const onNewLocation = React.useCallback(
         (newLocation: GeolocationPosition) => {
@@ -197,7 +205,7 @@ export default function LineListPage({hasModal}: Props) {
                     lines={currentlyDisplayedData}
                     showDistance={showDistance}
                     noAlertsToday={noAlertsToday}
-                    isLoading={isLoading}
+                    loadingStatus={loadingStatus}
                 />
                 {/* <LoadingOverlay shown={isLoading} /> */}
         </div>

@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { DepartureChangesView } from '../RandomComponents/DepartureChangesView';
 import { SingleLineViewSkeleton } from '../RandomComponents/Skeletons';
 import { enumerate } from '../junkyard/iter_utils';
+import { ServerErrorMessage } from '../RandomComponents/ServerErrorMessage';
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל הקווים";
 const DISCLAIMER_MOT_DESC = "טקסט כפי שנמסר:";
@@ -21,17 +22,20 @@ const NEBULOUS_DISTANT_FUTURE = DateTime.fromISO("2150-01-01T00:00:00.000Z").toS
 
 interface ImplSingleLineViewProps {
     data: SingleLineChanges|null;
-    isLoading: boolean;
+    loadingStatus: LoadingStatus;
     isModal: boolean;
     hasModal: boolean;
     showDistance: boolean;
 }
 
-function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: ImplSingleLineViewProps) {
+function ImplSingleLineView({data, loadingStatus, isModal, hasModal, showDistance}: ImplSingleLineViewProps) {
     const navigate = ReactRouterDOM.useNavigate();
 
     const [selectedDirectionIdx, setSelectedDirectionIdx] = React.useState<number>(0);
     const [selectedChangePeriodIdx, setSelectedChangePeriodIdx] = React.useState<number>(0);
+
+    const isLoading = loadingStatus === LoadingStatus.Loading;
+    const isError = loadingStatus === LoadingStatus.ServerError;
 
     React.useEffect(
         () => {
@@ -167,12 +171,22 @@ function ImplSingleLineView({data, isLoading, isModal, hasModal, showDistance}: 
                     : null
             }
             {
-                (!line && !isLoading)
+                (!line && !isLoading && !isError)
                     ? <>
                         <div className="no-alerts-today">
                             <span>אולי היה כאן דף,</span>
                             <span>ואולי הלינק נשבר</span>
                             <span className="snarky-comment">(ולכו תדעו, אולי יש באג באתר? 🙃)</span>
+                        </div>
+                        <div className="list-end-gizmo"></div>
+                    </>
+                    : null
+            }
+            {
+                isError
+                    ? <>
+                        <div className="no-alerts-today">
+                            <ServerErrorMessage />
                         </div>
                         <div className="list-end-gizmo"></div>
                     </>
@@ -364,6 +378,12 @@ function boundingBoxForStops(
 }
 
 
+enum LoadingStatus {
+    Loading,
+    Loaded,
+    ServerError
+}
+
 interface Props {
     isModal: boolean;
     hasModal?: boolean;
@@ -372,36 +392,25 @@ interface Props {
 export default function FullPageSingleLineView({isModal, hasModal}: Props) {
     const params = ReactRouterDOM.useParams<"id">();
     const [data, setData] = React.useState<SingleLineChanges|null>(null);
-    const [isLoading, setIsLoading] = React.useState<boolean>(true);
+    const [loadingStatus, setLoadingStatus] = React.useState<LoadingStatus>(LoadingStatus.Loading);
 
     React.useEffect(() => {
         if (data) return;
 
         (async () => {
-            let response = null;
-            try {
-                response = await fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""));
-            } catch(err) {
-                console.error("Error while fetching single line details: ", err);
-            }
-
-            let data = null;
-            try {
-                if (response) {
-                    data = await response.json();
-                }
-            } catch(err) {
-                console.error("Error while parsing response JSON: ", err);
-            }
+            const response = await fetch("/api/single_line?id=" + encodeURIComponent(params.id ?? ""));
+            const data = await response.json();
 
             // await new Promise(r => setTimeout(r, 10000));
 
             setData(data);
-            setIsLoading(false);
-        })();
+            setLoadingStatus(LoadingStatus.Loaded);
+        })().catch(() => {
+            setLoadingStatus(LoadingStatus.ServerError);
+        });
     });
 
-    return <ImplSingleLineView data={data} isLoading={isLoading} isModal={isModal} hasModal={!!hasModal} showDistance={false}/>;
+    return <ImplSingleLineView data={data} loadingStatus={loadingStatus} isModal={isModal} hasModal={!!hasModal} showDistance={false}/>;
 }
 
 function findNowPeriod(periods: AlertPeriodWithRouteChanges[]) {
