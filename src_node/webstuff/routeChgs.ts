@@ -96,12 +96,14 @@ export async function getRouteChanges(
             updated_stop_sequence: stopSeq
         };
 
+        const line_pk = routeChangeData.line_number + "_" + (routeChangeData.route_desc.split("-")[0] ?? "");
+
         // add to the result struct
         const agencyLines = changes_by_agency_and_line[routeChangeData.agency_id]
             ?? (changes_by_agency_and_line[routeChangeData.agency_id] = {});
         
-        const lineChanges = agencyLines[routeChangeData.line_number]
-            ?? (agencyLines[routeChangeData.line_number] = []);
+        const lineChanges = agencyLines[line_pk]
+            ?? (agencyLines[line_pk] = []);
         
         lineChanges.push(routeChangeData);
 

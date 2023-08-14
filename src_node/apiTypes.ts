@@ -12,13 +12,13 @@ export type {
 export type AlertAdditionalData = {
     added_stops: [string, string][]; // stop_code, stop_name
     removed_stops: [string, string][]; // ditto
-    relevant_lines: Record<string, string[]>; // agency_id -> [route_short_name, route_short_name, ...]
+    relevant_lines: Record<string, string[]>; // agency_id -> [line_pk, line_pk, ...]
     relevant_agencies: Agency[];
 
     first_relevant_date: null|DateTime;
     current_active_period_start: null|DateTime;
 
-    departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>; // agency_id -> line_number -> [change, change, change, ...]
+    departure_changes: Record<string, Record<string, DepartureChangeDetail[]>>; // agency_id -> line_pk -> [change, change, change, ...]
 }
 
 export type DepartureChangeDetail = RouteMetadata & AddedRemovedDepartures & {
