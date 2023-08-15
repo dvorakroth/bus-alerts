@@ -436,7 +436,8 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
     }
 }
 
-.no-alerts-today {
+.no-alerts-today,
+.error-loading-changes {
     padding: 20px 10px;
     text-align: center;
 
@@ -445,6 +446,10 @@ $shimmer-dark-2: change-color($alert-bg-dark, $alpha: 0.4);
     & > span {
         display: block;
     }
+}
+
+.error-loading-changes {
+    font-size: 150%;
 }
 
 .snarky-comment {
