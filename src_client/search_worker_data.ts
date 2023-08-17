@@ -94,7 +94,13 @@ export const ALERT_SEARCH_KEYS: FurryKeyDefinition<ServiceAlert>[] = [
     {
         // "name": "relevant_lines_for_search",
         "get": (a) => a.relevant_agencies
-                        .map(({agency_id}) => a.relevant_lines[agency_id] ?? [])
+                        .map(
+                            ({agency_id}) => 
+                                a.relevant_lines[agency_id]?.map(
+                                    line_pk => line_pk.split("_")[0] ?? line_pk
+                                )
+                                ?? []
+                        )
                         .reduce((a, b) => a.concat(b), []),
         "weight": 1
     },

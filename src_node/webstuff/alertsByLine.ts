@@ -150,7 +150,7 @@ function lineWithAlertSortingNple(
         // -(line.num_removed_stops ?? 0),
         line.first_relevant_timestamp?.toSeconds() ?? Infinity,
         -line.num_alerts,
-        lineNumberForSorting(line.route_short_name),
+        ...lineNumberForSorting(line.route_short_name),
         allAgencies[line.agency_id]?.agency_name ?? ""
     ];
 }

@@ -161,7 +161,7 @@ function ActivePeriodsView({active_periods}: ActivePeriodsViewProps) {
 
 interface LineChooserLineNumberProps {
     agency_id: string;
-    line_number: string;
+    line_pk: string;
     isSelected: boolean;
     onLineClick: (agency_id: string, line_number: string, event: React.MouseEvent) => void;
     matches?: FurrySearchMatch;
@@ -171,13 +171,14 @@ const LineChooserLineNumber = React.memo(
     (
         {
             agency_id,
-            line_number,
+            line_pk,
             isSelected,
             onLineClick,
             matches
         }: LineChooserLineNumberProps
     ) => {
-        const onClick = (event: React.MouseEvent) => onLineClick(agency_id, line_number, event);
+        const onClick = (event: React.MouseEvent) => onLineClick(agency_id, line_pk, event);
+        const line_number = line_pk.split("_")[0] ?? line_pk;
         
         return <li className={(isSelected ? " is-selected": "")}>
             <div className={"line-number operator-" + agency_id}
@@ -191,7 +192,7 @@ const LineChooserLineNumber = React.memo(
     },
     (oldProps, newProps) => (
         oldProps.agency_id === newProps.agency_id
-        && oldProps.line_number === newProps.line_number
+        && oldProps.line_pk === newProps.line_pk
         && oldProps.isSelected === newProps.isSelected
         && oldProps.onLineClick === newProps.onLineClick
         && areMatchesEqual(oldProps.matches, newProps.matches)
@@ -255,14 +256,14 @@ function LineChooser(
                                agency_id={agency_id}
                                matches={agencyNameMatches?.[agencyIdx]} />
                     <ul className={"relevant-lines" + (onNewSelection ? " interactive" : "")} key={agency_id}>
-                        {relevant_lines[agency_id]?.map((line_number) => {
+                        {relevant_lines[agency_id]?.map(line_pk => {
                             lineGlobalIdx += 1;
 
                             return <LineChooserLineNumber agency_id={agency_id}
-                                                   line_number={line_number}
-                                                   isSelected={selection[0] === agency_id && selection[1] === line_number}
+                                                   line_pk={line_pk}
+                                                   isSelected={selection[0] === agency_id && selection[1] === line_pk}
                                                    onLineClick={onLineClick}
-                                                   key={line_number}
+                                                   key={line_pk}
                                                    matches={lineNumberMatches?.[lineGlobalIdx - 1]} />;
                         })}
                     </ul>

@@ -58,7 +58,7 @@ export class GtfsDbApi {
 
         if (routeIds.length) {
             const res = await this.gtfsDbPool.query<Route, [string[]]>(
-                "SELECT route_id, route_short_name, agency_id FROM routes WHERE route_id = ANY($1::varchar[]);",
+                "SELECT route_id, route_short_name, agency_id, route_desc FROM routes WHERE route_id = ANY($1::varchar[]);",
                 [routeIds]
             );
 
@@ -313,7 +313,8 @@ export class GtfsDbApi {
 type Route = {
     route_id: string,
     route_short_name: string,
-    agency_id: string
+    agency_id: string,
+    route_desc: string
 };
 
 type Stop = {

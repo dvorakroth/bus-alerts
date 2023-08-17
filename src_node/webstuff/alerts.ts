@@ -41,18 +41,20 @@ export async function enrichAlerts(
             const route = metadata.routes[routeId];
             if (!route) continue;
 
+            const line_pk = route.route_short_name + "_" + (route.route_desc.split("-")[0] ?? "");
+
             const linesForAgency = relevant_lines_sets[route.agency_id] || (
                 relevant_lines_sets[route.agency_id] = new Set()
             );
-            linesForAgency.add(route.route_short_name);
+            linesForAgency.add(line_pk);
         }
 
         const relevant_lines: Record<string, string[]> = {};
         for (const [agency_id, lineSet] of Object.entries(relevant_lines_sets)) {
             relevant_lines[agency_id] = [...lineSet].sort(
                 (a, b) => compareTuple(
-                    lineNumberForSorting(a),
-                    lineNumberForSorting(b)
+                    lineNumberForSorting(a.split("_")[0] ?? a),
+                    lineNumberForSorting(b.split("_")[0] ?? b)
                 )
             );
         }

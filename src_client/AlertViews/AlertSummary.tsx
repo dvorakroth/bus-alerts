@@ -223,7 +223,7 @@ export function RelevantLinesList(
                                agency_id={agency_id}
                                matches={agencyNameMatches?.[agencyIdx]} />
                     <ul className="relevant-lines" key={agency_id}>
-                        {(relevant_lines[agency_id] || []).map((line_number) => {
+                        {(relevant_lines[agency_id] || []).map(line_pk => line_pk.split("_")[0] ?? line_pk).map(line_number => {
                             lineGlobalIdx += 1;
 
                             return <li className={"line-number operator-" + agency_id}
