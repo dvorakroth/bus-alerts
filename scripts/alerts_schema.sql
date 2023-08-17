@@ -55,16 +55,16 @@ CREATE TABLE alert_route (
     -- CONSTRAINT fk_route_id FOREIGN KEY(route_id) REFERENCES routes(route_id)
 );
 
-CREATE VIEW alerts_with_related AS
+CREATE OR REPLACE VIEW alerts_with_related AS
 SELECT alert.*,
     ARRAY(SELECT agency_id FROM alert_agency WHERE alert_agency.alert_id=id ORDER BY agency_id ASC) AS relevant_agencies,
     ARRAY(SELECT route_id  FROM alert_route  WHERE alert_route.alert_id=id  ORDER BY route_id  ASC) AS relevant_route_ids,
     ARRAY(SELECT stop_id   FROM alert_stop   WHERE alert_stop.alert_id=id AND is_added=TRUE   ORDER BY stop_id   ASC) AS added_stop_ids,
     ARRAY(SELECT stop_id   FROM alert_stop   WHERE alert_stop.alert_id=id AND is_removed=TRUE ORDER BY stop_id   ASC) AS removed_stop_ids,
     (
-        last_end_time < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem') --::DATE
+        (last_end_time AT TIME ZONE 'Asia/Jerusalem') < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem') --::DATE
         OR
-        (deletion_tstz IS NOT NULL AND (deletion_tstz + INTERVAL '2 days') < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem'))
+        (deletion_tstz IS NOT NULL AND ((deletion_tstz + INTERVAL '2 days') AT TIME ZONE 'Asia/Jerusalem') < (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jerusalem'))
     ) AS is_expired,
     (deletion_tstz IS NOT NULL) AS is_deleted
 FROM alert;

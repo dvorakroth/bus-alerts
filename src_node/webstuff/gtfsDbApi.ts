@@ -77,6 +77,7 @@ export class GtfsDbApi {
                 stops[stop.stop_id] = stop;
             }
         }
+        if (this.timedOps) console.timeEnd("GtfsDbApi.getRelatedMetadata");        
 
         return <AlertSupplementalMetadata>{agencies, routes, stops};
     }
@@ -286,21 +287,18 @@ export class GtfsDbApi {
         return arrayToDict(res.rows, r => r.agency_id);
     }
 
-    async getStopsSortedByPopularity(stopIds: string[]) {
+    async getStopsSortedByTripCount(stopCodes: string[]) {
         if (this.timedOps) console.time("GtfsDbApi.getStopsSortedByPopularity");
         const res = await this.gtfsDbPool.query<{stop_code: string, stop_name: string}, [string[]]>(
             `
                 SELECT
                     stop_code,
-                    (ARRAY_AGG(stop_name))[1] AS stop_name
-                FROM stops
-                LEFT OUTER JOIN stoptimes
-                ON stoptimes.stop_id = stops.stop_id
-                WHERE stops.stop_id = ANY($1::varchar[])
-                GROUP BY stop_code
-                ORDER BY COUNT(DISTINCT trip_id) DESC;
+                    stop_name
+                FROM stops_trip_count
+                WHERE stop_code = ANY($1::varchar[])
+                ORDER BY num_trips DESC;
             `,
-            [stopIds]
+            [stopCodes]
         );
 
         const result = res.rows.map<[string, string]>(

@@ -14,7 +14,7 @@ import DirectionChooser from "../RandomComponents/DirectionChooser";
 import { LocationStateAlert } from "../LocationState";
 import { DepartureChangesView } from "../RandomComponents/DepartureChangesView";
 import { LineChooserAndMapSkeleton, SingleAlertViewSkeleton } from "../RandomComponents/Skeletons";
-import { ServerErrorMessage } from "../RandomComponents/ServerErrorMessage";
+import { ServerErrorChangesMessage, ServerErrorMessage } from "../RandomComponents/ServerErrorMessage";
 
 const DISMISS_BUTTON_TEXT = "< חזרה לכל ההתראות";
 const DISMISS_BUTTON_LINE = "< חזרה לקו";
@@ -486,7 +486,8 @@ enum LoadingStatus {
     LoadingAll,
     LoadingChanges,
     Loaded,
-    ServerError
+    ServerErrorAll,
+    ServerErrorChanges
 }
 
 interface SingleAlertViewProps {
@@ -563,7 +564,7 @@ function SingleAlertView(
                 : null
             }
             {
-                loadingStatus === LoadingStatus.ServerError
+                loadingStatus === LoadingStatus.ServerErrorAll
                     ? <>
                         <div className="no-alerts-today">
                             <ServerErrorMessage />
@@ -595,6 +596,8 @@ function SingleAlertView(
                         {
                             loadingStatus === LoadingStatus.LoadingChanges
                                 ? <LineChooserAndMapSkeleton />
+                                : loadingStatus === LoadingStatus.ServerErrorChanges
+                                ? <ServerErrorChangesMessage />
                                 : should_show_map && data.route_changes && data.stops_for_map && data.map_bounding_box
                                 ? <LineChooserAndMap relevant_agencies={alert.relevant_agencies}
                                                      relevant_lines={alert.relevant_lines}
@@ -648,13 +651,14 @@ export function FullPageSingleAlert() {
         }
 
         (async () => {
-            const response = await fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""))
+            const response = await fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""));
             // await new Promise(resolve => setTimeout(resolve, 10000));
+
             const data = (await response.json()) as AlertsResponse;            
             setData(data);
             setLoadingStatus(LoadingStatus.Loaded);
         })().catch(() => {
-            setLoadingStatus(LoadingStatus.ServerError);
+            setLoadingStatus(LoadingStatus.ServerErrorAll);
         });
     });
 
@@ -680,7 +684,7 @@ export function ModalSingleAlert() {
     const [data, setData] = React.useState<AlertsResponse|null>(null);
 
     React.useEffect(() => {
-        if (data) return;
+        if (data || !hasRouteChanges) return;
 
         (async () => {
             const response = alert
@@ -692,7 +696,11 @@ export function ModalSingleAlert() {
             setData(data);
             setLoadingStatus(LoadingStatus.Loaded);
         })().catch(() => {
-            setLoadingStatus(LoadingStatus.ServerError);
+            if (alert) {
+                setLoadingStatus(LoadingStatus.ServerErrorChanges);
+            } else {
+                setLoadingStatus(LoadingStatus.ServerErrorAll);
+            }
         });
     });
 

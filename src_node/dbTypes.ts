@@ -126,8 +126,8 @@ export type AlertWithRelatedInDb = BaseAlertInDb & {
     is_expired: boolean
 };
 
-export type tmp__actual_lines_Row = {
-    // the rows of the table called tmp__actual_lines
+export type actual_lines_Row = {
+    // the rows of the table called actual_lines
     
     mot_license_id: string;
     route_short_name: string;
@@ -139,7 +139,7 @@ export type tmp__actual_lines_Row = {
     all_stopids_distinct: string[];
 };
 
-export type ActualLine = tmp__actual_lines_Row & {
+export type ActualLine = actual_lines_Row & {
     pk: string;
     main_cities: string[];
     secondary_cities: string[];

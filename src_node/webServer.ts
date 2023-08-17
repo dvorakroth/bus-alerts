@@ -13,7 +13,7 @@ import { AlertsDbApi } from "./webstuff/alertsDbApi.js";
 import { GtfsDbApi } from "./webstuff/gtfsDbApi.js";
 import { DateTime } from "luxon";
 import { GracefulShutdownManager } from "@moebius/http-graceful-shutdown";
-import { groupRoutes } from "./webstuff/routeGrouping.js";
+import { getGroupedRoutes } from "./webstuff/routeGrouping.js";
 import { JERUSALEM_TZ, nodePgConnectionStringKludge } from "./generalJunkyard.js";
 
 const doc = `Service Alerts App Web Server.
@@ -89,15 +89,14 @@ const gtfsDbApi = new GtfsDbApi(gtfsDbPool, timedOps);
 const alertsDbApi = new AlertsDbApi(alertsDbPool, timedOps);
 
 
-  ////////////////////////////////////
- // create the "actual lines" list //
-////////////////////////////////////
-winston.info("Grouping routes into Actual Lines");
-const groupedRoutes = await groupRoutes(
-    path.join(__dirname, "../scripts/route_grouping_query.sql"),
+  ///////////////////////////////////
+ // fetch the "actual lines" list //
+///////////////////////////////////
+if (timedOps) console.time("getGroupedRoutes");
+const groupedRoutes = await getGroupedRoutes(
     gtfsDbPool
 );
-winston.info("Done grouping routes");
+if (timedOps) console.timeEnd("getGroupedRoutes");
 
 
   ////////////////////////////////////

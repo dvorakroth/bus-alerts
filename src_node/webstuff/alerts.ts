@@ -19,29 +19,23 @@ export async function enrichAlerts(
 
     const metadata = await gtfsDbApi.getRelatedMetadataForAlerts(alertsRaw);
 
-    // const additionalData: Record<string, AlertAdditionalData> = {}; // alert_id -> additional data
     const result: AlertForApi[] = [];
 
     for (const alert of alertsRaw) {
-        const added_stops = await gtfsDbApi.getStopsSortedByPopularity(
-            alert.added_stop_ids
+        const added_stop_codes = alert.added_stop_ids.map(
+            stop_id => metadata.stops[stop_id]?.stop_code ?? ""
         );
-        const removed_stops = await gtfsDbApi.getStopsSortedByPopularity(
-            alert.removed_stop_ids
+        const removed_stop_codes = alert.removed_stop_ids.map(
+            stop_id => metadata.stops[stop_id]?.stop_code ?? ""
+        );
+
+        const added_stops = await gtfsDbApi.getStopsSortedByTripCount(
+            added_stop_codes
+        );
+        const removed_stops = await gtfsDbApi.getStopsSortedByTripCount(
+            removed_stop_codes
         );
         const relevant_lines_sets: Record<string, Set<string>> = {};
-
-        // for (const stopId of await gtfsDbApi.sortStopIdsByPopularity(alert.added_stop_ids)) {
-        //     const stop = metadata.stops[stopId];
-        //     if (stop)
-        //         added_stops.push([stop.stop_code, stop.stop_name]);
-        // }
-
-        // for (const stopId of await gtfsDbApi.sortStopIdsByPopularity(alert.removed_stop_ids)) {
-        //     const stop = metadata.stops[stopId];
-        //     if (stop)
-        //         removed_stops.push([stop.stop_code, stop.stop_name]);
-        // }
 
         for (const routeId of alert.relevant_route_ids) {
             const route = metadata.routes[routeId];
@@ -52,27 +46,6 @@ export async function enrichAlerts(
             );
             linesForAgency.add(route.route_short_name);
         }
-
-        // man these sort comparators are probably inefficient as heck now that
-        // we're no longer using python huh
-        // though honestly all of python (and most of js) is inefficient as it is
-        // and the requests are all gonna be cached anyway so meh whatever
-        // inPlaceSortAndUniqueCustom(
-        //     added_stops,
-        //     ([aStopCode], [bStopCode]) => compareTuple(
-        //         lineNumberForSorting(aStopCode),
-        //         lineNumberForSorting(bStopCode)
-        //     ),
-        //     ([a, aa], [b, bb]) => a === b && aa === bb
-        // );
-        // inPlaceSortAndUniqueCustom(
-        //     removed_stops,
-        //     ([aStopCode], [bStopCode]) => compareTuple(
-        //         lineNumberForSorting(aStopCode),
-        //         lineNumberForSorting(bStopCode)
-        //     ),
-        //     ([a, aa], [b, bb]) => a === b && aa === bb
-        // );
 
         const relevant_lines: Record<string, string[]> = {};
         for (const [agency_id, lineSet] of Object.entries(relevant_lines_sets)) {
