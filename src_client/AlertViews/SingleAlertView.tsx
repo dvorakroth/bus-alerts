@@ -671,33 +671,32 @@ export function ModalSingleAlert() {
     const locationState = location.state as LocationStateAlert;
     const params = ReactRouter.useParams<"id">();
 
-    const alert = locationState.alert;
-
-    const hasRouteChanges = shouldShowMapForAlert(alert);
+    const preloadedAlert = locationState.alert;
+    const preloadedHasRouteChanges = shouldShowMapForAlert(preloadedAlert);
 
     const [loadingStatus, setLoadingStatus] = React.useState<LoadingStatus>(
-        !alert
+        !preloadedAlert
             ? LoadingStatus.LoadingAll
-            : hasRouteChanges
-            ? LoadingStatus.LoadingChanges
-            : LoadingStatus.Loaded
+            : preloadedHasRouteChanges
+                ? LoadingStatus.LoadingChanges
+                : LoadingStatus.Loaded
     );
-    const [data, setData] = React.useState<AlertsResponse|null>(null);
+    const [fetchedData, setFetchedData] = React.useState<AlertsResponse|null>(null);
 
     React.useEffect(() => {
-        if (data || !hasRouteChanges) return;
+        if (fetchedData || (preloadedAlert && !preloadedHasRouteChanges)) return;
 
         (async () => {
-            const response = alert
-                ? await fetch("/api/get_route_changes?id=" + encodeURIComponent(alert.id))
+            const response = preloadedAlert
+                ? await fetch("/api/get_route_changes?id=" + encodeURIComponent(preloadedAlert.id))
                 : await fetch("/api/single_alert?id=" + encodeURIComponent(params.id ?? ""));
             // await new Promise(resolve => setTimeout(resolve, 10000));
 
             const data = (await response.json()) as AlertsResponse;
-            setData(data);
+            setFetchedData(data);
             setLoadingStatus(LoadingStatus.Loaded);
         })().catch(() => {
-            if (alert) {
+            if (preloadedAlert) {
                 setLoadingStatus(LoadingStatus.ServerErrorChanges);
             } else {
                 setLoadingStatus(LoadingStatus.ServerErrorAll);
@@ -705,9 +704,9 @@ export function ModalSingleAlert() {
         });
     });
 
-    const baseData = alert ? {alerts: [alert]} : {};
+    const baseData = preloadedAlert ? {alerts: [preloadedAlert]} : {};
 
-    return <SingleAlertView data={{...baseData, ...(data || {})}}
+    return <SingleAlertView data={{...baseData, ...(fetchedData || {})}}
                             loadingStatus={loadingStatus}
                             isModal={true}
                             showDistance={locationState?.showDistance ?? false}
