@@ -53,6 +53,8 @@ WHERE route_type != 2
     AND route_type != 0
     AND (route_color IS NULL OR route_color != 'FF9933');
 
+DELETE FROM tmp__routes WHERE random_trip_id IS NULL;
+
 ALTER TABLE tmp__routes ADD PRIMARY KEY (route_id);
 
 SELECT DISTINCT ON (tmp__routes.route_id)
@@ -117,34 +119,40 @@ ALTER TABLE tmp__actual_line_alt_directions
 ADD PRIMARY KEY (mot_license_id, route_short_name, mot_alternative_id, mot_direction_id);
 
 UPDATE tmp__actual_line_alt_directions
-SET city_list = (
-    SELECT rt.city_list
-    FROM tmp__route_trips rt
-    WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
+SET city_list = COALESCE(
+    (
+        SELECT rt.city_list
+        FROM tmp__route_trips rt
+        WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
+    ),
+    '[]'::JSON
 ),
-is_circular = (
-    -- distance between first and last stop lmao
-    SELECT asin(
-            sqrt(
-                sin(radians(s2.stop_lat-s1.stop_lat)/2)^2 +
-                sin(radians(s2.stop_lon-s1.stop_lon)/2)^2 *
-                cos(radians(s1.stop_lat)) *
-                cos(radians(s2.stop_lat))
-            )
-        ) * 7926.3352 AS distance
-    -- SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
-    FROM 
-        tmp__route_trips rt
-        INNER JOIN stoptimes st1
-        ON rt.trip_id = st1.trip_id AND st1.stop_sequence = rt.min_stop_sequence
-        INNER JOIN stops s1
-        ON st1.stop_id = s1.stop_id
-        INNER JOIN stoptimes st2
-        ON rt.trip_id = st2.trip_id AND st2.stop_sequence = rt.max_stop_sequence
-        INNER JOIN stops s2
-        ON st2.stop_id = s2.stop_id
-    WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
-) <= 0.5; -- if it's less than a half mile (800 m) then consider the line to be circular
+is_circular = COALESCE(
+    (
+        -- distance between first and last stop lmao
+        SELECT asin(
+                sqrt(
+                    sin(radians(s2.stop_lat-s1.stop_lat)/2)^2 +
+                    sin(radians(s2.stop_lon-s1.stop_lon)/2)^2 *
+                    cos(radians(s1.stop_lat)) *
+                    cos(radians(s2.stop_lat))
+                )
+            ) * 7926.3352 AS distance
+        -- SELECT geodistance_miles(s1.stop_lat, s1.stop_lon, s2.stop_lat, s2.stop_lon)
+        FROM 
+            tmp__route_trips rt
+            INNER JOIN stoptimes st1
+            ON rt.trip_id = st1.trip_id AND st1.stop_sequence = rt.min_stop_sequence
+            INNER JOIN stops s1
+            ON st1.stop_id = s1.stop_id
+            INNER JOIN stoptimes st2
+            ON rt.trip_id = st2.trip_id AND st2.stop_sequence = rt.max_stop_sequence
+            INNER JOIN stops s2
+            ON st2.stop_id = s2.stop_id
+        WHERE rt.route_id = tmp__actual_line_alt_directions.route_id
+    ) <= 0.5,
+    FALSE
+); -- if it's less than a half mile (800 m) then consider the line to be circular
 
 -- calculate best-trip-count-per-service-id field (ideally i'd want this to be
 -- best-trip-count-per-day, but gtfs services are complicated sooooo heuristic
@@ -220,6 +228,19 @@ ADD PRIMARY KEY (mot_license_id, route_short_name, mot_alternative_id);
 
 -- aaand another level up
 DROP TABLE IF EXISTS actual_lines;
+
+-- CREATE TABLE actual_lines (
+--     mot_license_id VARCHAR,
+--     route_short_name VARCHAR,
+--     agency_id VARCHAR,
+--     headsign_1 VARCHAR,
+--     headsign_2 VARCHAR,
+--     is_night_line BOOLEAN,
+--     all_directions_grouped JSON,
+--     all_stopids_distinct JSON,
+
+--     PRIMARY KEY (mot_license_id, route_short_name)
+-- );
 
 SELECT mot_license_id,
        route_short_name,

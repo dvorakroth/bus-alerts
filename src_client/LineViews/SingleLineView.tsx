@@ -129,7 +129,7 @@ function ImplSingleLineView({data, loadingStatus, isModal, hasModal, showDistanc
                                 deleted_stop_ids: [],
                                 updated_stop_sequence: dir.stop_seq.map((stop_id) => [stop_id, false]), 
                                 has_no_route_changes: true,
-                                map_bounding_box: boundingBoxForStops(dir.stop_seq, data.all_stops)
+                                map_bounding_box: boundingBoxForStops(dir.stop_seq, data.all_stops, dir.shape)
                             }];
                         }
                         return changesDict;
@@ -340,7 +340,8 @@ function *iterateOverBitmask(bitmask: number) {
 
 function boundingBoxForStops(
     stopIds: Iterable<string>,
-    stops_for_map: Record<string, StopForMap>
+    stops_for_map: Record<string, StopForMap>,
+    shape?: null|([number, number][]),
 ): MapBoundingBox {
     /**
      * get bounding box of affected stops, for setting the maps' bounding box
@@ -367,6 +368,30 @@ function boundingBoxForStops(
         if (max_lat < stop.stop_lat) {
             max_lat = stop.stop_lat;
         }
+    }
+
+    for (const [lon, lat] of shape ?? []) {
+        if (min_lon > lon) {
+            min_lon = lon;
+        }
+        if (min_lat > lat) {
+            min_lat = lat;
+        }
+        if (max_lon < lon) {
+            max_lon = lon;
+        }
+        if (max_lat < lat) {
+            max_lat = lat;
+        }
+    }
+
+    if (!isFinite(min_lon) || !isFinite(min_lat) || !isFinite(max_lon) || !isFinite(max_lat)) {
+        return {
+            min_lon: -180,
+            max_lon: 180,
+            min_lat: -90,
+            max_lat: 90,
+        };
     }
 
     return {
